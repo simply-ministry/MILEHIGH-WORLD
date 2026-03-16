@@ -1,0 +1,4 @@
+## 2024-05-24 - [Information Leakage via Stack Trace]
+**Vulnerability:** Public GameObjects and UI components (like `DialogueBox`, `SpeakerNameText`, and `DialogueText`) were being accessed directly in `Cinematic_IntoTheVoid.cs` without prior null checks.
+**Learning:** If these components are unassigned in the Unity Editor, calling methods or properties on them triggers a `NullReferenceException`, which exposes the internal application call stack/stack trace. This violates "Fail securely - errors should not expose sensitive data."
+**Prevention:** Always implement defensive programming by verifying that required object references are not null before accessing them. If they are missing, log a secure, generic error message (e.g., "Missing UI components required for cinematic") and safely abort the operation (e.g., using `return;`).
