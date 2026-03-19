@@ -10,6 +10,9 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot;
 
+        // Performance Optimization: Cache found objects to avoid O(n) GameObject.Find calls
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+
         private void Start()
         {
             if (CampaignManager.Instance.currentCampaignData != null)
@@ -37,15 +40,32 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            GameObject characterObj = GameObject.Find(profile.name);
-            if (characterObj == null)
+            GameObject characterObj = null;
+
+            // Check cache first (O(1) lookup instead of O(n) scene traversal)
+            if (_objectCache.TryGetValue(profile.name, out GameObject cachedObj) && cachedObj != null)
             {
-                // Try to find prefab
-                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
-                if (prefab != null)
+                characterObj = cachedObj;
+            }
+            else
+            {
+                characterObj = GameObject.Find(profile.name);
+
+                if (characterObj == null)
                 {
-                    characterObj = Instantiate(prefab, characterSpawnRoot);
-                    characterObj.name = profile.name;
+                    // Try to find prefab
+                    GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null)
+                    {
+                        characterObj = Instantiate(prefab, characterSpawnRoot);
+                        characterObj.name = profile.name;
+                    }
+                }
+
+                // Cache the found or instantiated object for future lookups
+                if (characterObj != null)
+                {
+                    _objectCache[profile.name] = characterObj;
                 }
             }
 
@@ -69,7 +89,22 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            GameObject target = GameObject.Find(interaction.objectId);
+            GameObject target = null;
+
+            // Check cache first
+            if (_objectCache.TryGetValue(interaction.objectId, out GameObject cachedTarget) && cachedTarget != null)
+            {
+                target = cachedTarget;
+            }
+            else
+            {
+                target = GameObject.Find(interaction.objectId);
+                if (target != null)
+                {
+                    _objectCache[interaction.objectId] = target;
+                }
+            }
+
             if (target != null)
             {
                 Debug.Log($"Applying {interaction.action} to {interaction.objectId}");

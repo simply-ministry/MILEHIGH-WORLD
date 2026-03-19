@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid O(n) GameObject.Find in Initialization/Setup Loops
+**Learning:** Unity's `GameObject.Find()` operation is O(n) and deeply iterates the scene. Repeated calls for the same objects, especially when setting up many characters or interactive objects from JSON configuration loops, leads to significant and unnecessary latency. This pattern is common in dynamic data-driven scene instantiators like `SceneDirector`.
+**Action:** When dynamically instantiating or initializing a scene from a list of identifiers, cache `GameObject.Find()` results and instantiated references into a `Dictionary<string, GameObject>`. This converts repetitive O(n) string-based scene lookups into an O(1) dictionary retrieval.
