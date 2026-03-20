@@ -1,0 +1,4 @@
+## 2024-05-24 - Path Traversal via Unsanitized JSON Data in Unity Editor
+**Vulnerability:** Path traversal vulnerability in `CharacterFactory.cs` where imported JSON `charProfile.name` was used directly in an `AssetDatabase.CreateAsset` path without sanitization.
+**Learning:** Unity Editor scripts that dynamically generate files or paths from imported data (like JSON) are susceptible to path traversal. Even seemingly safe strings like "character name" can be manipulated maliciously (e.g. `../MaliciousAsset`) to overwrite critical project assets or write files outside the intended folder.
+**Prevention:** Always sanitize dynamically imported strings that are used in file paths. Use `Path.GetInvalidFileNameChars()` to strip/replace illegal characters, and ensure no directory separators are left before appending to a hardcoded base folder path.
