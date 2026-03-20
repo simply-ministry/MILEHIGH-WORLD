@@ -10,6 +10,25 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot;
 
+        // ⚡ Bolt: Cache for GameObject lookups to prevent expensive O(N) hierarchy traversals
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+
+        private GameObject FindCachedObject(string objectName)
+        {
+            if (_objectCache.TryGetValue(objectName, out GameObject cachedObj) && cachedObj != null)
+            {
+                return cachedObj;
+            }
+
+            GameObject foundObj = GameObject.Find(objectName);
+            if (foundObj != null)
+            {
+                _objectCache[objectName] = foundObj;
+            }
+
+            return foundObj;
+        }
+
         private void Start()
         {
             if (CampaignManager.Instance.currentCampaignData != null)
@@ -37,7 +56,7 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            GameObject characterObj = GameObject.Find(profile.name);
+            GameObject characterObj = FindCachedObject(profile.name);
             if (characterObj == null)
             {
                 // Try to find prefab
@@ -46,6 +65,7 @@ namespace Milehigh.Core
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
+                    _objectCache[profile.name] = characterObj; // ⚡ Bolt: add instantiated object to cache
                 }
             }
 
@@ -69,7 +89,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            GameObject target = GameObject.Find(interaction.objectId);
+            GameObject target = FindCachedObject(interaction.objectId);
             if (target != null)
             {
                 Debug.Log($"Applying {interaction.action} to {interaction.objectId}");
