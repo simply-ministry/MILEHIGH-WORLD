@@ -101,6 +101,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Start()
     {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
+        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            return;
+        }
+
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
