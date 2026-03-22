@@ -10,6 +10,8 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot;
 
+        // Cache for faster GameObject lookups by name
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // Performance Optimization: Cache found objects to avoid O(n) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
 
@@ -152,6 +154,7 @@ namespace Milehigh.Core
             {
                 _objectCache[objectName] = foundObj;
             }
+
             return foundObj;
         }
 
@@ -200,6 +203,7 @@ namespace Milehigh.Core
                     _objectCache[profile.name] = characterObj;
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
+                    _objectCache[profile.name] = characterObj; // Cache the new object
                     _cachedObjects[profile.name] = characterObj;
                     _objectCache[profile.name] = characterObj; // ⚡ Bolt: add instantiated object to cache
                     _objectCache[profile.name] = characterObj; // Cache the newly instantiated object
