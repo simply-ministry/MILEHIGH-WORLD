@@ -28,6 +28,22 @@ namespace Milehigh.Core
                 objectCache[name] = foundObj;
             }
             return foundObj;
+        // Cache to prevent expensive GameObject.Find calls in loops
+        private Dictionary<string, GameObject> _gameObjectCache = new Dictionary<string, GameObject>();
+
+        private GameObject GetCachedGameObject(string name)
+        {
+            if (_gameObjectCache.TryGetValue(name, out GameObject cachedObj) && cachedObj != null)
+            {
+                return cachedObj;
+            }
+
+            GameObject obj = GameObject.Find(name);
+            if (obj != null)
+            {
+                _gameObjectCache[name] = obj;
+            }
+            return obj;
         }
 
         private void Start()
@@ -70,6 +86,8 @@ namespace Milehigh.Core
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
                     objectCache[profile.name] = characterObj; // Cache newly created object
+                    // Cache the newly instantiated object
+                    _gameObjectCache[profile.name] = characterObj;
                 }
             }
 
