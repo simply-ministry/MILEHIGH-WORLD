@@ -110,6 +110,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public TextMeshProUGUI SpeakerNameText;
     public TextMeshProUGUI DialogueText;
 
+    private Coroutine typingCoroutine;
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
 
@@ -143,6 +144,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    public void ShowDialogue(string speaker, string message)
+    {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
     private void SetDialogue(string speaker, string dialogue)
     {
         if (activeTypingCoroutine != null)
@@ -185,6 +189,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     {
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
+        for (int i = 0; i <= message.Length; i++)
+        {
+            DialogueText.maxVisibleCharacters = i;
+            yield return new WaitForSeconds(0.03f);
+        }
 
         for (int i = 0; i <= message.Length; i++)
         {
@@ -223,6 +232,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
         yield return GetWait(1.5f);
         yield return new WaitForSeconds(1.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         SetDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         SpeakerNameText.text = "Delilah";
@@ -235,6 +245,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
         yield return GetWait(0.5f);
         yield return new WaitForSeconds(0.5f);
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         SetDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         SpeakerNameText.text = "Sky.ix";
@@ -247,6 +258,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
         yield return GetWait(0.7f);
         yield return new WaitForSeconds(0.7f);
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         SetDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         SpeakerNameText.text = "Kai";
@@ -259,6 +271,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
         yield return GetWait(1.2f);
         yield return new WaitForSeconds(1.2f);
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         SetDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         SpeakerNameText.text = "Delilah";
@@ -271,6 +284,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
         yield return GetWait(0.8f);
         yield return new WaitForSeconds(0.8f);
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         SetDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         SpeakerNameText.text = "Sky.ix";
@@ -290,6 +304,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
         yield return GetWait(0.5f);
         yield return new WaitForSeconds(0.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         SetDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         SpeakerNameText.text = "Kai";
@@ -302,6 +317,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
         yield return GetWait(1.5f);
         yield return new WaitForSeconds(1.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         SetDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         SpeakerNameText.text = "Delilah";
@@ -314,6 +330,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
         yield return GetWait(1.0f);
         yield return new WaitForSeconds(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         SetDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         SpeakerNameText.text = "Sky.ix";
