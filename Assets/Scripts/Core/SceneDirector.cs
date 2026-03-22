@@ -10,6 +10,8 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot;
 
+        // Cache to prevent expensive GameObject.Find calls in loops
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // Cache for GameObject references to prevent expensive GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // Cache to avoid O(N) GameObject.Find calls in loops
@@ -76,6 +78,9 @@ namespace Milehigh.Core
             }
         }
 
+        private GameObject FindCachedObject(string objName)
+        {
+            if (_objectCache.TryGetValue(objName, out GameObject obj) && obj != null)
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
@@ -86,6 +91,12 @@ namespace Milehigh.Core
                 return obj;
             }
 
+            obj = GameObject.Find(objName);
+            if (obj != null)
+            {
+                _objectCache[objName] = obj;
+            }
+            return obj;
             // Fallback to Find and cache the result
             GameObject foundObj = GameObject.Find(objectName);
             if (foundObj != null)
@@ -97,6 +108,7 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            GameObject characterObj = FindCachedObject(profile.name);
             GameObject characterObj = GetCachedObject(profile.name);
             GameObject characterObj = GetCachedGameObject(profile.name);
             if (characterObj == null)
@@ -107,6 +119,7 @@ namespace Milehigh.Core
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
+                    _objectCache[profile.name] = characterObj; // Cache new instance
 
                     // Add newly instantiated character to cache
                     _objectCache[profile.name] = characterObj;
@@ -136,6 +149,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            GameObject target = FindCachedObject(interaction.objectId);
             GameObject target = GetCachedObject(interaction.objectId);
             GameObject target = GetCachedGameObject(interaction.objectId);
             if (target != null)
