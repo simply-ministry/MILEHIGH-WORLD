@@ -17,12 +17,22 @@ namespace Milehigh.Editor
                 return;
             }
 
-            string json = File.ReadAllText(path);
-            HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
-
-            if (data == null || data.characters == null)
+            HorizonGameData data = null;
+            try
             {
-                Debug.LogError("Failed to parse campaign data.");
+                string json = File.ReadAllText(path);
+                data = JsonUtility.FromJson<HorizonGameData>(json);
+
+                if (data == null || data.characters == null)
+                {
+                    Debug.LogError("Failed to parse campaign data.");
+                    return;
+                }
+            }
+            catch (System.Exception)
+            {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
                 return;
             }
 
@@ -50,15 +60,7 @@ namespace Milehigh.Editor
                 string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
-                // Sanitize character name to prevent path traversal and invalid characters
-                string sanitizedName = charProfile.name;
-                foreach (char c in Path.GetInvalidFileNameChars())
-                {
-                    sanitizedName = sanitizedName.Replace(c, '_');
-                }
-                sanitizedName = sanitizedName.Replace(" ", "_");
 
-                string assetPath = $"{folderPath}/{sanitizedName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
                 Debug.Log($"Created character asset: {assetPath}");
             }
