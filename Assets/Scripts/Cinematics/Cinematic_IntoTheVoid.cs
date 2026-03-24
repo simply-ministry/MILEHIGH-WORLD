@@ -188,6 +188,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             {
                 yield return GetWait(typingSpeed);
             }
+            // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations per character
+            yield return GetWait(typingSpeed);
         }
         typingCoroutine = null;
     }
