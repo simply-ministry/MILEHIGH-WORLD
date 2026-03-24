@@ -183,6 +183,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
 
+        // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent per-iteration GC allocations
+        var wait = new WaitForSeconds(typingSpeed);
         // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent GC allocation per character.
         WaitForSeconds wait = new WaitForSeconds(typingSpeed);
         // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent GC allocations per character typed.
