@@ -37,6 +37,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using TMPro;
 
 /// <summary>
@@ -98,10 +99,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public TextMeshProUGUI DialogueText;
 
     [Header("UX Settings")]
-    [Tooltip("Delay in seconds between each character being revealed.")]
-    public float typingSpeed = 0.03f;
+    [FormerlySerializedAs("typingSpeed")]
+    [Tooltip("Base delay in seconds between each character being revealed.")]
+    public float baseTypingSpeed = 0.03f;
+    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
+    public float kaiSpeedMultiplier = 3.0f;
+    [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
+    public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine typingCoroutine;
+    private float currentTypingSpeed;
+    private bool skipRequested;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
@@ -129,13 +137,44 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    void Update()
+    {
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
     /// <summary>
     /// Updates the speaker name and begins the typewriter effect for the dialogue message.
     /// </summary>
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
         SpeakerNameText.text = speaker;
+
+        // Apply speaker-specific speed multipliers based on voice profiles
+        float multiplier = 1.0f;
+        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+        // Apply character-specific colors for better speaker identification
+        switch (speaker)
+        {
+            case "Sky.ix":
+                SpeakerNameText.color = Color.cyan;
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                break;
+        }
+
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
 
@@ -146,14 +185,67 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent per-iteration GC allocations
         var wait = new WaitForSeconds(typingSpeed);
+        // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent GC allocation per character.
+        WaitForSeconds wait = new WaitForSeconds(typingSpeed);
+        // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent GC allocations per character typed.
+        var wait = new WaitForSeconds(typingSpeed);
+        for (int i = 0; i <= message.Length; i++)
+        {
+            // UX Enhancement: Robust skip logic using persistent flag
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = message.Length;
+                break;
+            }
+
+            DialogueText.maxVisibleCharacters = i;
+
+            if (i < message.Length)
+            {
+                char c = message[i];
+                float delay = currentTypingSpeed;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                // Note: Delay occurs *after* character reveal for natural rhythm.
+                if (c == '.' || c == '!' || c == '?') delay += 0.4f;
+                else if (c == ',' || c == ';' || c == ':') delay += 0.2f;
+
+                yield return GetWait(delay);
+            }
+            // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
+            yield return wait;
 
         for (int i = 0; i <= message.Length; i++)
         {
             DialogueText.maxVisibleCharacters = i;
             yield return wait;
+
+            // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
+            if (i > 0)
+            {
+                char c = message[i - 1];
+                if (c == '.' || c == '?' || c == '!')
+                {
+                    yield return GetWait(typingSpeed * 15f);
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    yield return GetWait(typingSpeed * 8f);
+                }
+                else
+                {
+                    yield return GetWait(typingSpeed);
+                }
+            }
+            else
+            {
+                yield return GetWait(typingSpeed);
+            }
             // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations per character
             yield return GetWait(typingSpeed);
         }
+
+        skipRequested = false;
         typingCoroutine = null;
     }
 
