@@ -18,6 +18,28 @@ namespace Milehigh.Data
         public string environment;
         public int systemParity;
         public float voidSaturationLevel;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
+        /// </summary>
+        public bool IsValid()
+        {
+            // Void saturation must be within a safe 0.0 to 1.0 range.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+        /// Validates metadata integrity and safety bounds.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            {
+                Debug.LogError($"Invalid voidSaturationLevel detected: {voidSaturationLevel}. Must be between 0.0 and 1.0.");
+                return false;
+            }
+            return true;
+        }
     }
 
     [Serializable]
@@ -71,5 +93,37 @@ namespace Milehigh.Data
         public Metadata metadata;
         public List<CharacterProfile> characters;
         public List<SceneScenario> scenarios;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (metadata == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
+                return false;
+            }
+
+            if (!metadata.IsValid())
+            {
+                return false;
+            }
+
+            if (characters == null || characters.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+        /// Validates the deserialized game data for security and integrity.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (metadata == null) return false;
+            if (!metadata.IsValid()) return false;
+            if (characters == null || scenarios == null) return false;
+
+            return true;
+        }
     }
 }
