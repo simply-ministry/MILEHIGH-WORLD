@@ -182,24 +182,30 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     {
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
 
         // BOLT: Typewriter effect optimized for performance.
         // We use the existing GetWait(float) method to ensure zero-allocation yields,
         // avoiding GC pressure during dialogue sequences.
         for (int i = 0; i <= message.Length; i++)
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 0; i <= totalVisibleCharacters; i++)
         {
             // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
             {
-                DialogueText.maxVisibleCharacters = message.Length;
+                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
                 break;
             }
 
             DialogueText.maxVisibleCharacters = i;
 
-            if (i < message.Length)
+            if (i < totalVisibleCharacters)
             {
-                char c = message[i];
+                // To handle potential rich text tags and punctuation correctly,
+                // we retrieve the actual character info from TMPro's textInfo.
+                char c = DialogueText.textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
