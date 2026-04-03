@@ -4,7 +4,12 @@ using UnityEngine;
 
 namespace Milehigh.Data
 {
-    public enum LightingState { Day, Night, Dynamic }
+    public enum LightingState
+    {
+        Day,
+        Night,
+        Dynamic
+    }
 
     [Serializable]
     public class Metadata
@@ -14,51 +19,113 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
-        public bool IsValid() => !string.IsNullOrEmpty(environment) && environment.Length <= 128 &&
-                                 voidSaturationLevel >= 0f && voidSaturationLevel <= 1f;
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(environment)) return false;
+            if (environment.Length > 128) return false;
+            if (voidSaturationLevel < 0.0f) return false;
+            if (voidSaturationLevel > 1.0f) return false;
+            return true;
+        }
     }
 
     [Serializable]
     public class CharacterProfile
     {
-        public string name, role, behaviorScript;
+        public string name;
+        public string role;
+        public string behaviorScript;
         public string[] traits;
 
-        public bool IsValid() => !string.IsNullOrEmpty(name) && name.Length <= 64 &&
-                                 !string.IsNullOrEmpty(role) && role.Length <= 64 &&
-                                 !string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length <= 64 &&
-                                 (traits == null || traits.Length <= 10);
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            if (name.Length > 64) return false;
+            if (string.IsNullOrEmpty(role)) return false;
+            if (role.Length > 64) return false;
+            if (string.IsNullOrEmpty(behaviorScript)) return false;
+            if (behaviorScript.Length > 64) return false;
+            if (traits != null && traits.Length > 10) return false;
+            return true;
+        }
     }
 
     [Serializable]
     public class ObjectInteraction
     {
-        public string objectId, action;
+        public string objectId;
+        public string action;
         public bool isVector;
-        public float floatValue, x, y, z;
-        public Vector3 GetVectorValue() => new Vector3(x, y, z);
-        public bool IsValid() => !string.IsNullOrEmpty(objectId) && objectId.Length <= 128 &&
-                                 !string.IsNullOrEmpty(action) && action.Length <= 128;
+        public float floatValue;
+        public float x;
+        public float y;
+        public float z;
+
+        public Vector3 GetVectorValue()
+        {
+            return new Vector3(x, y, z);
+        }
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId)) return false;
+            if (objectId.Length > 128) return false;
+            if (string.IsNullOrEmpty(action)) return false;
+            if (action.Length > 128) return false;
+            return true;
+        }
     }
 
     [Serializable]
     public class Dialogue
     {
-        public string speaker, text, trigger;
-        public bool IsValid() => !string.IsNullOrEmpty(speaker) && speaker.Length <= 64 &&
-                                 !string.IsNullOrEmpty(text) && text.Length <= 1024;
+        public string speaker;
+        public string text;
+        public string trigger;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(speaker)) return false;
+            if (speaker.Length > 64) return false;
+            if (string.IsNullOrEmpty(text)) return false;
+            if (text.Length > 1024) return false;
+            return true;
+        }
     }
 
     [Serializable]
     public class SceneScenario
     {
-        public string scenarioId, description;
+        public string scenarioId;
+        public string description;
         public List<ObjectInteraction> interactiveObjects;
         public List<Dialogue> dialogue;
 
-        public bool IsValid() => !string.IsNullOrEmpty(scenarioId) && scenarioId.Length <= 128 &&
-                                 (interactiveObjects == null || (interactiveObjects.Count <= 50 && !interactiveObjects.Exists(o => !o.IsValid()))) &&
-                                 (dialogue == null || (dialogue.Count <= 50 && !dialogue.Exists(d => !d.IsValid())));
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId)) return false;
+            if (scenarioId.Length > 128) return false;
+
+            if (interactiveObjects != null)
+            {
+                if (interactiveObjects.Count > 50) return false;
+                foreach (var obj in interactiveObjects)
+                {
+                    if (obj == null || !obj.IsValid()) return false;
+                }
+            }
+
+            if (dialogue != null)
+            {
+                if (dialogue.Count > 50) return false;
+                foreach (var d in dialogue)
+                {
+                    if (d == null || !d.IsValid()) return false;
+                }
+            }
+
+            return true;
+        }
     }
 
     [Serializable]
@@ -69,8 +136,29 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters;
         public List<SceneScenario> scenarios;
 
-        public bool IsValid() => metadata != null && metadata.IsValid() &&
-                                 characters != null && characters.Count > 0 && characters.Count <= 50 && !characters.Exists(c => !c.IsValid()) &&
-                                 (scenarios == null || (scenarios.Count <= 100 && !scenarios.Exists(s => !s.IsValid())));
+        public bool IsValid()
+        {
+            if (metadata == null) return false;
+            if (!metadata.IsValid()) return false;
+
+            if (characters == null) return false;
+            if (characters.Count == 0) return false;
+            if (characters.Count > 50) return false;
+            foreach (var character in characters)
+            {
+                if (character == null || !character.IsValid()) return false;
+            }
+
+            if (scenarios != null)
+            {
+                if (scenarios.Count > 100) return false;
+                foreach (var scenario in scenarios)
+                {
+                    if (scenario == null || !scenario.IsValid()) return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

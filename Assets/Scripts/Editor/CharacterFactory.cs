@@ -20,7 +20,6 @@ namespace Milehigh.Editor
             string json = File.ReadAllText(path);
             HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
 
-            // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization
             if (data == null || !data.IsValid())
             {
@@ -49,7 +48,11 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 // Required sequence for robust sanitization:
-                string safeFileName = charProfile.name ?? "unnamed_character";
+                string safeFileName = charProfile.name;
+                if (string.IsNullOrEmpty(safeFileName))
+                {
+                    safeFileName = "unnamed_character";
+                }
 
                 // 1. Replace invalid filename characters with underscores
                 foreach (char c in Path.GetInvalidFileNameChars())
@@ -63,10 +66,10 @@ namespace Milehigh.Editor
                 // 3. Replace whitespace with underscores
                 safeFileName = safeFileName.Replace(" ", "_");
 
-                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                string assetPath = folderPath + "/" + safeFileName + ".asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
                 // SECURITY: Log relative asset path to avoid absolute path disclosure
-                Debug.Log($"Created character asset: {assetPath}");
+                Debug.Log("Created character asset: " + assetPath);
             }
 
             AssetDatabase.SaveAssets();
