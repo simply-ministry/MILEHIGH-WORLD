@@ -53,7 +53,8 @@ namespace Milehigh.Data
         {
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
-            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 64) return false;
+            // Increased limit for behaviorScript to accommodate larger logic blocks
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 1024) return false;
             if (traits != null && traits.Length > 10) return false;
             return true;
         }
@@ -117,13 +118,17 @@ namespace Milehigh.Data
             if (interactiveObjects != null)
             {
                 foreach (var interaction in interactiveObjects)
+                {
                     if (!interaction.IsValid()) return false;
+                }
             }
 
             if (dialogue != null)
             {
                 foreach (var d in dialogue)
+                {
                     if (!d.IsValid()) return false;
+                }
             }
 
             return true;
@@ -162,10 +167,14 @@ namespace Milehigh.Data
             }
 
             foreach (var profile in characters)
+            {
                 if (!profile.IsValid()) return false;
+            }
 
             foreach (var scenario in scenarios)
+            {
                 if (!scenario.IsValid()) return false;
+            }
 
             return true;
         }
