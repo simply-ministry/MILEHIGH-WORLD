@@ -1,3 +1,4 @@
+#if UNITY_INCLUDE_TESTS || !UNITY_5_3_OR_NEWER
 using System;
 using System.Linq;
 using NUnit.Framework;
@@ -64,3 +65,4 @@ namespace Milehigh.Tests
         }
     }
 }
+#endif
