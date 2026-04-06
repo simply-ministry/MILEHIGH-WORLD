@@ -101,6 +101,11 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
             clip(albedo.a - _Cutoff);
 
+            // ⚡ BOLT: Optimized albedo assignment.
+            // By assigning early, we ensure that subsequent additive effects like SSS
+            // are properly blended rather than being discarded or overwritten at the end.
+            o.Albedo = albedo.rgb;
+
             // --- PBR Properties ---
             fixed4 rmai = tex2D(_RMAIMap, IN.uv_MainTex);
             o.Smoothness = rmai.r * _Glossiness;
@@ -149,8 +154,6 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half sss = sss_4 * sss_4 * _SSSScale;
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
             }
-
-            o.Albedo = albedo.rgb;
         }
         ENDCG
     }
