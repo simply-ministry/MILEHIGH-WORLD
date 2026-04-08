@@ -117,7 +117,7 @@ namespace Milehigh.Data
                 if (interactiveObjects.Count > 100) return false;
                 foreach (var interaction in interactiveObjects)
                 {
-                    if (!interaction.IsValid()) return false;
+                    if (interaction == null || !interaction.IsValid()) return false;
                 }
             }
 
@@ -126,7 +126,7 @@ namespace Milehigh.Data
                 if (dialogue.Count > 100) return false;
                 foreach (var d in dialogue)
                 {
-                    if (!d.IsValid()) return false;
+                    if (d == null || !d.IsValid()) return false;
                 }
             }
 
@@ -167,9 +167,9 @@ namespace Milehigh.Data
 
             foreach (var character in characters)
             {
-                if (!character.IsValid())
+                if (character == null || !character.IsValid())
                 {
-                    Debug.LogError($"[Security] Game data validation failed: Invalid character profile for {character.name}.");
+                    Debug.LogError("[Security] Game data validation failed: Invalid or null character profile.");
                     return false;
                 }
             }
@@ -182,9 +182,9 @@ namespace Milehigh.Data
 
             foreach (var scenario in scenarios)
             {
-                if (!scenario.IsValid())
+                if (scenario == null || !scenario.IsValid())
                 {
-                    Debug.LogError($"[Security] Game data validation failed: Invalid scenario {scenario.scenarioId}.");
+                    Debug.LogError("[Security] Game data validation failed: Invalid or null scenario.");
                     return false;
                 }
             }
