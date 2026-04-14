@@ -11,7 +11,7 @@ namespace Milehigh.Data
         Dynamic
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Metadata
     {
         public LightingState lighting;
@@ -41,7 +41,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class CharacterProfile
     {
         public string name;
@@ -62,7 +62,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class ObjectInteraction
     {
         public string objectId;
@@ -80,7 +80,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Dialogue
     {
         public string speaker;
@@ -88,7 +88,7 @@ namespace Milehigh.Data
         public string trigger;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class SceneScenario
     {
         public string scenarioId;
@@ -107,7 +107,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class HorizonGameData
     {
         public string sceneId;
