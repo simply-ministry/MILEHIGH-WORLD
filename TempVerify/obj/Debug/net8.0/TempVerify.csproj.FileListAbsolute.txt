@@ -1,0 +1,12 @@
+/app/TempVerify/bin/Debug/net8.0/TempVerify.deps.json
+/app/TempVerify/bin/Debug/net8.0/TempVerify.dll
+/app/TempVerify/bin/Debug/net8.0/TempVerify.pdb
+/app/TempVerify/obj/Debug/net8.0/TempVerify.GeneratedMSBuildEditorConfig.editorconfig
+/app/TempVerify/obj/Debug/net8.0/TempVerify.AssemblyInfoInputs.cache
+/app/TempVerify/obj/Debug/net8.0/TempVerify.AssemblyInfo.cs
+/app/TempVerify/obj/Debug/net8.0/TempVerify.csproj.CoreCompileInputs.cache
+/app/TempVerify/obj/Debug/net8.0/TempVerify.sourcelink.json
+/app/TempVerify/obj/Debug/net8.0/TempVerify.dll
+/app/TempVerify/obj/Debug/net8.0/refint/TempVerify.dll
+/app/TempVerify/obj/Debug/net8.0/TempVerify.pdb
+/app/TempVerify/obj/Debug/net8.0/ref/TempVerify.dll
