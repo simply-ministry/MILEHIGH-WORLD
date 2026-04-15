@@ -22,7 +22,8 @@ namespace Milehigh.Core
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Use ReferenceEquals for the cache check to distinguish between a truly missing
             // entry and one that was cached as null (negative caching).
-            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            GameObject obj;
+            if (_objectCache.TryGetValue(objectName, out obj))
             {
                 // Unity's == operator returns true for destroyed objects.
                 if (obj != null) return obj;
@@ -61,7 +62,8 @@ namespace Milehigh.Core
             _prefabCache.Clear();
 
             // BOLT: Pre-populate object cache with a single O(N) pass to avoid multiple GameObject.Find calls
-            var allObjects = Object.FindObjectsByType<GameObject>(FindObjectsInactive.None, FindObjectsSortMode.None);
+            // Using FindObjectsOfType for maximum compatibility across Unity versions.
+            GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();
             foreach (var go in allObjects)
             {
                 if (!_objectCache.ContainsKey(go.name))
