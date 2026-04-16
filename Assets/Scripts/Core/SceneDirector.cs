@@ -7,21 +7,21 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
-        public List<GameObject> characterPrefabs; // Assign in Inspector
-        public Transform characterSpawnRoot;
+        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform? characterSpawnRoot;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
-        private GameObject GetCachedObject(string objectName)
+        private GameObject? GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
             // We use System.Object.ReferenceEquals(obj, null) to distinguish between a truly null reference
             // and a destroyed Unity object, which allows us to implement "negative caching" for missing objects.
-            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 if (obj != null) return obj;
                 // If the reference is not null but obj == null, it's a destroyed object.
@@ -30,7 +30,7 @@ namespace Milehigh.Core
 
             // BOLT: Fallback to O(N) scene traversal only if not cached (or previously not found).
             obj = GameObject.Find(objectName);
-            _objectCache[objectName] = obj;
+            _objectCache[objectName] = obj!;
             return obj;
         }
 
