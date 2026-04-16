@@ -23,13 +23,19 @@ namespace Milehigh.Core
             // and a destroyed Unity object, which allows us to implement "negative caching" for missing objects.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
+                // Managed reference is null: object was never found (cached negative result).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // Managed reference exists, check if Unity object is still alive.
                 if (obj != null) return obj;
-                // If the reference is not null but obj == null, it's a destroyed object.
-                if (!System.Object.ReferenceEquals(obj, null)) return null;
+
+                // Managed reference is non-null but obj == null: object was destroyed.
+                return null;
             }
 
-            // BOLT: Fallback to O(N) scene traversal only if not cached (or previously not found).
+            // BOLT: Fallback to O(N) scene traversal only if not cached.
             obj = GameObject.Find(objectName);
+            // Cache the result (including null if not found) for future O(1) retrieval.
             _objectCache[objectName] = obj!;
             return obj;
         }
