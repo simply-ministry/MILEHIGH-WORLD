@@ -12,25 +12,33 @@ namespace Milehigh.Core
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
-            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
-            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
+            // We use System.Object.ReferenceEquals(obj, null) to distinguish between a truly null reference
+            // and a destroyed Unity object, which allows us to implement "negative caching" for missing objects.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
-                return obj;
+                if (obj != null) return obj;
+                // If the reference is not null but obj == null, it's a destroyed object.
+                if (!System.Object.ReferenceEquals(obj, null)) return null;
             }
 
-            // BOLT: Fallback to O(N) scene traversal only if not cached.
+            // BOLT: Fallback to O(N) scene traversal only if not cached (or previously not found).
             obj = GameObject.Find(objectName);
-            if (obj != null)
-            {
-                _objectCache[objectName] = obj;
-            }
+            _objectCache[objectName] = obj;
             return obj;
+        }
+
+        private void OnDestroy()
+        {
+            // BOLT: Ensure references are released to prevent memory leaks, especially with negative caching.
+            _objectCache.Clear();
+            _prefabCache.Clear();
         }
 
         private void Start()
@@ -45,8 +53,17 @@ namespace Milehigh.Core
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
-            // Clear cache at start of setup to avoid stale references across scenes
+            // BOLT: Optimization - Pre-populate the cache with a single scene traversal.
+            // This avoids multiple O(N) GameObject.Find calls later.
             _objectCache.Clear();
+            var allObjects = Object.FindObjectsByType<GameObject>(FindObjectsInactive.None, FindObjectsSortMode.None);
+            foreach (var go in allObjects)
+            {
+                if (!_objectCache.ContainsKey(go.name))
+                {
+                    _objectCache[go.name] = go;
+                }
+            }
 
             // Instantiate characters if not already in scene
             foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
@@ -67,8 +84,13 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
-                // Try to find prefab if not in scene
-                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                // BOLT: Optimized prefab lookup with O(1) dictionary cache.
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    _prefabCache[profile.name] = prefab;
+                }
+
                 if (prefab != null)
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
