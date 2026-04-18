@@ -6,14 +6,14 @@ namespace Milehigh.Core
 {
     public class CampaignManager : MonoBehaviour
     {
-        private static CampaignManager _instance;
+        private static CampaignManager? _instance;
         public static CampaignManager Instance
         {
             get
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CampaignManager>();
+                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
@@ -24,18 +24,18 @@ namespace Milehigh.Core
             }
         }
 
-        public HorizonGameData currentCampaignData;
+        public HorizonGameData? currentCampaignData;
         public float currentVoidSaturationLevel;
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
+            if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
             {
-                Destroy(gameObject);
+                UnityEngine.Object.Destroy(gameObject);
                 return;
             }
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            UnityEngine.Object.DontDestroyOnLoad(gameObject);
             LoadCampaignData();
         }
 

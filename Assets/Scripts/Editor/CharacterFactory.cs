@@ -18,7 +18,7 @@ namespace Milehigh.Editor
             }
 
             string json = File.ReadAllText(path);
-            HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
             // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization to prevent processing of malicious or malformed content.
@@ -41,10 +41,10 @@ namespace Milehigh.Editor
             foreach (var charProfile in data.characters)
             {
                 CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
-                asset.characterName = charProfile.name;
-                asset.role = charProfile.role;
-                asset.traits = charProfile.traits;
-                asset.behaviorScript = charProfile.behaviorScript;
+                asset.characterName = charProfile.name ?? "unnamed";
+                asset.role = charProfile.role ?? "none";
+                asset.traits = charProfile.traits ?? new string[0];
+                asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 // Malicious JSON could use "../" or absolute paths to write assets outside the intended directory.
@@ -61,7 +61,7 @@ namespace Milehigh.Editor
                 string safeFileName = Path.GetFileName(baseName).Replace(" ", "_");
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
-                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.CreateAsset((UnityEngine.Object)asset, assetPath);
 
                 // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 Debug.Log($"Created character asset: {assetPath}");
