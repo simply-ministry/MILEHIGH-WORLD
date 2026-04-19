@@ -1,0 +1,6 @@
+/app/TempTest/obj/Debug/net8.0/TempTest.csproj.AssemblyReference.cache
+/app/TempTest/obj/Debug/net8.0/TempTest.GeneratedMSBuildEditorConfig.editorconfig
+/app/TempTest/obj/Debug/net8.0/TempTest.AssemblyInfoInputs.cache
+/app/TempTest/obj/Debug/net8.0/TempTest.AssemblyInfo.cs
+/app/TempTest/obj/Debug/net8.0/TempTest.csproj.CoreCompileInputs.cache
+/app/TempTest/obj/Debug/net8.0/TempTest.sourcelink.json
