@@ -107,7 +107,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
-    private Coroutine typingCoroutine;
+    private Coroutine? typingCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
 
