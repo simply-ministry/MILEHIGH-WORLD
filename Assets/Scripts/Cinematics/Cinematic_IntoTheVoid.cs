@@ -221,7 +221,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.text = message + " ▽";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
-        skipRequested = false;
         typingCoroutine = null;
     }
 
