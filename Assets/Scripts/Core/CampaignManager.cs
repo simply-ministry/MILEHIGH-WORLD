@@ -64,23 +64,15 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogError($"Error loading campaign data: {ex.Message}"); // Security: Mask stack trace
-                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
-                        Debug.Log($"Campaign data loaded from {fileName}");
-                    }
-                }
-                catch (System.Exception)
-                {
-                    Debug.LogError($"Failed to load or parse campaign data from {fileName}.");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
-                    Debug.LogError($"Failed to load campaign data from {fileName}. Error parsing file.");
+                    // Log only the file name, not the absolute path, to prevent information disclosure
+                    Debug.LogError($"Error loading campaign data from {Path.GetFileName(filePath)}: {ex.Message}");
                 }
             }
             else
             {
-                Debug.LogError($"Campaign master JSON not found at {fileName}"); // Security: Don't log full paths
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
-                Debug.LogError($"Campaign master JSON not found: {fileName}");
+                Debug.LogError($"Campaign master JSON not found: {Path.GetFileName(filePath)}");
 
                 // Fallback for current environment if needed
                 if (!Application.isEditor) {
