@@ -56,3 +56,7 @@
 ## 2026-04-22 - Unity Prefab Lookup and Cache Persistence
 **Learning:** In data-driven Unity systems like 'SceneDirector.cs', spawning characters often involves an O(P) linear search through a prefab list using 'List.Find'. For scenarios with many prefabs, this becomes a repetitive bottleneck. Additionally, clearing GameObject caches on every scenario update forces redundant O(N) scene traversals for objects that haven't changed.
 **Action:** Use a 'Dictionary<string, GameObject>' to cache prefab lookups for O(1) retrieval. Allow lazy-loading object caches to persist across scenario updates to gain incremental performance, and use 'OnDestroy' to safely release Unity object references and prevent memory leaks.
+
+## 2026-04-22 - CI Compilation Error Masks
+**Learning:** GitHub CI 'billing issue' errors in this repository often mask C# compilation failures, particularly related to Nullable Reference Types (CS8618).
+**Action:** Always initialize public Inspector fields with 'null!' or use nullable types ('?') in modified files to ensure CI passes even when detailed logs are unavailable.
