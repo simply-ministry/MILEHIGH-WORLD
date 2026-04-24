@@ -16,16 +16,21 @@ namespace Milehigh.Core
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
         private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
 
-        private GameObject GetCachedObject(string objectName)
+        private GameObject? GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
-            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
-            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
-                // BOLT: Surgical negative caching. If obj is null, it means we already searched for it
-                // and it doesn't exist in the scene. We return null immediately to skip GameObject.Find.
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                // or just return the Unity null which behaves like null.
+                if (obj == null) return null;
+
                 return obj;
             }
 
@@ -33,7 +38,7 @@ namespace Milehigh.Core
             obj = GameObject.Find(objectName);
 
             // BOLT: Cache the result even if null (negative caching) to prevent repeated searches.
-            _objectCache[objectName] = obj;
+            _objectCache[objectName] = obj!;
 
             return obj;
         }
@@ -70,10 +75,14 @@ namespace Milehigh.Core
                 }
             }
 
-            // Instantiate characters if not already in scene
-            foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.characters != null)
             {
-                SpawnOrUpdateCharacter(charProfile);
+                // Instantiate characters if not already in scene
+                foreach (var charProfile in campaignData.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
+                }
             }
 
             // Execute interactive objects logic
