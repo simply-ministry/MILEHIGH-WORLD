@@ -11,10 +11,10 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
-        private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
 
         private GameObject? GetCachedObject(string objectName)
         {
@@ -38,16 +38,17 @@ namespace Milehigh.Core
             obj = GameObject.Find(objectName);
 
             // BOLT: Cache the result even if null (negative caching) to prevent repeated searches.
-            _objectCache[objectName] = obj!;
+            _objectCache[objectName] = obj;
 
             return obj;
         }
 
         private void Start()
         {
-            if (CampaignManager.Instance.currentCampaignData != null)
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             {
-                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                SetupScene(campaignData.scenarios[0]);
             }
         }
 
@@ -86,21 +87,24 @@ namespace Milehigh.Core
             }
 
             // Execute interactive objects logic
-            foreach (var interaction in scenario.interactiveObjects)
+            if (scenario.interactiveObjects != null)
             {
-                ApplyInteraction(interaction);
+                foreach (var interaction in scenario.interactiveObjects)
+                {
+                    ApplyInteraction(interaction);
+                }
             }
         }
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            GameObject characterObj = GetCachedObject(profile.name);
+            GameObject? characterObj = GetCachedObject(profile.name);
 
             if (characterObj == null)
             {
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
                 // instead of characterPrefabs.Find (O(P))
-                GameObject prefab = null;
+                GameObject? prefab = null;
 
                 // Try exact match first
                 if (!_prefabLookupCache.TryGetValue(profile.name, out prefab))
@@ -108,7 +112,7 @@ namespace Milehigh.Core
                     // Fallback to partial match if exact match fails (legacy support)
                     foreach (var kvp in _prefabLookupCache)
                     {
-                        if (kvp.Key.Contains(profile.name))
+                        if (kvp.Key != null && kvp.Key.Contains(profile.name))
                         {
                             prefab = kvp.Value;
                             break;
@@ -146,7 +150,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            GameObject target = GetCachedObject(interaction.objectId);
+            GameObject? target = GetCachedObject(interaction.objectId);
 
             if (target != null)
             {
