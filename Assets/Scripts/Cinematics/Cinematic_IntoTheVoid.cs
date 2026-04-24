@@ -202,55 +202,52 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
             {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                DialogueText.maxVisibleCharacters = totalCharacters;
                 break;
             }
 
             DialogueText.maxVisibleCharacters = i;
 
-            if (i < totalVisibleCharacters)
+            if (i < messageCharacters)
             {
                 float delay = currentTypingSpeed;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the previous character (i-1) to pause *after* it has been revealed.
-                if (i > 0)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                // We check the current character (i) to pause *after* it has been revealed.
+                char c = DialogueText.textInfo.characterInfo[i].character;
 
-                    if (c == '!' || c == '?')
+                if (c == '!' || c == '?')
+                {
+                    delay = currentTypingSpeed * 15f;
+                }
+                else if (c == '.')
+                {
+                    // Look-ahead logic: Don't pause for mid-word periods (e.g., Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (i + 1 < messageCharacters)
+                    {
+                        char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence)
                     {
                         delay = currentTypingSpeed * 15f;
                     }
-                    else if (c == '.')
+                    else
                     {
-                        // Look-ahead logic: Don't pause for mid-word periods (e.g., Sky.ix)
-                        bool isEndOfSentence = true;
-                        if (i < totalVisibleCharacters)
-                        {
-                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
-                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                        }
+                        // Not end of sentence. Check if part of an ellipsis.
+                        bool isEllipsis = false;
+                        if (i + 1 < messageCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
 
-                        if (isEndOfSentence)
-                        {
-                            delay = currentTypingSpeed * 15f;
-                        }
-                        else
-                        {
-                            // Not end of sentence. Check if part of an ellipsis.
-                            bool isEllipsis = false;
-                            if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                            if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-
-                            if (isEllipsis) delay = currentTypingSpeed * 5f;
-                            else delay = currentTypingSpeed; // Mid-word period (e.g., Sky.ix)
-                        }
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else delay = currentTypingSpeed; // Mid-word period (e.g., Sky.ix)
                     }
-                    else if (c == ',' || c == ';' || c == ':')
-                    {
-                        delay = currentTypingSpeed * 8f;
-                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 }
 
                 yield return GetWait(delay);
