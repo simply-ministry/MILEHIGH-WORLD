@@ -67,13 +67,9 @@ namespace Milehigh.Core
                     }
                     else
                     {
-                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
+                        // SECURITY: Log the validation failure without exposing internal paths
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or is malformed.");
                         currentCampaignData = null; // Ensure we don't use invalid data
-                    }
-                    else
-                    {
-                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
-                        currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)
