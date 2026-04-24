@@ -76,6 +76,13 @@ namespace Milehigh.Data
         {
             return new Vector3(x, y, z);
         }
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 64) return false;
+            if (!string.IsNullOrEmpty(action) && action.Length > 64) return false;
+            return true;
+        }
     }
 
     [Serializable]
@@ -111,7 +118,7 @@ namespace Milehigh.Data
             {
                 foreach (var interaction in interactiveObjects)
                 {
-                    if (string.IsNullOrEmpty(interaction.objectId) || interaction.objectId.Length > 64) return false;
+                    if (interaction == null || !interaction.IsValid()) return false;
                 }
             }
 
