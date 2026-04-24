@@ -197,7 +197,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         int totalCharacters = DialogueText.textInfo.characterCount;
         int messageCharacters = totalCharacters - 1; // Everything except the '▽'
 
-        for (int i = 0; i <= messageCharacters; i++)
+        for (int i = 0; i <= totalCharacters; i++)
         {
             // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
@@ -208,13 +208,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             DialogueText.maxVisibleCharacters = i;
 
-            if (i < messageCharacters)
+            // Rhythmic pause loop: pauses after each character is revealed
+            if (i > 0 && i <= messageCharacters)
             {
                 float delay = currentTypingSpeed;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the current character (i) to pause *after* it has been revealed.
-                char c = DialogueText.textInfo.characterInfo[i].character;
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
                 if (c == '!' || c == '?')
                 {
@@ -224,9 +222,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 {
                     // Look-ahead logic: Don't pause for mid-word periods (e.g., Sky.ix)
                     bool isEndOfSentence = true;
-                    if (i + 1 < messageCharacters)
+                    if (i < messageCharacters)
                     {
-                        char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                        char nextChar = DialogueText.textInfo.characterInfo[i].character;
                         if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
                     }
 
@@ -238,8 +236,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                     {
                         // Not end of sentence. Check if part of an ellipsis.
                         bool isEllipsis = false;
-                        if (i + 1 < messageCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
-                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i < messageCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
 
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
                         else delay = currentTypingSpeed; // Mid-word period (e.g., Sky.ix)
@@ -253,10 +251,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 yield return GetWait(delay);
             }
         }
-
-        // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        // The symbol is already in the text, we just need to reveal it.
-        DialogueText.maxVisibleCharacters = totalCharacters;
 
         skipRequested = false;
         typingCoroutine = null;

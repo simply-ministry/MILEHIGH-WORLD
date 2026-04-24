@@ -36,9 +36,9 @@
 **Learning:** In Unity TextMeshPro, iterating over string length for typewriter reveals can break when rich text tags (like <color> or <b>) are present, as the tag characters are revealed one-by-one. Using 'TMP_Text.ForceMeshUpdate()' followed by iterating over 'TMP_Text.textInfo.characterCount' ensures only rendered characters are revealed, maintaining both accessibility (screen readers) and visual polish.
 **Action:** Always use 'textInfo.characterCount' and 'ForceMeshUpdate' for typewriter effects to ensure compatibility with rich text and accurate character-based pacing.
 
-## 2026-04-18 - [Layout-Stable Typewriter and Speaker-Themed Cues]
-**Learning:** Appending a completion cue (like '▽') *after* the typewriter reveal can cause jarring layout shifts if the added character forces the text to wrap or re-align. To prevent this, pre-set the `TextMeshPro.text` with the full message (including cues and rich text tags) and use `maxVisibleCharacters` to drive the reveal animation. This ensures the layout is calculated once for the final state. Additionally, rhythmic pauses should be calculated based on the character currently being revealed to ensure the delay occurs *after* the visual reveal.
-**Action:** Always pre-set the full dialogue text to stabilize layouts and use `maxVisibleCharacters` for all cinematic text reveals.
+## 2026-04-18 - [Rhythmic Typewriter and Speaker-Themed Progression Cues]
+**Learning:** Rhythmic punctuation pauses (15x delay for ends, 8x for clauses) significantly improve dialogue readability by mimicking natural speech cadence. Using look-ahead logic to distinguish mid-word periods (e.g., in names like 'Sky.ix') from sentence endings prevents jarring pauses. Additionally, color-coding the dialogue completion symbol ('▽') using the speaker's theme color provides a subtle but effective visual anchor for user progression.
+**Action:** Implement look-ahead logic for punctuation and use speaker-specific hex colors for UI completion cues to enhance rhythmic flow and visual consistency.
 
 ## 2026-03-24 - [Scaling Rhythmic Typewriter and Progression Cues]
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
