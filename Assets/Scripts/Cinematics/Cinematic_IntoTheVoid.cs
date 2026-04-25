@@ -41,7 +41,7 @@ using UnityEngine.Serialization;
 using TMPro;
 
 /// <summary>
-/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'—a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ... Sky.ix must race against the unraveling of reality itself to sever Delilah's connection before her family becomes nothing more than a corrupted file."
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 {
@@ -51,25 +51,20 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     //
     // ====================================================================
 
-    // Protagonist: Sky.ix the The Bionic Goddess
-    /* VOICE PROFILE:
-     * Pitch: Mid-Range Mezzo-Shorano
-     * Tempo: Steady and Precise (130-140 WPM)
-     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
-    */
+    // Protagonist: Sky.ix
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
+    /* VOICE PROFILE: Pitch: Mid-Range Mezzo-Shorano, Tempo: Steady/Precise (130-140 WPM), Tone: Driven, Loving, Determined. */
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
-    // Protagonist: Kai the The Child of Prophecy
-    /* VOICE PROFILE:
-     * Pitch: Gender Neutral/Mid-Range
-     * Tempo: Slow and Paused (70-90 WPM)
-     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
-    */
+    // Protagonist: Kai
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
+    /* VOICE PROFILE: Pitch: Mid-Range, Tempo: Slow/Paused (70-90 WPM), Tone: Cryptic, Calm, Profound. */
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
 
-    // Antagonist: Delilah the The Desolate
+    // Antagonist: Delilah
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
     public GameObject Delilah_Character = null!;
     public AudioSource Delilah_VoiceSource = null!;
 
@@ -167,13 +162,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
-        Color speakerColor = speaker switch
+        Color speakerColor;
+        switch (speaker)
         {
-            "Sky.ix" => Color.cyan,
-            "Kai" => new Color(1f, 0.84f, 0f),
-            "Delilah" => new Color(0.6f, 0.1f, 0.9f),
-            _ => Color.white
-        };
+            case "Sky.ix": speakerColor = Color.cyan; break;
+            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break;
+            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break;
+            default: speakerColor = Color.white; break;
+        }
 
         SpeakerNameText.color = speakerColor;
         typingCoroutine = StartCoroutine(TypeDialogue(message));
@@ -255,61 +251,56 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
-        // [SCENE SETUP: Disable player controls, position cameras]
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
 
         // --- Dialogue Line 1: Delilah ---
-        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
-        // [CAMERA: Slow dolly zoom towards Delilah]
+        // [ANIMATION: Channeling_Idle] [CAMERA: Slow dolly zoom towards Delilah]
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
-        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
-        // [CAMERA: Quick cut to a tight close-up on Sky.ix]
+        // [ANIMATION: React_Furious] [CAMERA: Quick cut to close-up on Sky.ix]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         yield return WaitForSecondsOrSkip(6.0f);
 
         // --- Dialogue Line 3: Kai ---
-        // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
-        // [CAMERA: Pan to Kai pointing towards a conduit]
+        // [ANIMATION: Point_Urgent] [CAMERA: Pan to Kai]
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
-        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
+        // [ANIMATION: Smirk_Dismissive] [CAMERA: Cut back to low-angle shot of Delilah]
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
-        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
+        // [ANIMATION: Action_Ready] [CAMERA: Follow Sky.ix as she turns towards the conduit]
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         yield return WaitForSecondsOrSkip(4.5f);
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
-        // [SFX: Play cybernetic dash sound]
         yield return WaitForSecondsOrSkip(2.0f);
 
         // --- Dialogue Line 6: Kai ---
-        // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
+        // [ANIMATION: React_Alarmed] [CAMERA: Cut to Kai, holographic spike warning]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         yield return WaitForSecondsOrSkip(3.5f);
 
         // --- Dialogue Line 7: Delilah ---
-        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
+        // [ANIMATION: Taunt_OpenArms] [CAMERA: Wide shot showing Sky.ix nearing objective]
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         yield return WaitForSecondsOrSkip(5.5f);
 
         // --- Dialogue Line 8: Sky.ix ---
-        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
+        // [ANIMATION: Determined_Resolve] [CAMERA: Extreme close-up on Sky.ix's eyes]
         yield return WaitForSecondsOrSkip(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         yield return WaitForSecondsOrSkip(7.5f);
