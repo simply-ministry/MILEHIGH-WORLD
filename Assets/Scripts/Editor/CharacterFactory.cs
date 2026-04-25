@@ -20,7 +20,8 @@ namespace Milehigh.Editor
             string json = File.ReadAllText(path);
             HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
 
-            // 🛡️ Sentinel: Security validation of deserialized data to ensure integrity and prevent resource exhaustion.
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
