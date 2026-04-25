@@ -194,7 +194,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
-        DialogueText.text = message;
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
@@ -244,6 +248,27 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (i < totalVisibleCharacters)
+                    {
+                        char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Handle ellipsis or end of sentence
+                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.')
+                            delay = currentTypingSpeed * 5f; // Faster dot-dot-dot
+                        else if (isEndOfSentence)
+                            delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                     if (c == '.' || c == '!' || c == '?')
                     {
                         delay = currentTypingSpeed * 15f;
@@ -270,6 +295,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             }
         }
 
+        skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // The cue is color-coded to the speaker for better visual association.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
