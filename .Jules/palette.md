@@ -43,6 +43,3 @@
 ## 2026-03-25 - [Accessibility and Interaction in Cinematics]
 **Learning:** When adding skippable waits (`WaitForSecondsOrSkip`) to Unity cinematics, the `skipRequested` flag should be managed carefully to avoid race conditions. Resetting it only at the *start* of a new dialogue block (rather than after each skip) allows a single user input to skip both the typing animation and the following cinematic pause. For accessibility, always ensure high contrast by adding black outlines to TMP text elements in scenes with dynamic or unpredictable backgrounds.
 **Action:** Use a centralized skip flag lifecycle and mandatory TMP outlines (0.2 width) for improved cinematic accessibility and control.
-## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
-**Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
-**Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
