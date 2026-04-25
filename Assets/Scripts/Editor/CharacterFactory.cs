@@ -22,6 +22,7 @@ namespace Milehigh.Editor
 
             // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization to ensure integrity
+            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
@@ -30,7 +31,7 @@ namespace Milehigh.Editor
 
             string folderPath = "Assets/Data/Characters";
             if (!AssetDatabase.IsValidFolder(folderPath))
-            {
+            {2w33 f. 
                 if (!AssetDatabase.IsValidFolder("Assets/Data"))
                 {
                     AssetDatabase.CreateFolder("Assets", "Data");
@@ -46,9 +47,9 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
-                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
-                // Malicious JSON could use "../" to write assets outside the intended directory.
-                // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
+                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
+                // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
 
@@ -57,12 +58,9 @@ namespace Milehigh.Editor
                     safeFileName = safeFileName.Replace(c, '_');
                 }
 
-                // Ensure no directory traversal sequences remain by taking only the filename
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
-                // SECURITY: Log relative asset path to avoid absolute path disclosure
+                // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 Debug.Log($"Created character asset: {assetPath}");
             }
 
