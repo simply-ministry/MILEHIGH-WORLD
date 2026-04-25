@@ -11,6 +11,9 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefabs to avoid O(P) linear search through characterPrefabs list
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
@@ -21,6 +24,8 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -34,7 +39,7 @@ namespace Milehigh.Core
                 return obj;
             }
 
-            // BOLT: Fallback to O(N) scene traversal only if not cached.
+            // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
 
             // BOLT: Cache the result even if null (negative caching) to prevent repeated searches.
