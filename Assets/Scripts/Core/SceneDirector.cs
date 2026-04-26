@@ -60,7 +60,7 @@ namespace Milehigh.Core
             return foundPrefab;
         }
 
-        private CharacterControllerBase GetCharacterController(GameObject characterObj)
+        private CharacterControllerBase? GetCharacterController(GameObject characterObj)
         {
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
