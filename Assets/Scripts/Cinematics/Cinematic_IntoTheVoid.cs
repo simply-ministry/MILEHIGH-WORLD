@@ -126,13 +126,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Update()
     {
-        // Poll for skip input to ensure responsiveness
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        // Poll for skip input to ensure responsiveness (anyKeyDown covers mouse/keyboard/gamepad)
+        if (Input.anyKeyDown)
         {
             skipRequested = true;
         }
-    }
-
     /// <summary>
     /// Yields for the specified duration but returns immediately if a skip is requested.
     /// Resets the skip flag upon completion.
@@ -210,7 +208,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalCharacters = textInfo.characterCount;
-        int messageCharacters = totalCharacters - 1; // Exclude the completion cue for now
+        int messageCharacters = totalCharacters - 1; // Exclude completion cue from reveal loop
 
         for (int i = 0; i < messageCharacters; i++)
         {
@@ -224,7 +222,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             // We pause AFTER the character has been revealed.
             if (c == '.' || c == '!' || c == '?')
             {
-                // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                // Smart Punctuation: Look ahead to avoid pauses in mid-word (like Sky.ix).
+                // We also treat the end of the message (before the cue) as an end of sentence.
                 bool isEndOfSentence = true;
                 if (i + 1 < messageCharacters)
                 {
@@ -234,7 +233,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
                 if (isEndOfSentence)
                 {
-                    // Ellipsis detection
                     bool isEllipsis = false;
                     if (c == '.')
                     {
@@ -254,7 +252,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         // Final reveal including the completion cue
         DialogueText.maxVisibleCharacters = totalCharacters;
-        skipRequested = false;
+        skipRequested = false; // Reset skip intent after the line is fully revealed
         typingCoroutine = null;
     }
 
