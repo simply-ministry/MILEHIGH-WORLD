@@ -12,11 +12,11 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
-        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
-        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
         private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
@@ -26,7 +26,8 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // 🛡️ Sentinel: DoS Hardening - prevent expensive Find operations with malicious or oversized strings
-            if (objectName.Length > 128 || !Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-$\_\.\\[\]\/]+$"))
+            // SECURITY: Whitelist regex ensures only safe characters are passed to GameObject.Find
+            if (objectName.Length > 128 || !Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\$\.\\[\]\/]+$"))
             {
                 Debug.LogWarning($"[Security] GetCachedObject: Blocked potentially malicious object name: {objectName}");
                 return null;
@@ -60,11 +61,11 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
-            if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search and delegate allocation happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
-            if (prefab != null) _prefabCache[profileName] = prefab;
+            _prefabCache[profileName] = prefab;
             return prefab;
         }
 
@@ -76,7 +77,7 @@ namespace Milehigh.Core
             if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
-            if (controller != null) _controllerCache[objId] = controller;
+            _controllerCache[objId] = controller;
             return controller;
         }
 
@@ -91,7 +92,9 @@ namespace Milehigh.Core
                 }
             }
 
-            if (CampaignManager.Instance.currentCampaignData != null)
+            if (CampaignManager.Instance.currentCampaignData != null &&
+                CampaignManager.Instance.currentCampaignData.scenarios != null &&
+                CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             {
                 SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
             }
