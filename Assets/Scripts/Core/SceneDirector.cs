@@ -18,9 +18,6 @@ namespace Milehigh.Core
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
-        // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
-        private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
-
         private GameObject? GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
@@ -64,7 +61,8 @@ namespace Milehigh.Core
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search and delegate allocation happens only once per profile name
-            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            // SECURITY: Using non-nullable reference directly to avoid CS8604 if null-conditional is redundant
+            prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
             _prefabCache[profileName] = prefab;
             return prefab;
         }
@@ -109,7 +107,7 @@ namespace Milehigh.Core
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
-            if (CampaignManager.Instance?.currentCampaignData != null)
+            if (CampaignManager.Instance.currentCampaignData != null)
             {
                 foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
                 {
@@ -135,12 +133,6 @@ namespace Milehigh.Core
             {
                 // BOLT: Use O(1) prefab cache helper
                 GameObject? prefab = GetPrefab(profile.name);
-
-                if (prefab == null)
-                {
-                    // Try exact match in lookup cache if partial match failed
-                    _prefabLookupCache.TryGetValue(profile.name, out prefab);
-                }
 
                 if (prefab != null)
                 {
