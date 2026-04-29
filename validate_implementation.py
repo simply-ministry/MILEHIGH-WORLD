@@ -38,7 +38,8 @@ def check_files():
         "Assets/Scripts/Core/CampaignManager.cs",
         "Assets/Scripts/Core/SceneDirector.cs",
         "Assets/Scripts/Characters/CharacterControllerBase.cs",
-        "Assets/Scripts/Characters/DelilahAIController.cs"
+        "Assets/Scripts/Characters/DelilahAIController.cs",
+        "Assets/Scripts/Narrative/ReverieDialogueSync.cs"
     ]
 
     all_exist = True
