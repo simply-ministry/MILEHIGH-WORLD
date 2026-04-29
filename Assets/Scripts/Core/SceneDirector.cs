@@ -52,6 +52,7 @@ namespace Milehigh.Core
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            // characterPrefabs is null! initialized so we must null check before Find
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             _prefabCache[profileName] = prefab;
             return prefab;
