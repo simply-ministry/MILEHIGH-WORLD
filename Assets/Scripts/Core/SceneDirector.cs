@@ -19,7 +19,7 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
-        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\_\.\\[\]\/]+$", RegexOptions.Compiled);
+        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\.\/\[\]]+$", RegexOptions.Compiled);
 
         private GameObject? GetCachedObject(string objectName)
         {
@@ -32,8 +32,9 @@ namespace Milehigh.Core
                 return null;
             }
 
+            GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
-            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            if (_objectCache.TryGetValue(objectName, out obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
@@ -60,10 +61,12 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
-            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            GameObject? prefab;
+            if (_prefabCache.TryGetValue(profileName, out prefab)) return prefab;
 
             // BOLT: O(P) search and delegate allocation happens only once per profile name
-            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
             _prefabCache[profileName] = prefab;
             return prefab;
         }
@@ -73,7 +76,8 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
-            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
+            CharacterControllerBase? controller;
+            if (_controllerCache.TryGetValue(objId, out controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
             _controllerCache[objId] = controller;
@@ -106,7 +110,7 @@ namespace Milehigh.Core
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
-            if (CampaignManager.Instance?.currentCampaignData != null)
+            if (CampaignManager.Instance.currentCampaignData != null)
             {
                 foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
                 {
