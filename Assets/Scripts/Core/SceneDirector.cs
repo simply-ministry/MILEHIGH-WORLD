@@ -32,7 +32,7 @@ namespace Milehigh.Core
                 // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj == null)
                 {
-                     _objectCache.Remove(objectName);
+                    _objectCache.Remove(objectName);
                 }
                 else
                 {
@@ -72,9 +72,12 @@ namespace Milehigh.Core
         private void Start()
         {
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups during any scene setup
-            foreach (var prefab in characterPrefabs)
+            if (characterPrefabs != null)
             {
-                if (prefab != null) _prefabCache[prefab.name] = prefab;
+                foreach (var prefab in characterPrefabs)
+                {
+                    if (prefab != null) _prefabCache[prefab.name] = prefab;
+                }
             }
 
             if (CampaignManager.Instance.currentCampaignData != null)

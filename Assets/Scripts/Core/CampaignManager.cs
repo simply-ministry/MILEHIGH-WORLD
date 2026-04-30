@@ -4,6 +4,7 @@ using Milehigh.Data;
 
 namespace Milehigh.Core
 {
+    [DefaultExecutionOrder(-100)]
     public class CampaignManager : MonoBehaviour
     {
         private static CampaignManager? _instance;
@@ -11,16 +12,18 @@ namespace Milehigh.Core
         {
             get
             {
-                if (_instance == null)
-                {
-                    _instance = FindObjectOfType<CampaignManager>();
-                    if (_instance == null)
-                    {
-                        GameObject go = new GameObject("CampaignManager");
-                        _instance = go.AddComponent<CampaignManager>();
-                    }
-                }
+                if (_instance == null) InitializeInstance();
                 return _instance!;
+            }
+        }
+
+        private static void InitializeInstance()
+        {
+            _instance = FindObjectOfType<CampaignManager>();
+            if (_instance == null)
+            {
+                GameObject go = new GameObject("CampaignManager");
+                _instance = go.AddComponent<CampaignManager>();
             }
         }
 
