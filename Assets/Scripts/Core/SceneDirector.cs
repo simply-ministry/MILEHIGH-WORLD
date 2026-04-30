@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -19,7 +20,7 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
-        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\.\/\[\]]+$", RegexOptions.Compiled);
+        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\-.\[\]\(\)\$]+$", RegexOptions.Compiled);
 
         private GameObject? GetCachedObject(string objectName)
         {
@@ -38,7 +39,7 @@ namespace Milehigh.Core
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
-                if (System.Object.ReferenceEquals(obj, null)) return null;
+                if (ReferenceEquals(obj, null)) return null;
 
                 // If it's a Unity null (native object destroyed), we should try to find it again
                 if (obj == null)

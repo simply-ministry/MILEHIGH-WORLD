@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
@@ -23,7 +24,7 @@ namespace Milehigh.Editor
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
             }
-            catch (System.Exception)
+            catch (Exception)
             {
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
@@ -68,7 +69,7 @@ namespace Milehigh.Editor
 
                 if (string.IsNullOrEmpty(safeFileName))
                 {
-                    safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+                    safeFileName = "character_" + Guid.NewGuid().ToString().Substring(0, 8);
                 }
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";

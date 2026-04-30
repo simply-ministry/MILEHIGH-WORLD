@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.IO;
 using Milehigh.Data;
@@ -72,7 +73,7 @@ namespace Milehigh.Core
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs

@@ -4,7 +4,7 @@ using UnityEngine;
 using TMPro;
 
 /// <summary>
-/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID..."
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 {
