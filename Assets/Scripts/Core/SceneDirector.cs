@@ -41,8 +41,8 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
-                // If it's a Unity null (native object destroyed), we should try to find it again
-                // or just return the Unity null which behaves like null.
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                // In Unity, obj == null is true if the native object is destroyed.
                 if (obj == null)
                 {
                     _objectCache.Remove(objectName);
