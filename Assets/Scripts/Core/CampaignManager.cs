@@ -21,7 +21,8 @@ namespace Milehigh.Core
                     GameObject go = new GameObject("CampaignManager");
                     _instance = go.AddComponent<CampaignManager>();
                 }
-                return _instance;
+                // BOLT: Use null-forgiving operator as we guarantee _instance is not null here.
+                return _instance!;
             }
         }
 
