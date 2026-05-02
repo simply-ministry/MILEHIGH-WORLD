@@ -17,9 +17,6 @@ namespace Milehigh.Core
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
 
-        // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
-        private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
-
         private GameObject? GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
