@@ -171,35 +171,33 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
 
         SpeakerNameText.text = speaker;
-
-        // Apply speaker-specific speed multipliers based on voice profiles
-        float multiplier = 1.0f;
-        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
-        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
-
-        currentTypingSpeed = baseTypingSpeed * multiplier;
+        currentTypingSpeed = baseTypingSpeed * GetSpeedMultiplier(speaker);
         skipRequested = false;
-        // Apply character-specific colors for better speaker identification
-        Color speakerColor;
+        SpeakerNameText.color = GetSpeakerColor(speaker);
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
+
+    internal float GetSpeedMultiplier(string speaker)
+    {
+        if (speaker == "Kai") return kaiSpeedMultiplier;
+        if (speaker == "Sky.ix") return skyixSpeedMultiplier;
+        return 1.0f;
+    }
+
+    internal Color GetSpeakerColor(string speaker)
+    {
         switch (speaker)
         {
             case "Sky.ix":
-                speakerColor = Color.cyan;
-                break;
+                return Color.cyan;
             case "Kai":
-                speakerColor = new Color(1f, 0.84f, 0f); // Gold
-                break;
+                return new Color(1f, 0.84f, 0f); // Gold
             case "Delilah":
-                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                break;
+                return new Color(0.6f, 0.1f, 0.9f); // Void Purple
             default:
-                speakerColor = Color.white;
-                break;
+                return Color.white;
         }
-
-        SpeakerNameText.color = speakerColor;
-
-        typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
 
     private IEnumerator TypeDialogue(string message)
@@ -209,7 +207,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
-        DialogueText.maxVisibleCharacters = 0;i
+        DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
