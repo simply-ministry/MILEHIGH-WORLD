@@ -126,11 +126,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Update()
     {
-        // Poll for skip input to ensure responsiveness
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.anyKeyDown)
         {
             skipRequested = true;
         }
+    }
     /// <summary>
     /// Yields for the specified duration but returns immediately if a skip is requested.
     /// Resets the skip flag upon completion.
@@ -158,10 +158,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
-    void Update()
-    {
-        if (Input.anyKeyDown) skipRequested = true;
-    }
 
     /// <summary>
     /// Updates the speaker name and begins the typewriter effect for the dialogue message.
@@ -221,12 +217,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             DialogueText.maxVisibleCharacters = i + 1;
 
             char c = textInfo.characterInfo[i].character;
-            float delay = typingSpeed;
+            float delay = currentTypingSpeed;
 
             if (c == '.' || c == '!' || c == '?')
-                delay = punctuationPause;
+                delay = currentTypingSpeed * 15f;
             else if (c == ',')
-                delay = commaPause;
+                delay = currentTypingSpeed * 8f;
 
             yield return GetWait(delay);
         }
