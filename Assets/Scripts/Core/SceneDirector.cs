@@ -79,11 +79,14 @@ namespace Milehigh.Core
                 }
             }
 
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
+            // Capture singleton instance to satisfy NRT flow analysis
+            var campaignManager = CampaignManager.Instance;
+            if (campaignManager != null)
             {
-                if (CampaignManager.Instance.currentCampaignData.scenarios != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
+                var campaignData = campaignManager.currentCampaignData;
+                if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
                 {
-                    SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                    SetupScene(campaignData.scenarios[0]);
                 }
             }
         }
@@ -96,12 +99,17 @@ namespace Milehigh.Core
             _objectCache.Clear();
             _controllerCache.Clear();
 
-            // Instantiate characters if not already in scene
-            if (CampaignManager.Instance?.currentCampaignData?.characters != null)
+            // Capture singleton instance to satisfy NRT flow analysis
+            var campaignManager = CampaignManager.Instance;
+            if (campaignManager != null)
             {
-                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                var campaignData = campaignManager.currentCampaignData;
+                if (campaignData != null && campaignData.characters != null)
                 {
-                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
+                    foreach (var charProfile in campaignData.characters)
+                    {
+                        if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
+                    }
                 }
             }
 
