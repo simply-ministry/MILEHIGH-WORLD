@@ -34,7 +34,7 @@ namespace Milehigh.Tests
             var controllerCacheField = typeof(SceneDirector).GetField("_controllerCache", BindingFlags.NonPublic | BindingFlags.Instance);
 
             var objectCache = (Dictionary<string, GameObject?>)objectCacheField.GetValue(_sceneDirector);
-            var controllerCache = (Dictionary<int, CharacterControllerBase>)controllerCacheField.GetValue(_sceneDirector);
+            var controllerCache = (Dictionary<int, CharacterControllerBase?>)controllerCacheField.GetValue(_sceneDirector);
 
             // Populate caches manually
             objectCache.Add("TestObject", new GameObject());

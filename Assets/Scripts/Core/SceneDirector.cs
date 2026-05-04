@@ -13,9 +13,9 @@ namespace Milehigh.Core
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
-        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
-        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         private GameObject? GetCachedObject(string objectName)
         {
