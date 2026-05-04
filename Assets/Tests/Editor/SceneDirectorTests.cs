@@ -9,8 +9,8 @@ namespace Milehigh.Tests
 {
     public class SceneDirectorTests
     {
-        private GameObject _directorGo;
-        private SceneDirector _director;
+        private GameObject? _directorGo;
+        private SceneDirector? _director;
 
         [SetUp]
         public void SetUp()
@@ -22,18 +22,32 @@ namespace Milehigh.Tests
         [TearDown]
         public void TearDown()
         {
-            Object.DestroyImmediate(_directorGo);
+            if (_directorGo != null)
+            {
+                Object.DestroyImmediate(_directorGo);
+            }
         }
 
         [Test]
         public void SetupScene_ClearsCaches()
         {
+            Assert.IsNotNull(_director, "SceneDirector should not be null");
+            if (_director == null) return;
+
             // Use reflection to access private caches and pre-fill them
             var objectCacheField = typeof(SceneDirector).GetField("_objectCache", BindingFlags.NonPublic | BindingFlags.Instance);
             var controllerCacheField = typeof(SceneDirector).GetField("_controllerCache", BindingFlags.NonPublic | BindingFlags.Instance);
 
-            var objectCache = (Dictionary<string, GameObject?>)objectCacheField.GetValue(_director);
-            var controllerCache = (Dictionary<int, Milehigh.Characters.CharacterControllerBase>)controllerCacheField.GetValue(_director);
+            Assert.IsNotNull(objectCacheField, "Could not find _objectCache field");
+            Assert.IsNotNull(controllerCacheField, "Could not find _controllerCache field");
+            if (objectCacheField == null || controllerCacheField == null) return;
+
+            var objectCache = (Dictionary<string, GameObject?>?)objectCacheField.GetValue(_director);
+            var controllerCache = (Dictionary<int, Milehigh.Characters.CharacterControllerBase?>?)controllerCacheField.GetValue(_director);
+
+            Assert.IsNotNull(objectCache, "_objectCache should not be null");
+            Assert.IsNotNull(controllerCache, "_controllerCache should not be null");
+            if (objectCache == null || controllerCache == null) return;
 
             objectCache["TestObject"] = new GameObject("Test");
             controllerCache[1] = null;
@@ -57,7 +71,9 @@ namespace Milehigh.Tests
         [Test]
         public void SetupScene_HandlesNullScenario()
         {
-            Assert.DoesNotThrow(() => _director.SetupScene(null));
+            Assert.IsNotNull(_director, "SceneDirector should not be null");
+            if (_director == null) return;
+            Assert.DoesNotThrow(() => _director.SetupScene(null!));
         }
     }
 }
