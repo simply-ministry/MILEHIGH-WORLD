@@ -44,7 +44,8 @@ namespace Milehigh.Characters
             GameObject? clone = null;
             Vector3 spawnPos = transform.position + Random.insideUnitSphere * 5f;
 
-            // BOLT: Reuse object from pool if available
+            // BOLT: Reuse object from pool if available.
+            // We check for Unity nulls to handle objects destroyed by scene changes.
             while (_clonePool.Count > 0 && clone == null)
             {
                 clone = _clonePool.Dequeue();
