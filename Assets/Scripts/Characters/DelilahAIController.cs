@@ -14,7 +14,7 @@ namespace Milehigh.Characters
         private Queue<GameObject> _clonePool = new Queue<GameObject>();
 
         // BOLT: Cached WaitForSeconds to avoid GC allocations in coroutines
-        private static readonly Dictionary<float, WaitForSeconds> _waitCache = new Dictionary<float, WaitForSeconds>();
+        private static readonly Dictionary<float, WaitForSeconds?> _waitCache = new Dictionary<float, WaitForSeconds?>();
 
         private WaitForSeconds GetWait(float seconds)
         {
@@ -23,7 +23,7 @@ namespace Milehigh.Characters
                 wait = new WaitForSeconds(seconds);
                 _waitCache[seconds] = wait;
             }
-            return wait;
+            return wait!;
         }
 
         public override void ExecuteBehavior()
@@ -65,7 +65,7 @@ namespace Milehigh.Characters
             StartCoroutine(RecycleClone(clone, cloneDuration));
         }
 
-        private IEnumerator RecycleClone(GameObject clone, float delay)
+        private IEnumerator RecycleClone(GameObject? clone, float delay)
         {
             yield return GetWait(delay);
 
