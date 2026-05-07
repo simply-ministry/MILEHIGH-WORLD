@@ -182,6 +182,17 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // SENTINEL: Prevent IDOR by blocking access to core architectural singletons.
+            // External JSON data should not be able to manipulate these critical managers.
+            if (interaction.objectId == "CampaignManager" ||
+                interaction.objectId == "SceneDirector" ||
+                interaction.objectId == "CameraManager" ||
+                interaction.objectId == "AlliancePowerManager")
+            {
+                Debug.LogWarning($"Security Block: Unauthorized interaction attempt on protected object {interaction.objectId}");
+                return;
+            }
+
             GameObject? target = GetCachedObject(interaction.objectId);
 
             if (target != null)
