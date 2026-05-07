@@ -38,7 +38,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
-            if (!data.IsValid())
+            if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
                 return;
