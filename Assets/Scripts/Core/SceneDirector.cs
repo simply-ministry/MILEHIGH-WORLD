@@ -38,16 +38,16 @@ namespace Milehigh.Core
             return obj;
         }
 
-        private GameObject GetPrefab(string profileName)
+        private GameObject? GetPrefab(string profileName)
         {
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
-            prefab = characterPrefabs?.Find(p => p.name.Contains(profileName));
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (prefab != null) _prefabCache[profileName] = prefab;
             return prefab;
         }
 
-        private CharacterControllerBase GetCharacterController(GameObject characterObj)
+        private CharacterControllerBase? GetCharacterController(GameObject characterObj)
         {
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
@@ -105,7 +105,7 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
-                GameObject prefab = GetPrefab(profile.name);
+                GameObject? prefab = GetPrefab(profile.name);
                 if (prefab != null)
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
