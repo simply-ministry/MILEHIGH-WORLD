@@ -39,3 +39,7 @@
 **Vulnerability:** The project had multiple broken "security fixes" that introduced syntax errors and redundant logic, specifically around deserialized data validation and character asset creation paths. The `IsValid()` pattern was partially implemented but broken, and path traversal mitigation was duplicated and syntactically incorrect.
 **Learning:** Incomplete or improperly merged security fixes can be as dangerous as the original vulnerabilities, as they may lead to compilation failures or bypassed security checks. Centralizing validation logic and ensuring clean path sanitization is critical.
 **Prevention:** Always perform a full code review and basic sanity check (even if just manual brace counting) after applying security fixes to ensure no regressions or syntax errors are introduced.
+## 2024-05-24 - Insecure Direct Object Reference in SceneDirector
+**Vulnerability:** External JSON data could arbitrarily access and manipulate any scene object via `GameObject.Find` when processing object interactions, including core system managers.
+**Learning:** Using `GameObject.Find` directly on unsanitized strings from external sources creates an IDOR vulnerability, allowing untrusted data to bypass intended access controls.
+**Prevention:** Apply validation and blocklists (e.g., protecting CampaignManager, SceneDirector, CameraManager, AlliancePowerManager) at the application boundary where untrusted external input is first processed.
