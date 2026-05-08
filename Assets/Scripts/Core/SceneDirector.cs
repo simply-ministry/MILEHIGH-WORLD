@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 using Milehigh.Data;
 using Milehigh.Characters;
@@ -15,10 +16,10 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Prefab cache to avoid O(P) list searches.
-        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
-        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         private GameObject? GetCachedObject(string objectName)
         {
@@ -28,7 +29,7 @@ namespace Milehigh.Core
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
-                if (System.Object.ReferenceEquals(obj, null)) return null;
+                if (object.ReferenceEquals(obj, null)) return null;
 
                 // If it's a Unity null (native object destroyed), we should try to find it again
                 if (obj == null)
@@ -48,16 +49,16 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
-            if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // Fallback to searching the list if not pre-cached
             if (characterPrefabs != null)
             {
-                prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
-                if (prefab != null)
+                GameObject? foundPrefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+                if (foundPrefab != null)
                 {
-                    _prefabCache[profileName] = prefab;
-                    return prefab;
+                    _prefabCache[profileName] = foundPrefab;
+                    return foundPrefab;
                 }
             }
             return null;
@@ -68,7 +69,7 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
-            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
+            if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
             if (controller != null)
