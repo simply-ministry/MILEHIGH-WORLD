@@ -46,7 +46,3 @@
 ## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
-
-## 2026-03-26 - [Smart Punctuation and Fluid UI Transitions]
-**Learning:** Cinematic dialogue immersion is significantly enhanced by "Smart Punctuation" in typewriter effects—using look-ahead logic to distinguish between sentence-ending punctuation (which requires a pause) and identifiers like 'Sky.ix' (which should not). Furthermore, replacing abrupt 'SetActive' toggles with smooth 'CanvasGroup' alpha fades provides a premium, "non-janky" feel that respects user visual comfort.
-**Action:** Implement look-ahead checks for whitespace after punctuation to determine pause length, and always prefer 'CanvasGroup' alpha animation for UI entry/exit transitions in cinematic sequences.
