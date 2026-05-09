@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace MileHigh.Core
+namespace Milehigh.Core
 {
     /// <summary>
     /// Centralized utility for Unity-specific optimizations and helpers.
