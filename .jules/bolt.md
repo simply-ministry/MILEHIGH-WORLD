@@ -59,3 +59,10 @@
 ## 2026-03-26 - Unity Negative Caching Pitfalls
 **Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
 **Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
+## 2025-03-20 - Centralized Yield Instruction Caching
+**Learning:** High-frequency coroutines like typewriter effects in 'Cinematic_IntoTheVoid.cs' previously used local or inline 'WaitForSeconds' allocations, leading to avoidable GC pressure. Centralizing this into a 'UnityUtils.GetWait(float)' helper ensures consistent reuse across the project.
+**Action:** Use 'Milehigh.Core.UnityUtils.GetWait(seconds)' for all 'WaitForSeconds' yields in coroutines to maintain zero-allocation loops.
+
+## 2025-03-20 - Preservation of Narrative Metadata during Optimization
+**Learning:** Scripts like 'Cinematic_IntoTheVoid.cs' contain extensive narrative documentation and character profiles that are critical for design context but do not affect performance. Using full file rewrites for small optimizations risks accidental deletion of this metadata.
+**Action:** Use surgical modification tools (like git merge diffs) to apply performance optimizations without disturbing non-code narrative assets.
