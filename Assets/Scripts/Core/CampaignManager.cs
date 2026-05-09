@@ -74,11 +74,11 @@ namespace Milehigh.Core
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception)
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
-                    Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
+                    Debug.LogError($"Error loading campaign data from {fileName}. Verify file integrity.");
                     currentCampaignData = null;
                 }
             }
