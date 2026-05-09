@@ -39,6 +39,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 using TMPro;
+using MileHigh.Core;
 
 /// <summary>
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'—a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
@@ -95,6 +96,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     [Header("UI Components")]
     public GameObject DialogueBox = null!;
+    public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
 
@@ -111,26 +113,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private float currentTypingSpeed;
     private bool skipRequested;
 
-    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
-
-    private WaitForSeconds GetWait(float time)
-    {
-        if (!_waitForSecondsCache.TryGetValue(time, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[time] = wait;
-        }
-        return wait;
-    }
-
     void Update()
     {
-        // Poll for skip input to ensure responsiveness
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        // Poll for skip input to ensure responsiveness across multiple accessible inputs
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
         {
             skipRequested = true;
         }
+    }
+
     /// <summary>
     /// Yields for the specified duration but returns immediately if a skip is requested.
     /// Resets the skip flag upon completion.
@@ -156,11 +147,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         }
 
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-    void Update()
-    {
-        if (Input.anyKeyDown) skipRequested = true;
     }
 
     /// <summary>
@@ -209,7 +195,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
-        DialogueText.maxVisibleCharacters = 0;i
+        DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
@@ -218,132 +204,79 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         for (int i = 0; i < totalCharacters; i++)
         {
-            if (skipRequested) break;
+            // UX Enhancement: Robust skip logic using persistent flag
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = totalCharacters;
+                break;
+            }
 
             DialogueText.maxVisibleCharacters = i + 1;
 
-            char c = textInfo.characterInfo[i].character;
-            float delay = typingSpeed;
+            if (i < totalCharacters)
+            {
+                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
 
-            if (c == '.' || c == '!' || c == '?')
-                delay = punctuationPause;
-            else if (c == ',')
-                delay = commaPause;
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // We pause *after* revealing punctuation characters for natural rhythm.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Smart Punctuation: Look ahead to avoid pauses in identifiers like "Sky.ix"
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalCharacters)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
 
-            yield return GetWait(delay);
+                    if (isEndOfSentence)
+                    {
+                        // Refined ellipsis detection
+                        bool isEllipsis = (i > 0 && textInfo.characterInfo[i - 1].character == '.') || (i + 1 < totalCharacters && textInfo.characterInfo[i + 1].character == '.');
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
+                }
+
+                yield return UnityUtils.GetWait(delay);
+            }
         }
 
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
-        DialogueText.ForceMeshUpdate();
-
-        // BOLT: Typewriter effect optimized for performance.
-        // We use the existing GetWait(float) method to ensure zero-allocation yields,
-        // avoiding GC pressure during dialogue sequences.
-        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
-
-        for (int i = 0; i <= totalVisibleCharacters; i++)
-        {
-            // UX Enhancement: Robust skip logic using persistent flag
-            if (skipRequested)
-            {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-                break;
-            }
-
-            DialogueText.maxVisibleCharacters = i;
-
-            if (i < totalVisibleCharacters)
-            {
-                float delay = currentTypingSpeed;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading
-                // Note: Delay occurs *after* character reveal for natural rhythm.
-                if (c == '.' || c == '!' || c == '?') delay += 0.4f;
-                else if (c == ',' || c == ';' || c == ':') delay += 0.2f;
-
-                yield return GetWait(delay);
-            }
-            // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
-            yield return wait;
-
-        for (int i = 0; i <= message.Length; i++)
-        {
-            DialogueText.maxVisibleCharacters = i;
-            // ⚡ Bolt: Use cached wait to prevent per-character GC allocation
-            yield return wait;
-
-            // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
-            if (i > 0)
-            {
-                char c = message[i - 1];
-                if (c == '.' || c == '?' || c == '!')
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the previous character (i-1) to pause *after* it has been revealed.
-                if (i > 0)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        // Check for ellipsis (consecutive dots) to avoid excessive pausing
-                        bool isEllipsis = (c == '.' && ((i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') || (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.')));
-                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
-
-                    // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
-                    bool isEndOfSentence = true;
-                    if (i < totalVisibleCharacters)
-                    {
-                        char nextChar = DialogueText.textInfo.characterInfo[i].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                    }
-
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        // Handle ellipsis or end of sentence
-                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.')
-                            delay = currentTypingSpeed * 5f; // Faster dot-dot-dot
-                        else if (isEndOfSentence)
-                            delay = currentTypingSpeed * 15f;
-                    }
-                    else if (c == ',' || c == ';' || c == ':')
-                    {
-                        delay = currentTypingSpeed * 8f;
-                    }
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        delay = currentTypingSpeed * 15f;
-
-                        // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
-                        bool isEllipsis = false;
-                        if (c == '.')
-                        {
-                            if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                            if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                        }
-
-                        if (isEllipsis) delay = currentTypingSpeed * 5f;
-                        // Special case: mid-word period (e.g., Sky.ix) should have no extra delay
-                        else if (c == '.' && i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
-                        {
-                            delay = currentTypingSpeed;
-                        }
-                    }
-                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
-                }
-
-                yield return GetWait(delay);
-            }
-        }
-
-        skipRequested = false;
-        // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        // The cue is color-coded to the speaker for better visual association.
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
-
         // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
         typingCoroutine = null;
+    }
+
+    /// <summary>
+    /// Smoothly fades the Dialogue Box alpha over time using the CanvasGroup.
+    /// </summary>
+    private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
+    {
+        if (DialogueCanvasGroup == null)
+        {
+            DialogueBox.SetActive(targetAlpha > 0);
+            yield break;
+        }
+
+        if (targetAlpha > 0) DialogueBox.SetActive(true);
+
+        float startAlpha = DialogueCanvasGroup.alpha;
+        float elapsed = 0;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
+            yield return null;
+        }
+
+        DialogueCanvasGroup.alpha = targetAlpha;
+        if (targetAlpha <= 0) DialogueBox.SetActive(false);
     }
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
@@ -352,7 +285,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(true);
 
-        DialogueBox.SetActive(true);
+        yield return FadeDialogueBox(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
         // --- Dialogue Line 1: Delilah ---
@@ -429,7 +362,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         SpeakerNameText.text = "";
         DialogueText.text = "";
-        DialogueBox.SetActive(false);
+        yield return FadeDialogueBox(0.0f, 0.5f);
 
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
         // Example: PlayerInput.Instance.EnableControls();
