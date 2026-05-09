@@ -46,3 +46,7 @@
 ## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2026-03-26 - [Discoverable Dialogue Skip Hint]
+**Learning:** Implementing a "discoverable" skip hint that only appears after a short period of inactivity (e.g., 2 seconds) during dialogue provides essential guidance for new or struggling users without cluttering the UI or breaking immersion for experienced players. This "just-in-time" assistance balances accessibility with cinematic aesthetics.
+**Action:** Use an 'idleTimer' and 'playerInteracted' flag pattern in cinematic scripts to show skip prompts only when needed.
