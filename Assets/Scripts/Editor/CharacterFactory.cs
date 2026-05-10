@@ -163,6 +163,8 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+                // Ensure no directory traversal sequences remain
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
                 // Ensure no directory traversal sequences remain and replace spaces
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
