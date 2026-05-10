@@ -69,6 +69,9 @@ namespace Milehigh.Core
             }
         }
 
+        // BOLT: Cache to prevent O(N) list searches with string comparisons inside setup loops
+        private Dictionary<string, GameObject> _prefabCache;
+
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
@@ -171,6 +174,23 @@ namespace Milehigh.Core
             return foundObj;
         }
 
+        private void InitializePrefabCache()
+        {
+            if (_prefabCache != null) return;
+            _prefabCache = new Dictionary<string, GameObject>();
+            if (characterPrefabs != null)
+            {
+                foreach (var prefab in characterPrefabs)
+                {
+                    if (prefab != null && !string.IsNullOrEmpty(prefab.name))
+                    {
+                        _prefabCache[prefab.name] = prefab;
+                    }
+                }
+            }
+        }
+
+        private void Start()
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
@@ -196,6 +216,9 @@ namespace Milehigh.Core
             // BOLT: Clean up controller cache to avoid memory leaks of destroyed objects
             _controllerCache.Clear();
 
+            InitializePrefabCache();
+
+            // Clear cache at start of setup to avoid stale references across scenes
             // BOLT: Clear scene-specific caches to avoid stale references across scenarios/scenes.
             // Prefab cache is persisted as it remains valid across the session.
             _objectCache.Clear();
@@ -272,6 +295,26 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // Try to find prefab if not in scene
+                // BOLT: Replaced O(N) list search with O(1) dictionary lookup where possible
+                GameObject prefab = null;
+                if (_prefabCache != null)
+                {
+                    // Fast exact match
+                    if (!_prefabCache.TryGetValue(profile.name, out prefab))
+                    {
+                        // Fallback to Contains if exact match fails, and cache the result for O(1) next time
+                        prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                        if (prefab != null)
+                        {
+                            _prefabCache[profile.name] = prefab;
+                        }
+                    }
+                }
+                else
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                }
                 // Try to find prefab if not in scene, first using O(1) lookup
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 {
