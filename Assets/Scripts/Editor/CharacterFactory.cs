@@ -33,6 +33,11 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
+                Debug.LogError("Failed to load or parse campaign data.");
+                return;
+            }
+
+            if (!data.IsValid())
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data. Error parsing file.");
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
@@ -67,6 +72,10 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                string safeFileName = GetSafeFileName(charProfile.name);
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+
+                AssetDatabase.CreateAsset(asset, assetPath);
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 // We use a strict whitelist-based regex and strip leading dots/underscores.
                 string safeFileName = GetSafeFileName(charProfile.name);
@@ -142,6 +151,18 @@ namespace Milehigh.Editor
             // Strip leading dots or underscores to prevent hidden files or traversal tricks.
             sanitized = sanitized.TrimStart('.', '_');
 
+            return sanitized;
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // 🛡️ Sentinel: Strict whitelist-based sanitization to prevent Path Traversal
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized)) sanitized = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             return sanitized;
         }
     }

@@ -400,6 +400,7 @@ namespace Milehigh.Cinematics
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
+        // Apply character-specific colors for better speaker identification
         Color speakerColor;
         switch (speaker)
         idleTimer = 0;
@@ -496,6 +497,32 @@ namespace Milehigh.Cinematics
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalCharacters = textInfo.characterCount;
+
+        for (int i = 0; i < totalCharacters; i++)
+        {
+            if (skipRequested) break;
+
+            DialogueText.maxVisibleCharacters = i + 1;
+
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // ⚡ Bolt: Use centralized UnityUtils.GetWait to avoid GC allocations
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < totalCharacters)
+                {
+                    char nextChar = textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence) delay *= 15f;
+                else delay *= 5f; // Faster pause for mid-word periods (e.g. Sky.ix)
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         // Calculation: characterCount includes the completion cue '▽'.
         // We only want to apply rhythmic pacing to the message itself.
@@ -782,8 +809,11 @@ namespace Milehigh.Cinematics
                     yield return GetWait(currentTypingSpeed * 10f);
                 }
             }
+
+            yield return UnityUtils.GetWait(delay);
         }
 
+        DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
         // Note: skipRequested is NOT reset here to allow skipping the subsequent pause.
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
@@ -972,7 +1002,7 @@ namespace Milehigh.Cinematics
 
         Debug.Log("Cinematic Sequence Complete.");
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
-        // Example: PlayerInput.Instance.EnableControls();
+        // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of THE VOID...]");

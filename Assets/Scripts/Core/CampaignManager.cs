@@ -72,6 +72,9 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Fail securely and don't use invalid data
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
+                        currentCampaignData = null;
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
                         currentCampaignData = null;
                         // SECURITY: If data fails validation, ensure it's not used by the application and log a safe error message.
@@ -81,6 +84,8 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception)
                 {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
+                    Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Do not log ex.Message to avoid leaking absolute file paths or system details.
                     Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely.
