@@ -73,6 +73,9 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-26 - [Dynamic Accessibility Outlines and Speaker Transitions]
+**Learning:** For accessibility in dark environments, programmatically adding outlines to TextMeshPro components requires using `fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f)` to avoid compilation errors on the base `TMP_Text` class. Additionally, a subtle "pop" animation (1.15x scale) on the speaker's name provides a non-verbal cue for turn-taking in dialogue, though the baseline scale must be cached in `Start()` to prevent scale drift if animations overlap.
+**Action:** Use `ShaderUtilities` for runtime outline adjustments and always cache original transforms for interruption-safe UI animations.
 ## 2026-03-26 - [Accessible Text Outlines for Dark Cinematics]
 **Learning:** In Unity cinematics with dark or high-contrast backgrounds (like 'The Void'), standard TextMeshPro text can become unreadable. Enabling the 'OUTLINE_ON' keyword and setting a subtle black outline (0.2 width) via 'ShaderUtilities' significantly improves accessibility and readability without cluttering the UI.
 **Action:** Apply black text outlines to all dialogue and speaker UI in dark or visually busy cinematic sequences.

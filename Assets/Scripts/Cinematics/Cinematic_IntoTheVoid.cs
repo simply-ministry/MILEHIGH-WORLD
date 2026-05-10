@@ -267,6 +267,12 @@ namespace Milehigh.Cinematics
     public GameObject Delilah_Character = null!;
     public AudioSource Delilah_VoiceSource = null!;
     // Protagonist: Sky.ix the The Bionic Goddess
+    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
+    /* VOICE PROFILE: Pitch: Mid-Range Mezzo-Shorano, Tempo: Steady and Precise (130-140 WPM), Tone: Driven, Loving, Determined. Articulated. */
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
@@ -290,6 +296,10 @@ namespace Milehigh.Cinematics
 
     // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
     // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
+    /* VOICE PROFILE: Pitch: Gender Neutral/Mid-Range, Tempo: Slow and Paused (70-90 WPM), Tone: Cryptic, Calm, Profound, Fatalistic. */
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
+
     // Ability Script: Ability_Kai.cs
     /* VOICE PROFILE:
      * Pitch: Gender Neutral/Mid-Range
@@ -307,6 +317,8 @@ namespace Milehigh.Cinematics
     public AudioSource Delilah_VoiceSource = null!;
     // Description: A corrupted form of Ingris, wielding Voidfire.
     // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
     // Ability Script: Ability_Delilah.cs
     /* VOICE PROFILE:
      * Not available.
@@ -342,6 +354,7 @@ namespace Milehigh.Cinematics
 
     public TextMeshProUGUI SkipHint = null!;
 
+    private Coroutine typingCoroutine;
     private Coroutine? typingCoroutine;
     private CanvasGroup? dialogueCanvasGroup;
     private Coroutine typingCoroutine;
@@ -351,6 +364,8 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private Vector3 _originalSpeakerScale;
+    private Coroutine popCoroutine;
     private float idleTimer;
     private bool playerInteracted;
 
@@ -686,6 +701,7 @@ namespace Milehigh.Cinematics
     void Start()
     {
         // 🛡️ Sentinel: Security enhancement - Defensive programming
+        // Ensure UI components are assigned before property access to prevent NullReferenceException.
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
             SpeakerNameText.fontMaterial.EnableKeyword("OUTLINE_ON");
@@ -710,6 +726,22 @@ namespace Milehigh.Cinematics
         }
     }
 
+    private void ApplyOutline(TextMeshProUGUI textComponent)
+    {
+        if (textComponent == null) return;
+        Material mat = textComponent.fontMaterial;
+        mat.EnableKeyword(ShaderUtilities.Keyword_Outline);
+        mat.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        mat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+    }
+
+    void Update()
+    {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+        }
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
         float start = Time.time;
@@ -768,6 +800,11 @@ namespace Milehigh.Cinematics
         private float currentTypingSpeed;
         private bool skipRequested;
 
+        // 🎨 Palette: Speaker Name Pop animation for better visual cue
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
+        popCoroutine = StartCoroutine(PopScale());
+
+        // Apply speaker-specific speed multipliers based on voice profiles
         float multiplier = 1.0f;
         Color speakerColor = Color.white;
 
@@ -1563,6 +1600,31 @@ namespace Milehigh.Cinematics
         target.localScale = baseScale;
     }
 
+    private IEnumerator PopScale()
+    {
+        float duration = 0.2f;
+        float halfDuration = duration / 2f;
+        float elapsed = 0f;
+        Vector3 targetScale = _originalSpeakerScale * 1.15f;
+
+        while (elapsed < halfDuration)
+        {
+            SpeakerNameText.transform.localScale = Vector3.Lerp(_originalSpeakerScale, targetScale, elapsed / halfDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < halfDuration)
+        {
+            SpeakerNameText.transform.localScale = Vector3.Lerp(targetScale, _originalSpeakerScale, elapsed / halfDuration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = _originalSpeakerScale;
+        popCoroutine = null;
+    }
     private IEnumerator PopScale(Transform target, float duration, float multiplier)
     {
         Vector3 initialScale = target.localScale;
@@ -1658,9 +1720,14 @@ namespace Milehigh.Cinematics
                 delay = currentTypingSpeed * 8f;
             }
 
-            yield return GetWait(delay);
-        }
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
         // Final reveal including the completion cue
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false; // Reset skip intent after the line is fully revealed
@@ -1753,6 +1820,10 @@ namespace Milehigh.Cinematics
                 if (idleTimer >= 2.0f && SkipHint != null && !SkipHint.gameObject.activeSelf)
             DialogueText.maxVisibleCharacters = i + 1;
 
+            // Pause AFTER the character is revealed for natural reading rhythm
+            if (i > 0 && i <= totalVisibleCharacters)
+            {
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
             if (i < totalCharacters)
             if (i > 0 && i < totalVisibleCharacters)
             {
@@ -1799,357 +1870,18 @@ namespace Milehigh.Cinematics
                 char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
-                // Note: Delay occurs *after* character reveal for natural rhythm.
-                if (i > 0)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                    if (c == '.' || c == '!' || c == '?') delay += 0.4f;
-                    else if (c == ',' || c == ';' || c == ':') delay += 0.2f;
                 if (c == '.' || c == '!' || c == '?')
                 {
-                    bool isEndOfSentence = true;
-                    if (i + 1 < totalCharacters && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
-                        isEndOfSentence = false;
-
-                    delay = currentTypingSpeed * (isEndOfSentence ? 15f : 1f);
-                }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay = currentTypingSpeed * 8f;
-                char c = DialogueText.textInfo.characterInfo[i].character;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading
-                if (c == '.' || c == '!' || c == '?')
-                {
+                    bool isEndOfSentence = (i >= totalVisibleCharacters) || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                     bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') || (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
-                    if (isEllipsis) delay = currentTypingSpeed * 5f;
-                    else if (i < totalVisibleCharacters && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character)) delay = currentTypingSpeed * 15f;
-                }
-                else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the character at current index (i) because it just became visible.
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    // Smart Punctuation: Look ahead/behind to refine pacing
-                    bool isEllipsis = (c == '.' && ((i > 0 && textInfo.characterInfo[i - 1].character == '.') || (i < totalCharacters - 2 && textInfo.characterInfo[i + 1].character == '.')));
-                    bool isMidWordPeriod = (c == '.' && i < totalCharacters - 2 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character));
 
                     if (isEllipsis) delay = currentTypingSpeed * 5f;
-                    else if (isMidWordPeriod) delay = currentTypingSpeed;
+                    else if (c == '.' && !isEndOfSentence) delay = currentTypingSpeed; // e.g. Sky.ix
                     else delay = currentTypingSpeed * 15f;
                 }
                 else if (c == ',' || c == ';' || c == ':')
                 {
                     delay = currentTypingSpeed * 8f;
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (i + 1 < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i+1].character))
-                        isEndOfSentence = false;
-
-                    if (isEndOfSentence) delay += 0.4f;
-                }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay += 0.2f;
-                // Note: Delay occurs AFTER character reveal for natural rhythm.
-                if (i > 0)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (i + 1 < totalVisibleCharacters)
-                    {
-                        char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                    }
-
-                    if (isEndOfSentence) delay = currentTypingSpeed * 15f;
-                    else delay = currentTypingSpeed * 5f; // Potential mid-word or ellipsis
-                }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay = currentTypingSpeed * 8f;
-                char c = DialogueText.textInfo.characterInfo[i - 1].character;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    SkipHint.text = "[Space] Skip";
-                    SkipHint.gameObject.SetActive(true);
-                }
-            }
-        }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay = currentTypingSpeed * 8f;
-            if (i < totalCharacters)
-            {
-                char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                float delay = currentTypingSpeed;
-                char c = textInfo.characterInfo[i].character;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (i + 1 < totalCharacters)
-                    {
-                        char nextChar = textInfo.characterInfo[i + 1].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                    }
-
-        public void ShowDialogue(string speaker, string message)
-        {
-            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-
-            // UX Enhancement: Pop animation when the speaker changes
-            if (speaker != lastSpeaker)
-            {
-                if (namePopCoroutine != null) StopCoroutine(namePopCoroutine);
-                namePopCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.15f, 1.2f));
-                lastSpeaker = speaker;
-            }
-
-            SpeakerNameText.text = speaker;
-                // Rhythmic pauses
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEllipsis = false;
-                    if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                    if (i < textOnlyCount && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-
-                    if (isEllipsis) delay *= 5f;
-                    else if (i < textOnlyCount && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
-                    {
-                        // Mid-word period (e.g. Sky.ix)
-                        delay = currentTypingSpeed;
-                    }
-                    else
-                    {
-                        delay *= 15f;
-                    }
-                }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay *= 8f;
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // Use characterInfo for robust detection that handles rich text correctly.
-                if (i > 0 && i <= messageVisibleCount)
-            currentTypingSpeed = baseTypingSpeed * multiplier;
-
-            // Apply character-specific colors
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    SpeakerNameText.color = Color.cyan;
-                    currentSpeakerHex = "#00FFFF";
-                    currentTypingSpeed = baseTypingSpeed * skyixSpeedMultiplier;
-                    break;
-                case "Kai":
-                    SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
-                    currentSpeakerHex = "#FFD700";
-                    currentTypingSpeed = baseTypingSpeed * kaiSpeedMultiplier;
-                    break;
-                case "Delilah":
-                    SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                    currentSpeakerHex = "#991AE6";
-                    currentTypingSpeed = baseTypingSpeed;
-                    break;
-                default:
-                    SpeakerNameText.color = Color.white;
-                    currentSpeakerHex = "#FFFFFF";
-                    currentTypingSpeed = baseTypingSpeed;
-                    break;
-            }
-
-            skipRequested = false;
-            typingCoroutine = StartCoroutine(TypeDialogue(message));
-        }
-
-        private IEnumerator PopScale(Transform target)
-        {
-            float duration = 0.2f;
-            float elapsed = 0f;
-            Vector3 peakScale = originalSpeakerScale * 1.15f;
-
-            while (elapsed < duration)
-            {
-                float delay = currentTypingSpeed;
-
-                if (i > 0)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
-
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        // Handle ellipsis or end of sentence
-                        delay = currentTypingSpeed * 15f;
-
-                        // Refined ellipsis and mid-word detection
-                        // Palette UX: Look ahead/back to distinguish sentence-end, ellipsis, or mid-word periods (e.g., Sky.ix).
-                        bool isEllipsis = false;
-                        if (c == '.' && i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-
-                        if (isEllipsis)
-                        {
-                            delay = currentTypingSpeed * 5f; // Faster cadence for ellipsis
-                        }
-                        else
-                        {
-                            bool isMidWord = false;
-                            if (c == '.' && i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character)) isMidWord = true;
-
-                            if (!isMidWord) delay = currentTypingSpeed * 15f;
-                        }
-                    }
-                    else if (c == ',' || c == ';' || c == ':')
-                    {
-                        delay = currentTypingSpeed * 8f;
-                    }
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        char c = DialogueText.textInfo.characterInfo[i - 1].character;
-
-                        if (c == '.' || c == '!' || c == '?')
-                        {
-                            bool isEllipsis = false;
-                            if (c == '.')
-                            {
-                                if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                                if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                            }
-
-                            if (isEllipsis) delay = currentTypingSpeed * 5f;
-                            else if (i < totalVisibleCharacters && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
-                                delay = currentTypingSpeed * 15f;
-                        }
-                        else if (c == ',' || c == ';' || c == ':')
-                        {
-                            delay = currentTypingSpeed * 8f;
-                        // Look-ahead: avoid pauses for mid-word periods (e.g., Sky.ix)
-                        if (c == '.' && i < totalVisibleCharacters)
-                        {
-                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
-                            if (!char.IsWhiteSpace(nextChar)) delay = currentTypingSpeed;
-                        }
-
-                        // Ellipsis detection: 5x delay for dots in '...'
-                        bool isEllipsis = false;
-                        if (c == '.')
-                        {
-                            if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                            if (i < messageVisibleCount && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                        }
-
-                        if (isEllipsis) delay = currentTypingSpeed * 5f;
-                        else if (c == '.' && i < messageVisibleCount && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
-                            else if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                        }
-                        if (isEllipsis) delay = currentTypingSpeed * 5f;
-                            if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                        }
-
-                        if (isEllipsis) delay = currentTypingSpeed * 5f;
-                        else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
-                    }
-                    else if (c == ',' || c == ';' || c == ':')
-                    {
-                        delay = currentTypingSpeed * 8f;
-                    }
-                        else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
-                        {
-                            delay = currentTypingSpeed; // Mid-word (e.g. Sky.ix)
-                        }
-                        else delay = currentTypingSpeed * 15f;
-                    }
-
-                    yield return GetWait(delay);
-                }
-            }
-
-        // Note: We do NOT reset skipRequested here to allow the intent to carry over to the subsequent pause.
-            skipRequested = false;
-            typingCoroutine = null;
-        }
-
-            if (i < totalCharacters)
-            {
-                float delay = currentTypingSpeed;
-                char c = DialogueText.textInfo.characterInfo[i].character;
-
-                // Rhythmic Pacing: Pause after punctuation for natural reading cadence
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEllipsis = (i + 1 < totalCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.');
-                    bool isEndOfSentence = (i + 1 == totalCharacters || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i + 1].character));
-
-                    if (isEllipsis) delay = currentTypingSpeed * 5f;
-                    else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
-                }
-                else if (c == ',' || c == ';' || c == ':')
-                {
-                    delay = currentTypingSpeed * 8f;
-        private IEnumerator Cinematic_IntoTheVoid_Sequence()
-        {
-            DialogueBox.SetActive(true);
-            yield return WaitForSecondsOrSkip(1.0f);
-
-            ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
-            yield return WaitForSecondsOrSkip(7.5f);
-
-                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
-                elapsed += Time.deltaTime;
-                float t = elapsed / duration;
-                target.localScale = Vector3.Lerp(originalSpeakerScale, peakScale, Mathf.Sin(t * Mathf.PI));
-                yield return null;
-            }
-            target.localScale = originalSpeakerScale;
-        }
-
-        private IEnumerator TypeDialogue(string message)
-        {
-            DialogueText.text = message;
-            DialogueText.maxVisibleCharacters = 0;
-            DialogueText.ForceMeshUpdate();
-
-            int totalVisibleCharacters = DialogueText.textInfo.characterCount;
-
-            for (int i = 0; i <= totalVisibleCharacters; i++)
-            {
-                if (skipRequested)
-                {
-                    DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-                    break;
-                }
-
-                DialogueText.maxVisibleCharacters = i;
-
-                if (i < totalVisibleCharacters)
-                {
-                    char c = DialogueText.textInfo.characterInfo[i].character;
-                    float delay = currentTypingSpeed;
-
-                    // Rhythmic Punctuation Logic
-                    if (c == '.' || c == '!' || c == '?')
-                    {
-                        bool isMidWord = (i + 1 < totalVisibleCharacters) && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i + 1].character);
-                        bool isEllipsis = (i + 1 < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.') ||
-                                         (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.');
-
-                        if (isEllipsis) delay = currentTypingSpeed * 5f;
-                        else if (isMidWord) delay = currentTypingSpeed;
-                        else delay = currentTypingSpeed * 15f;
-                    }
-                    else if (c == ',' || c == ';' || c == ':')
-                    {
-                        delay = currentTypingSpeed * 8f;
-                    }
-
-                    yield return UnityUtils.GetWait(delay);
                 }
             }
 
@@ -2160,6 +1892,8 @@ namespace Milehigh.Cinematics
             typingCoroutine = null;
         }
 
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        skipRequested = false;
         DialogueText.maxVisibleCharacters = totalCharacters;
 
         // UX Enhancement: Colored completion cue
@@ -2485,6 +2219,7 @@ namespace Milehigh.Cinematics
 
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
+        // [ANIMATION: Dash_Forward] [VFX: Glitchy dash particle trail] [CAMERA: Fast dolly track] [SFX: Cybernetic dash whoosh]
         yield return WaitForSecondsOrSkip(2.0f);
 
         // --- Dialogue Line 6: Kai ---
@@ -2500,13 +2235,14 @@ namespace Milehigh.Cinematics
 
         // --- Dialogue Line 6: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
-        // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
+        // [CAMERA: Cut to Kai, holographic energy spike warning.]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(3.5f);
 
         // --- Dialogue Line 7: Delilah ---
+        // [ANIMATION: Taunt_OpenArms] [CAMERA: Wide shot showing Sky.ix nearing objective]
         yield return WaitForSecondsOrSkip(1.5f);
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
@@ -2516,6 +2252,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(5.5f);
 
         // --- Dialogue Line 8: Sky.ix ---
+        // [ANIMATION: Determined_Resolve] [CAMERA: Extreme close-up on Sky.ix's eyes]
         yield return WaitForSecondsOrSkip(1.0f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
@@ -2536,6 +2273,10 @@ namespace Milehigh.Cinematics
         Debug.Log("Cinematic Sequence Complete.");
         DialogueBox.SetActive(false);        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
+        // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to boss fight]
+        // Example: PlayerInput.Instance.EnableControls();
+        // Example: BossFightController.StartFight();
+        Debug.Log("Cinematic Sequence Complete.");
         Debug.Log("Cinematic Sequence Complete.");
         yield return FadeDialogueBox(0.0f, 0.5f);
 
