@@ -471,6 +471,13 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        // BOLT: Convert float time to int milliseconds for caching to prevent cache misses
+        // caused by floating-point precision inaccuracies when durations are dynamically calculated.
+        int timeMs = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeMs] = wait;
         int timeMs = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
         {
