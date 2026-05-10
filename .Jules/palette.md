@@ -50,6 +50,9 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Context-Aware Typewriter Logic and Thematic UI]
+**Learning:** Enhancing typewriter effects with context-aware logic—such as look-ahead checks to ignore pauses for mid-word periods (e.g., "Sky.ix") and rhythmic delays for ellipses—significantly improves narrative immersion. Furthermore, applying character-specific color coding to UI elements like the completion character ("▽") provides intuitive thematic cues that reinforce speaker identity without cluttering the interface.
+**Action:** Implement look-ahead logic to handle edge-case punctuation and use speaker-themed rich text for UI feedback symbols.
 ## 2026-03-25 - [Refined Typewriter Rhythm and Character-Coded Cues]
 **Learning:** Typewriter effects can feel jerky if mid-word periods (e.g., "Sky.ix") trigger full sentence-end pauses; verifying if the next character is non-whitespace before applying a delay preserves natural cadence. Additionally, color-coding progression cues (like "▽") using speaker-specific rich text tags provides a thematic "finish line" for users that reinforces character identity without cluttering the UI.
 **Action:** Use look-ahead logic to distinguish sentence endings from mid-word punctuation and utilize rich-text-tagged symbols for character-specific completion feedback.

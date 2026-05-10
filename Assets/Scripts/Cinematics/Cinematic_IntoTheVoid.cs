@@ -34,6 +34,7 @@
 //
 // 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -603,6 +604,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Improved punctuation logic: distinguish between sentence ends and mid-word periods (like Sky.ix)
+                    // or ellipsis (...) by looking ahead.
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEllipsis = (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') ||
+                                         (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.');
                     if (c == '.' || c == '!' || c == '?') wait = longWait;
                     else if (c == ',' || c == ';' || c == ':') wait = shortWait;
                 }
@@ -626,6 +634,20 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                         }
                         else
                         {
+                            // Look ahead to ensure it's not a mid-word period (next char should be whitespace or end of string)
+                            bool isEndOfSentence = (i >= totalVisibleCharacters) ||
+                                                   Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+
+                            if (isEndOfSentence)
+                            {
+                                delay = currentTypingSpeed * 15f; // Full pause for sentence ends
+                            }
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f; // Medium pause for clauses
+                    }
                             // Standard sentence end - check if next char is whitespace to avoid mid-word delays (e.g. Sky.ix)
                             bool nextIsWhitespace = i >= totalVisibleCharacters || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                             if (nextIsWhitespace) delay = currentTypingSpeed * 15f;
@@ -776,6 +798,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // Color-coded to match the speaker's theme for better accessibility and polish.
+        DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
         // Color-code the completion character to match the speaker's theme.
         DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2; // +1 for space, +1 for triangle
