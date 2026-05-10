@@ -1,38 +1,10 @@
 // --- UNITY SCENE SETUP --- //
 //
 // 1. Create an empty GameObject in your scene and name it "SceneController".
-//
-// 2. Attach this script (`Cinematic_IntoTheVoid.cs`)
-//    to the "SceneController" GameObject.
-//
-// 3. Create or place the character prefabs/GameObjects for "Sky.ix", "Kai", and "Delilah" into the scene.
-//
-// 4. Ensure each character GameObject has the following components attached:
-//    - An Animator component with a configured Animation Controller.
-//    - An AudioSource component to be used for their voice lines.
-//    - Their respective ability script (e.g., Sky.ix needs `Ability_Skyix.cs`, Kai needs `Ability_Kai.cs`, etc.)
-//
-// 5. Create the UI for the dialogue system:
-//    - Right-click in the Hierarchy -> UI -> Canvas.
-//    - Inside the Canvas, create a UI -> Panel. Rename it "DialogueBox". This will be the background.
-//    - Inside the "DialogueBox", create two UI -> Text - TextMeshPro objects.
-//    - Name the first one "SpeakerNameText" and position it where the speaker's name should appear.
-//    - Name the second one "DialogueText" and position it for the main dialogue content.
-//    - Initially, set the "DialogueBox" GameObject to be inactive (uncheck the box in the Inspector).
-//
-// 6. Select the "SceneController" GameObject. In the Inspector, drag and drop the corresponding scene objects
-//    into the public fields of this script:
-//    - Drag the "Sky.ix" GameObject into the `Skyix_Character` field.
-//    - Drag the AudioSource from "Sky.ix" into the `Skyix_VoiceSource` field.
-//    - Drag the "Kai" GameObject into the `Kai_Character` field.
-//    - Drag the AudioSource from "Kai" into the `Kai_VoiceSource` field.
-//    - Drag the "Delilah" GameObject into the `Delilah_Character` field.
-//    - Drag the AudioSource from "Delilah" into the `Delilah_VoiceSource` field.
-//    - Drag the "DialogueBox" panel into the `Dialogue Box` field.
-//    - Drag the "SpeakerNameText" TMP object into the `Speaker Name Text` field.
-//    - Drag the "DialogueText" TMP object into the `Dialogue Text` field.
-//
-// 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
+// 2. Attach this script (Cinematic_IntoTheVoid.cs) to it.
+// 3. Configure character prefabs (Sky.ix, Kai, Delilah) with Animators and AudioSources.
+// 4. Setup UI: Canvas -> DialogueBox (Panel) -> SpeakerNameText (TMP), DialogueText (TMP), SkipHint (TMP).
+// 5. Drag and drop references into the Inspector.
 
 using System;
 using System.Collections;
@@ -43,11 +15,19 @@ using TMPro;
 using Milehigh.Core;
 
 /// <summary>
+/// Controls the cinematic sequence for "Deep within the anti-reality of ŤĤÊ VØĪĐ".
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'--a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 namespace Milehigh.Cinematics
 {
+    [Header("Character References")]
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
     // ====================================================================
     //
     // CHARACTER ASSET & VOICE REFERENCE BLOCK
@@ -114,9 +94,11 @@ namespace Milehigh.Cinematics
     public TextMeshProUGUI DialogueText;
 
     [Header("UX Settings")]
+    [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
     public float skyixSpeedMultiplier = 1.2f;
+    public float idleHintThreshold = 2.0f;
 
     private Coroutine typingCoroutine;
     private Coroutine namePopCoroutine;
@@ -310,6 +292,40 @@ namespace Milehigh.Cinematics
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         private void Update()
         {
+            Debug.LogError("Missing UI components! Cinematic aborted.");
+            return;
+        }
+
+        if (SkipHint == null)
+        {
+            // Fallback: try to find it in children if not assigned
+            SkipHint = DialogueBox.GetComponentInChildren<TextMeshProUGUI>(true);
+            if (SkipHint == SpeakerNameText || SkipHint == DialogueText) SkipHint = null!;
+        }
+
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    void Update()
+    {
+        // Reset idle timer and hide hint on any interaction
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            idleTimer = 0;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+            skipRequested = true;
+        }
+        else if (DialogueBox.activeInHierarchy && !playerInteracted)
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= idleHintThreshold && SkipHint != null)
+            {
+                SkipHint.gameObject.SetActive(true);
+            }
+        }
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.anyKeyDown)
             {
                 skipRequested = true;
@@ -341,9 +357,6 @@ namespace Milehigh.Cinematics
         // PALETTE: Capture original scale for animations
         _originalSpeakerScale = SpeakerNameText.transform.localScale;
 
-    /// <summary>
-    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
-    /// </summary>
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -399,6 +412,20 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+        idleTimer = 0;
+        playerInteracted = false;
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        Color speakerColor = speaker switch
+        {
+            "Sky.ix" => Color.cyan,
+            "Kai" => new Color(1f, 0.84f, 0f), // Gold
+            "Delilah" => new Color(0.6f, 0.1f, 0.9f), // Void Purple
+            _ => Color.white
+        };
+        SpeakerNameText.color = speakerColor;
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message, speakerColor));
 
         // Apply character-specific colors for better speaker identification
         Color speakerColor;
@@ -487,8 +514,12 @@ namespace Milehigh.Cinematics
         namePopCoroutine = null;
     }
 
-    private IEnumerator TypeDialogue(string message)
+    private IEnumerator TypeDialogue(string message, Color color)
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
@@ -504,8 +535,13 @@ namespace Milehigh.Cinematics
         {
             if (skipRequested) break;
 
-            DialogueText.maxVisibleCharacters = i + 1;
+        int totalCharacters = DialogueText.textInfo.characterCount;
+        // The cue ▽ is usually the last character
+        int textOnlyCount = totalCharacters - 1;
 
+        for (int i = 0; i <= textOnlyCount; i++)
+        {
+            if (skipRequested) break;
             char c = textInfo.characterInfo[i].character;
             float delay = currentTypingSpeed;
 
@@ -539,6 +575,7 @@ namespace Milehigh.Cinematics
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            if (i > 0 && i <= textOnlyCount)
             if (i > 0 && i <= totalVisibleCharacters)
             {
                 float delay = currentTypingSpeed;
@@ -576,6 +613,7 @@ namespace Milehigh.Cinematics
                     delay = currentTypingSpeed * 8f;
             if (i < totalCharacters)
             {
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
                 float delay = currentTypingSpeed;
                 char c = textInfo.characterInfo[i].character;
 
@@ -617,6 +655,27 @@ namespace Milehigh.Cinematics
                 DialogueText.characterSpacing = 0f;
             }
 
+                // Rhythmic pauses
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEllipsis = false;
+                    if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                    if (i < textOnlyCount && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+
+                    if (isEllipsis) delay *= 5f;
+                    else if (i < textOnlyCount && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                    {
+                        // Mid-word period (e.g. Sky.ix)
+                        delay = currentTypingSpeed;
+                    }
+                    else
+                    {
+                        delay *= 15f;
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay *= 8f;
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
                 // Use characterInfo for robust detection that handles rich text correctly.
                 if (i > 0 && i <= messageVisibleCount)
@@ -815,6 +874,18 @@ namespace Milehigh.Cinematics
 
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
+        typingCoroutine = null;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested)
+        {
+            yield return null;
+        }
+        skipRequested = false;
+    }
         // Note: skipRequested is NOT reset here to allow skipping the subsequent pause.
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // Color-coded to the current speaker for a subtle touch of delight.
@@ -887,6 +958,8 @@ namespace Milehigh.Cinematics
         yield return FadeDialogueBox(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
+    private IEnumerator Cinematic_IntoTheVoid_Sequence()
+    {
         DialogueBox.SetActive(true);
         yield return GetWait(1.0f);
 
@@ -916,6 +989,8 @@ namespace Milehigh.Cinematics
 
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         yield return WaitForSecondsOrSkip(4.5f);
+
+        yield return WaitForSecondsOrSkip(2.0f); // Dash sequence
 
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         yield return WaitForSecondsOrSkip(3.5f);
