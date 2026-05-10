@@ -571,6 +571,7 @@ namespace Milehigh.Core
                     }
                 }
                 // Try to find prefab if not in scene
+                GameObject prefab;
                 // BOLT: Lazy evaluation dictionary lookup for prefabs to prevent O(N) list search on every instantiation. Includes negative caching.
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 GameObject prefab = null;
