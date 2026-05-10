@@ -432,6 +432,7 @@ namespace Milehigh.Cinematics
 
     private Coroutine? typingCoroutine;
     private Coroutine typingCoroutine;
+    private Coroutine speakerPopCoroutine;
     private Coroutine popCoroutine;
     private Coroutine? typingCoroutine;
     private CanvasGroup? dialogueCanvasGroup;
@@ -442,6 +443,7 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private Vector3 originalSpeakerScale;
     private Vector3 speakerNameOriginalScale;
     private Coroutine popCoroutine;
     private string _currentCompletionCue = null!;
@@ -636,6 +638,16 @@ namespace Milehigh.Cinematics
         popCoroutine = null;
     }
 
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+    }
+
     void Start()
     {
         // 🛡️ Sentinel: Security enhancement - Defensive programming
@@ -646,6 +658,7 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        originalSpeakerScale = SpeakerNameText.transform.localScale;
         speakerNameOriginalScale = SpeakerNameText.transform.localScale;
         if (DialogueCanvasGroup == null)
         {
@@ -672,6 +685,10 @@ namespace Milehigh.Cinematics
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
+
+        SpeakerNameText.text = speaker;
+        speakerPopCoroutine = StartCoroutine(PopEffect());
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
@@ -870,6 +887,10 @@ namespace Milehigh.Cinematics
             }
             dialogueCanvasGroup.alpha = 0;
         }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.text = message + " ▽";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
         // UX Enhancement: Brief pause after final punctuation for better readability.
         if (!skipRequested && totalVisibleCharacters > 0)
@@ -3133,7 +3154,7 @@ namespace Milehigh.Cinematics
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         DialogueBox.SetActive(true);
-        yield return GetWait(1.0f);
+        yield return WaitForSecondsOrSkip(1.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
@@ -3297,6 +3318,8 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        // Kai_VoiceSource.Play();
         // [CAMERA: Cut to Kai, holographic energy spike warning.]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
@@ -3322,6 +3345,9 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.0f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
+        yield return WaitForSecondsOrSkip(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        // Skyix_VoiceSource.Play();
         yield return GetWait(1.0f);
         yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 7.5f);
         // Skyix_VoiceSource.Play();
@@ -3356,6 +3382,7 @@ namespace Milehigh.Cinematics
         // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
+        skipRequested = false;
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of THE VOID...]");
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
             ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
