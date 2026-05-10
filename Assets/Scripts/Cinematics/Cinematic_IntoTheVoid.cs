@@ -207,6 +207,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
 
+        // ⚡ Bolt: Cache WaitForSeconds outside the loop to prevent per-iteration GC allocations
+        var waitNormal = new WaitForSeconds(currentTypingSpeed);
+        var waitShortPause = new WaitForSeconds(currentTypingSpeed + 0.2f);
+        var waitLongPause = new WaitForSeconds(currentTypingSpeed + 0.4f);
+
         for (int i = 0; i <= message.Length; i++)
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
@@ -258,6 +263,27 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             if (i < totalVisibleCharacters)
             {
+                char c = message[i];
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                // Note: Delay occurs *after* character reveal for natural rhythm.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    yield return waitLongPause;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    yield return waitShortPause;
+                }
+                else
+                {
+                    yield return waitNormal;
+                }
+            }
+            else
+            {
+                // Delay after the last character is fully revealed before proceeding
+                yield return waitNormal;
                 float delay = currentTypingSpeed;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
