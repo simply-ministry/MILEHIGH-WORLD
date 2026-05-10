@@ -131,6 +131,26 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             }
 
             o.Albedo = albedo.rgb;
+            // --- Subsurface Scattering ---
+            half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
+            if (sssMask > 0)
+            {
+                // A more advanced SSS would use a proper lighting model.
+                // This is a stylistic approximation.
+                half NdotL = dot(o.Normal, _WorldSpaceLightPos0.xyz);
+                // ⚡ Bolt: Replace pow(..., 8.0) with nested squares for performance
+                half sss_base = saturate(dot(IN.viewDir, -_WorldSpaceLightPos0.xyz));
+                half sss_sq = sss_base * sss_base;
+                half sss_4 = sss_sq * sss_sq;
+                half sss = sss_4 * sss_4 * _SSSScale;
+                // BOLT: Ensure albedo is assigned *before* SSS is added to avoid overwriting SSS calculation
+                o.Albedo = albedo.rgb;
+                o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
+            }
+            else
+            {
+                o.Albedo = albedo.rgb;
+            }
         }
         ENDCG
     }
