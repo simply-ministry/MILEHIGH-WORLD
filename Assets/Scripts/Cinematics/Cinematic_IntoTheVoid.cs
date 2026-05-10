@@ -758,6 +758,8 @@ namespace Milehigh.Cinematics
         public GameObject Kai_Character = null!;
         public AudioSource Kai_VoiceSource = null!;
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+
         // Antagonist: Delilah the The Desolate
         // Description: A corrupted form of Ingris, wielding Voidfire.
         // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
@@ -833,6 +835,16 @@ namespace Milehigh.Cinematics
                     {
                         delay = currentTypingSpeed * 15f;
 
+                        // Look-ahead: avoid long pauses for mid-word periods (e.g., Sky.ix)
+                        if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                        {
+                            delay = currentTypingSpeed;
+                        }
+                        // Ellipsis detection: use a faster 5x delay for consecutive dots
+                        else if (c == '.' && ((i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                             (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.')))
+                        {
+                            delay = currentTypingSpeed * 5f;
                         if (c == '.')
                         {
                             // Ellipsis detection: Check if neighboring characters are also dots
@@ -859,7 +871,19 @@ namespace Milehigh.Cinematics
             dialogueCanvasGroup.alpha = 0;
         }
 
+        // UX Enhancement: Brief pause after final punctuation for better readability.
+        if (!skipRequested && totalVisibleCharacters > 0)
+        {
+            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
+            {
+                yield return GetWait(currentTypingSpeed * 15f);
+            }
+        }
+
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // The symbol is color-coded to match the speaker's theme for better visual cohesion.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         DialogueText.text = message + $" <color=#{currentSpeakerHex}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
