@@ -20,6 +20,8 @@ namespace Milehigh.Editor
             HorizonGameData? data = null;
             try
             {
+                string json = File.ReadAllText(path);
+                data = JsonUtility.FromJson<HorizonGameData>(json);
                 string fileJson = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(fileJson);
 
@@ -32,6 +34,7 @@ namespace Milehigh.Editor
             catch (System.Exception ex)
             {
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError($"[Security] Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
                 return;
             }
@@ -85,6 +88,11 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
+                string baseName = charProfile.name;
+                if (string.IsNullOrEmpty(baseName)) baseName = "unnamed_character";
+
+                string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 string baseName = charProfile.name ?? "unnamed_character";
                 string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");

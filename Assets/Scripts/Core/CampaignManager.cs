@@ -4,6 +4,7 @@ using Milehigh.Data;
 
 namespace Milehigh.Core
 {
+    [DefaultExecutionOrder(-100)]
     public class CampaignManager : MonoBehaviour
     {
         private static CampaignManager? _instance;
@@ -11,15 +12,17 @@ namespace Milehigh.Core
         {
             get
             {
+                // BOLT: O(1) access in the common case after initialization
+                if (_instance != null) return _instance;
+
+                _instance = FindObjectOfType<CampaignManager>();
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CampaignManager>();
-                    if (_instance == null)
-                    {
-                        GameObject go = new GameObject("CampaignManager");
-                        _instance = go.AddComponent<CampaignManager>();
-                    }
+                    GameObject go = new GameObject("CampaignManager");
+                    _instance = go.AddComponent<CampaignManager>();
                 }
+                // BOLT: Use null-forgiving operator as we guarantee _instance is not null here.
+                return _instance!;
                 return _instance;
             }
         }
@@ -101,6 +104,9 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Fail securely and don't use invalid data
+                        Debug.LogError($"[Security] Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null;
                         // SECURITY: Fail securely and don't use invalid data.
                         // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs.
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
@@ -135,6 +141,7 @@ namespace Milehigh.Core
                 catch (System.Exception ex)
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
+                    Debug.LogError($"[Security] Error loading campaign data from {fileName}: {ex.Message}");
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}.");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
                     // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
