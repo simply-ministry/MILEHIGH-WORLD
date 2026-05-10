@@ -14,17 +14,21 @@ namespace Milehigh.Data
     public class Metadata
     {
         public LightingState lighting;
-        public string environment;
+        public string environment = null!;
         public int systemParity;
         public float voidSaturationLevel;
 
+        public bool IsValid()
+        {
         /// <summary>
-        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
+        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and safety bounds.
         /// </summary>
         public bool IsValid()
         {
-            // Void saturation must be within a safe 0.0 to 1.0 range.
+            // SECURITY: Ensure void saturation is within a safe 0.0 to 1.0 range.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
@@ -36,24 +40,17 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
-
-        public bool IsValid()
-        {
-            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
-            if (string.IsNullOrEmpty(role) || role.Length > 128) return false;
-            return true;
-        }
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
     }
 
     [System.Serializable]
     public class ObjectInteraction
     {
-        public string objectId;
-        public string action;
+        public string objectId = null!;
+        public string action = null!;
 
         public bool isVector;
         public float floatValue;
@@ -86,6 +83,9 @@ namespace Milehigh.Data
             if (text != null && text.Length > 2048) return false;
             return true;
         }
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
     }
 
     [System.Serializable]
@@ -111,19 +111,20 @@ namespace Milehigh.Data
             }
             return true;
         }
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
     }
 
     [System.Serializable]
     public class HorizonGameData
     {
-        public string sceneId;
-        public Metadata metadata;
-        public List<CharacterProfile> characters;
-        public List<SceneScenario> scenarios;
+        public string sceneId = null!;
+        public Metadata metadata = null!;
+        public List<CharacterProfile> characters = null!;
+        public List<SceneScenario> scenarios = null!;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
-        /// </summary>
         public bool IsValid()
         {
             if (metadata == null)
@@ -143,20 +144,13 @@ namespace Milehigh.Data
                 return false;
             }
 
-            foreach (var character in characters)
+            if (scenarios == null)
             {
-                if (character == null || !character.IsValid()) return false;
-            }
-
-            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
+            if (scenarios == null || scenarios.Count == 0)
             {
-                Debug.LogError("[Security] Game data validation failed: Scenarios count invalid.");
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
                 return false;
-            }
-
-            foreach (var scenario in scenarios)
-            {
-                if (scenario == null || !scenario.IsValid()) return false;
             }
 
             return true;
