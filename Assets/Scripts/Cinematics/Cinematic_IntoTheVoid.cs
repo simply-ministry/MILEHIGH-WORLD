@@ -362,6 +362,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.ForceMeshUpdate();
 
         // BOLT: Typewriter effect optimized for performance.
+        // We pre-calculate WaitForSeconds outside the loop to ensure zero-allocation yields,
+        // avoiding GC pressure and float-based dictionary lookups during dialogue sequences.
+
         // Cache WaitForSeconds to prevent per-iteration GC allocations
         // avoiding GC pressure during dialogue sequences, without using float dictionaries.
         var standardWait = new WaitForSeconds(currentTypingSpeed);
@@ -423,6 +426,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         var longPauseWait = new WaitForSeconds(currentTypingSpeed * 15f);
         var shortPauseWait = new WaitForSeconds(currentTypingSpeed * 8f);
 
+        var normalWait = GetWait(currentTypingSpeed);
+        var commaWait = GetWait(currentTypingSpeed * 8f);
+        var periodWait = GetWait(currentTypingSpeed * 15f);
+
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
             if (skipRequested)
@@ -435,6 +442,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             if (i < totalVisibleCharacters)
             {
+                var currentWait = normalWait;
                 WaitForSeconds waitToYield = standardWait;
                 var waitToYield = normalWait;
                 WaitForSeconds wait = waitNormal;
@@ -504,6 +512,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') currentWait = periodWait;
+                    else if (c == ',' || c == ';' || c == ':') currentWait = commaWait;
                     bool isNextCharWhitespace = (i < totalVisibleCharacters) && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
 
                     if (c == '.' || c == '!' || c == '?')
