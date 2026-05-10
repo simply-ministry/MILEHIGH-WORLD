@@ -1830,6 +1830,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR tampering with core architectural managers
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
             {
