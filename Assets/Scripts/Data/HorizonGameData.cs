@@ -111,6 +111,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker = "";
         public string text = "";
         public string trigger = "";
