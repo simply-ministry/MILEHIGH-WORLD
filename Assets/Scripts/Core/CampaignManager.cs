@@ -69,6 +69,10 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // 🛡️ Sentinel: Combined logic to handle both deserialization failure and security validation rejection.
+                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null; // Ensure we don't use invalid data
+                    }
                         // SECURITY: Log only the file name to avoid absolute path disclosure
                         Debug.LogError($"Failed to validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data

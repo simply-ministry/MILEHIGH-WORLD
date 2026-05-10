@@ -55,6 +55,9 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+## 2026-04-02 - Unity Negative Caching and ReferenceEquals
+**Learning:** Unity's 'GameObject.Find' is expensive, especially when it fails. Implementing negative caching by storing 'null' in the dictionary prevents repeated O(N) scene traversals for non-existent objects. Additionally, using 'System.Object.ReferenceEquals(obj, null)' alongside the '== null' check is critical for robustly identifying truly null entries versus destroyed Unity objects (fake nulls).
+**Action:** Use negative caching in GameObject caches and combine '== null' with 'ReferenceEquals' to safely manage the lifecycle of cached Unity objects.
 
 ## 2026-03-27 - [Triple-Layer Caching & Unity Null Safety]
 **Learning:** Effective scene initialization in Unity requires a triple-layer caching strategy: 1) Negative caching for `GameObject.Find` to avoid repeated O(N) traversals for missing objects, 2) Prefab memoization to replace O(M) list searches, and 3) `InstanceID`-based component caching to optimize `GetComponent` calls. Crucially, robust negative caching MUST distinguish between "real nulls" (negative cache hits) and "fake nulls" (destroyed objects) using `System.Object.ReferenceEquals(obj, null)`.
