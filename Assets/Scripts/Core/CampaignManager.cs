@@ -24,6 +24,7 @@ namespace Milehigh.Core
             }
         }
 
+        public HorizonGameData currentCampaignData = null!;
         public HorizonGameData? currentCampaignData;
         public float currentVoidSaturationLevel;
 
@@ -73,6 +74,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");
                         currentCampaignData = null;
                         // SECURITY: Fail securely and don't use invalid data

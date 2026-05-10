@@ -83,6 +83,7 @@ namespace Milehigh.Data
     {
         public string objectId = null!;
         public string action = null!;
+
         public bool isVector;
         public float floatValue;
         public float x;
@@ -224,6 +225,12 @@ namespace Milehigh.Data
 
             if (scenarios == null)
             {
+                return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
                 return false;
             }
 

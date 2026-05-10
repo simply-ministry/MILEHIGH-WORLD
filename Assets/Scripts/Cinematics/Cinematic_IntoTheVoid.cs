@@ -183,6 +183,8 @@ namespace Milehigh.Cinematics
     [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
+    private Coroutine typingCoroutine;
+    private Coroutine popCoroutine;
     private Coroutine? typingCoroutine;
     private float currentTypingSpeed;
     private string currentSpeakerColorTag;
@@ -228,6 +230,47 @@ namespace Milehigh.Cinematics
             yield return null;
         }
         skipRequested = false;
+    }
+
+    /// <summary>
+    /// UX Enhancement: A skippable wait that allows users to 'fast-forward' through dialogue beats.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    /// <summary>
+    /// UX Enhancement: A subtle 'pop' animation for UI elements to draw focus during state changes.
+    /// </summary>
+    private IEnumerator PopScale(Transform target, float duration = 0.2f, float scaleFactor = 1.15f)
+    {
+        Vector3 initialScale = target.localScale;
+        Vector3 targetScale = initialScale * scaleFactor;
+
+        float elapsed = 0f;
+        while (elapsed < duration / 2f)
+        {
+            target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < duration / 2f)
+        {
+            target.localScale = Vector3.Lerp(targetScale, initialScale, elapsed / (duration / 2f));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        target.localScale = initialScale;
+        popCoroutine = null;
     }
 
     void Start()
@@ -295,6 +338,7 @@ namespace Milehigh.Cinematics
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
         popCoroutine = StartCoroutine(PopSpeakerName());
         public void ShowDialogue(string speaker, string message)
         {
