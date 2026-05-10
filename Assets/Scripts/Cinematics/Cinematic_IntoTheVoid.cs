@@ -128,44 +128,16 @@ namespace Milehigh.Cinematics
     // ====================================================================
 
     // Protagonist: Sky.ix the The Bionic Goddess
-    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void. She was a brilliant xenolinguist who, along with her family, was part of the research team at the Onalym Nexus.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
-    // Ability Script: Ability_Skyix.cs
-    /* VOICE PROFILE:
-     * Pitch: Mid-Range Mezzo-Shorano
-     * Tempo: Steady and Precise (130-140 WPM)
-     * Texture & Effects: Clean, Clear, and Articulated. Subtle Digital/Synthetic Filter (low chorus).
-     * Projection: Medium-High, Direct
-     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
-     * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
-    */
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
 
     // Protagonist: Kai the The Child of Prophecy
-    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
-    // Ability Script: Ability_Kai.cs
-    /* VOICE PROFILE:
-     * Pitch: Gender Neutral/Mid-Range
-     * Tempo: Slow and Paused (70-90 WPM)
-     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
-     * Projection: Soft, but Infinitely Resonant
-     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
-     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
-    */
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
 
 
     // Antagonist: Delilah the The Desolate
-    // Description: A corrupted form of Ingris, wielding Voidfire.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
-    // Ability Script: Ability_Delilah.cs
-    /* VOICE PROFILE:
-     * Not available.
-    */
     public GameObject Delilah_Character = null!;
     public AudioSource Delilah_VoiceSource = null!;
 
@@ -251,6 +223,8 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator PopScale(Transform target, float duration = 0.2f, float scaleFactor = 1.15f)
     {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         Vector3 initialScale = target.localScale;
         Vector3 targetScale = initialScale * scaleFactor;
 
@@ -376,9 +350,15 @@ namespace Milehigh.Cinematics
         StartCoroutine(PopScale(SpeakerNameText.rectTransform));
     }
 
+    /// <summary>
+    /// Unified typewriter effect that handles rich text, rhythmic pauses, and skip logic.
+    /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         // We pre-calculate it once here to avoid string allocations and hex conversion in the loop or final update.
         _currentCompletionCue = $" <color=#{_currentSpeakerHex}>▽</color>";
         DialogueText.text = message + _currentCompletionCue;
@@ -524,6 +504,18 @@ namespace Milehigh.Cinematics
 
                     delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                 }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
+            yield return GetWait(delay);
+        }
+
+        // Finalize text display
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
             }
             else if (c == ',' || c == ';' || c == ':')
             {
@@ -687,16 +679,12 @@ namespace Milehigh.Cinematics
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
-        // Example: PlayerInput.Instance.DisableControls();
-        // Example: CinematicCamera.SetActive(true);
-
         DialogueBox.SetActive(true);
         yield return GetWait(1.0f);
 
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
-        yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.5f);
@@ -705,7 +693,6 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 2: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
-        yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(6.0f);
@@ -714,7 +701,6 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 3: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
-        yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(8.0f);
@@ -723,7 +709,6 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 4: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
-        yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.0f);
@@ -732,7 +717,6 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 5: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
-        yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(4.5f);
@@ -740,6 +724,7 @@ namespace Milehigh.Cinematics
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Dash_Forward");]
+        yield return WaitForSecondsOrSkip(2.0f);
         // [VFX: Play glitchy dash particle trail from Sky.ix's starting position to the conduit.]
         // [CAMERA: Fast dolly track, following Sky.ix's movement. Add motion blur.]
         // [SFX: Play sound of cybernetic dash and energy whoosh.]
@@ -747,8 +732,6 @@ namespace Milehigh.Cinematics
 
         // --- Dialogue Line 6: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
-        // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
-        yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(3.5f);
@@ -756,8 +739,6 @@ namespace Milehigh.Cinematics
 
         // --- Dialogue Line 7: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
-        // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
-        yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(5.5f);
@@ -765,8 +746,6 @@ namespace Milehigh.Cinematics
 
         // --- Dialogue Line 8: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
-        // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
-        yield return WaitForSecondsOrSkip(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.5f);

@@ -56,6 +56,10 @@
 ## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2026-03-26 - [Unified Rhythmic Typewriter and Smart Punctuation]
+**Learning:** Consolidating redundant dialogue logic into a single, robust typewriter coroutine prevents visual glitches and ensures consistent UX. Smart punctuation (detecting ellipses vs. end-of-sentence vs. mid-word periods) significantly improves the natural "breath" of digital dialogue, making it more readable and engaging.
+**Action:** Use look-ahead and look-behind logic in text reveal loops to apply context-sensitive delays, and always unify duplicate input/update logic to ensure responsiveness.
 ## 2026-03-25 - [Contextual Punctuation and Theme-Linked Cues]
 **Learning:** Generic punctuation-based pauses can feel jerky when encountering mid-word periods (e.g., in character names like 'Sky.ix') or ellipses. Implementing contextual checks (e.g., next-character whitespace) prevents unnatural delays. Furthermore, linking the visual progression cue ('▽') to the speaker's specific color theme creates a more cohesive and delightful UX without adding interface clutter.
 **Action:** Always implement look-ahead/look-behind checks for punctuation pauses to handle abbreviations and ellipses, and leverage existing theme tokens (like speaker colors) for micro-interactions and visual cues.
