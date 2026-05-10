@@ -281,12 +281,18 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.ForceMeshUpdate();
 
         // BOLT: Typewriter effect optimized for performance.
+        // Cache WaitForSeconds locally to avoid per-character GC allocations
+        // while avoiding the Dictionary<float, WaitForSeconds> anti-pattern.
         // Pre-calculate WaitForSeconds outside the loop to avoid GC pressure,
         // while also avoiding the float-keyed dictionary cache anti-pattern.
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         var normalWait = new WaitForSeconds(currentTypingSpeed);
         var shortPauseWait = new WaitForSeconds(currentTypingSpeed * 8f);
         var longPauseWait = new WaitForSeconds(currentTypingSpeed * 15f);
+
+        var waitNormal = new WaitForSeconds(currentTypingSpeed);
+        var waitMedium = new WaitForSeconds(currentTypingSpeed * 8f);
+        var waitLong = new WaitForSeconds(currentTypingSpeed * 15f);
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
@@ -300,6 +306,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             if (i < totalVisibleCharacters)
             {
+                var wait = waitNormal;
                 var currentWait = normalWait;
                 char c = message[i];
 
@@ -362,6 +369,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') wait = waitLong;
+                    else if (c == ',' || c == ';' || c == ':') wait = waitMedium;
+                }
+
+                yield return wait;
                     if (c == '.' || c == '!' || c == '?')
                     {
                         delay = currentTypingSpeed * 15f;
@@ -505,6 +517,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
         yield return new WaitForSeconds(7.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(7.5f);
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
@@ -538,6 +553,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
         yield return new WaitForSeconds(1.2f);
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(7.0f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
         yield return new WaitForSeconds(7.0f);
@@ -585,6 +603,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
         yield return new WaitForSeconds(5.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(5.5f);
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
@@ -594,6 +615,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
         yield return new WaitForSeconds(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        // Skyix_VoiceSource.Play();
+        yield return new WaitForSeconds(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
         yield return new WaitForSeconds(7.5f);
