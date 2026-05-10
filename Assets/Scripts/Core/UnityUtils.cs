@@ -1,5 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
+
+namespace Milehigh.Core
+{
 using System.Collections.Generic;
 using UnityEngine;
 

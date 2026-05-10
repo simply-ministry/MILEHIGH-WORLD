@@ -15,6 +15,7 @@ namespace Milehigh.Data
     public class Metadata
     {
         public LightingState lighting;
+        public string environment = string.Empty;
         public string environment = "";
         public int systemParity;
         public float voidSaturationLevel;
@@ -50,6 +51,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = string.Empty;
+        public string role = string.Empty;
+        public string[] traits = Array.Empty<string>();
+        public string behaviorScript = string.Empty;
         public string name = null!;
         public string role = null!;
         public string[] traits = null!;
@@ -117,6 +122,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
+        public string objectId = string.Empty;
+        public string action = string.Empty;
+
         public string objectId = "";
         public string action = "";
         public bool isVector;
@@ -149,6 +157,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = string.Empty;
+        public string text = string.Empty;
+        public string trigger = string.Empty;
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
@@ -183,6 +194,8 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = string.Empty;
+        public string description = string.Empty;
         public string scenarioId = null!;
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
@@ -237,6 +250,7 @@ namespace Milehigh.Data
     [System.Serializable]
     public class HorizonGameData
     {
+        public string sceneId = string.Empty;
         public string sceneId = "";
         public Metadata metadata = new Metadata();
         public List<CharacterProfile> characters = new List<CharacterProfile>();
@@ -264,6 +278,8 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Game data validation failed: Invalid character count (must be between 1 and 50).");
                 return false;
             }
+
+            // 🛡️ Sentinel: Enforce list size limit to mitigate DoS
             foreach (var character in characters)
             {
                 if (character == null || !character.IsValid()) return false;

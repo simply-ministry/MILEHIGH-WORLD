@@ -80,6 +80,10 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name);
+                if (string.IsNullOrEmpty(safeFileName))
+                {
+                    safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
                 string safeFileName = charProfile.name ?? "unnamed_character";
@@ -191,6 +195,24 @@ namespace Milehigh.Editor
             sanitized = sanitized.TrimStart('.', '_');
 
             if (string.IsNullOrEmpty(sanitized)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            return sanitized;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Generates a safe filename by stripping traversal sequences and invalid characters.
+        /// Uses a whitelist-based approach for maximum security.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed";
+
+            // Strip leading dots/underscores and use whitelist regex for characters
+            string sanitized = input.TrimStart('.', '_');
+            sanitized = Regex.Replace(sanitized, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Ensure we don't return an empty string or just underscores
+            if (string.IsNullOrWhiteSpace(sanitized.Replace("_", ""))) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
             return sanitized;
         }
     }

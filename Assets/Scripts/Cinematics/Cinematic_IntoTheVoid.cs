@@ -22,6 +22,7 @@ using Milehigh.Core;
 public class Cinematic_IntoTheVoid : MonoBehaviour
 namespace Milehigh.Cinematics
 {
+
     [Header("Character References")]
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
@@ -90,6 +91,7 @@ namespace Milehigh.Cinematics
     public GameObject Delilah_Character;
     public AudioSource Delilah_VoiceSource;
 
+
     [Header("UI Components")]
     public GameObject DialogueBox = null!;
     public CanvasGroup? DialogueCanvasGroup;
@@ -117,6 +119,9 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    private void Update()
+    {
+        // UX Enhancement: Standardized skip logic for both keyboard and mouse
     // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // ⚡ Bolt: Using int keys (milliseconds) prevents float precision cache misses and redundant GC allocations.
@@ -321,6 +326,8 @@ namespace Milehigh.Cinematics
         skipRequested = false;
     }
 
+    private void Start()
+    {
     private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
     {
         if (DialogueCanvasGroup == null)
@@ -490,6 +497,7 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+
         idleTimer = 0;
         playerInteracted = false;
         if (SkipHint != null) SkipHint.gameObject.SetActive(false);
@@ -531,6 +539,10 @@ namespace Milehigh.Cinematics
         SpeakerNameText.color = speakerColor;
         public void ShowDialogue(string speaker, string message)
         {
+            case "Sky.ix": speakerColor = Color.cyan; break;
+            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break;
+            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break;
+            default: speakerColor = Color.white; break;
             case "Sky.ix":
                 multiplier = skyixSpeedMultiplier;
                 speakerColor = Color.cyan;
@@ -621,6 +633,8 @@ namespace Milehigh.Cinematics
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
         DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
@@ -678,6 +692,17 @@ namespace Milehigh.Cinematics
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i+1].character))
+                        isEndOfSentence = false;
+
+                    if (isEndOfSentence) delay += 0.4f;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay += 0.2f;
                 // Note: Delay occurs AFTER character reveal for natural rhythm.
                 if (i > 0)
                 {
@@ -960,6 +985,8 @@ namespace Milehigh.Cinematics
             DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
             DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+                // ⚡ Bolt: Use global yield cache to eliminate GC allocations
+                yield return Milehigh.Core.UnityUtils.GetWait(delay);
                 if (isEllipsis) delay *= 5f;
                 else if (isEndOfSentence) delay *= 15f;
             }
@@ -980,6 +1007,15 @@ namespace Milehigh.Cinematics
             yield return UnityUtils.GetWait(delay);
         }
 
+        skipRequested = false;
+        typingCoroutine = null;
+    }
+
+
+    private IEnumerator Cinematic_IntoTheVoid_Sequence()
+    {
+        // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
+        DialogueBox.SetActive(true);
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         string hexColor = ColorUtility.ToHtmlStringRGB(themeColor);
         DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
@@ -1174,6 +1210,7 @@ namespace Milehigh.Cinematics
 
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
+        yield return WaitForSecondsOrSkip(2.0f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Dash_Forward");]
         // [VFX: Play glitchy dash particle trail from Sky.ix's starting position to the conduit.]
         // [CAMERA: Fast dolly track, following Sky.ix's movement. Add motion blur.]
@@ -1209,6 +1246,7 @@ namespace Milehigh.Cinematics
         Debug.Log("Cinematic Sequence Complete.");
         SpeakerNameText.text = "";
         DialogueText.text = "";
+        DialogueBox.SetActive(false);
         yield return FadeDialogueBox(0.0f, 0.5f);
 
         Debug.Log("Cinematic Sequence Complete.");
