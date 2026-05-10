@@ -6,7 +6,7 @@ namespace Milehigh.Core
 {
     public class CampaignManager : MonoBehaviour
     {
-        private static CampaignManager? _instance;
+        private static CampaignManager _instance;
         public static CampaignManager Instance
         {
             get
@@ -20,11 +20,11 @@ namespace Milehigh.Core
                         _instance = go.AddComponent<CampaignManager>();
                     }
                 }
-                return _instance!;
+                return _instance;
             }
         }
 
-        public HorizonGameData? currentCampaignData;
+        public HorizonGameData currentCampaignData;
         public float currentVoidSaturationLevel;
 
         private void Awake()
@@ -58,6 +58,7 @@ namespace Milehigh.Core
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
                     // 🛡️ Sentinel: Security validation of deserialized data.
+                    // SECURITY: Perform validation after deserialization to ensure data integrity
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
@@ -73,6 +74,11 @@ namespace Milehigh.Core
                         // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data
+                    }
+                    else
+                    {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)

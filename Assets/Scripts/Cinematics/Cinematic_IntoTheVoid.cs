@@ -63,8 +63,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
      * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
      * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
     */
-    public GameObject Skyix_Character = null!;
-    public AudioSource Skyix_VoiceSource = null!;
+    public GameObject Skyix_Character;
+    public AudioSource Skyix_VoiceSource;
 
 
     // Protagonist: Kai the The Child of Prophecy
@@ -79,8 +79,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
      * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
      * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
     */
-    public GameObject Kai_Character = null!;
-    public AudioSource Kai_VoiceSource = null!;
+    public GameObject Kai_Character;
+    public AudioSource Kai_VoiceSource;
 
 
     // Antagonist: Delilah the The Desolate
@@ -90,13 +90,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     /* VOICE PROFILE:
      * Not available.
     */
-    public GameObject Delilah_Character = null!;
-    public AudioSource Delilah_VoiceSource = null!;
+    public GameObject Delilah_Character;
+    public AudioSource Delilah_VoiceSource;
 
     [Header("UI Components")]
-    public GameObject DialogueBox = null!;
-    public TextMeshProUGUI SpeakerNameText = null!;
-    public TextMeshProUGUI DialogueText = null!;
+    public GameObject DialogueBox;
+    public TextMeshProUGUI SpeakerNameText;
+    public TextMeshProUGUI DialogueText;
 
     [Header("UX Settings")]
     [FormerlySerializedAs("typingSpeed")]
@@ -107,7 +107,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
-    private Coroutine? typingCoroutine;
+    private Coroutine typingCoroutine;
+    private Coroutine popCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
 
@@ -155,6 +156,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // UX Enhancement: Outline for better readability against Void background
+        DialogueText.outlineWidth = 0.2f;
+        DialogueText.outlineColor = Color.black;
+        SpeakerNameText.outlineWidth = 0.2f;
+        SpeakerNameText.outlineColor = Color.black;
+
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
@@ -169,13 +176,24 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
+        SpeakerNameText.transform.localScale = Vector3.one;
+        popCoroutine = StartCoroutine(PopSpeakerName());
 
         // Apply speaker-specific speed multipliers based on voice profiles
         float multiplier = 1.0f;
-        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
-        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+        if (speaker == "Kai")
+        {
+            multiplier = kaiSpeedMultiplier;
+            DialogueText.characterSpacing = 2.5f;
+        }
+        else
+        {
+            if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+            DialogueText.characterSpacing = 0f;
+        }
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
@@ -324,6 +342,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') delay = currentTypingSpeed * 15f;
                     if (c == '.' || c == '!' || c == '?')
                     {
                         // Check for ellipsis (consecutive dots) to avoid excessive pausing
@@ -382,13 +401,40 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        // The cue is color-coded to the speaker for better visual association.
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+        DialogueText.text = message + " <color=#FFD700>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
         // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
         typingCoroutine = null;
+    }
+
+    private IEnumerator PopSpeakerName()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        Vector3 initialScale = Vector3.one;
+        Vector3 peakScale = initialScale * 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            float curve = Mathf.Sin(t * Mathf.PI);
+            SpeakerNameText.transform.localScale = Vector3.Lerp(initialScale, peakScale, curve);
+            yield return null;
+        }
+        SpeakerNameText.transform.localScale = initialScale;
+        popCoroutine = null;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
     }
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
