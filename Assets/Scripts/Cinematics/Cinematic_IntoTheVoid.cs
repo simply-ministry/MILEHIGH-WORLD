@@ -140,6 +140,7 @@ namespace Milehigh.Cinematics
         // Poll for skip input to ensure responsiveness across multiple accessible inputs
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // BOLT: Refactored dictionary to use int (milliseconds) instead of float to prevent precision-based cache misses
     // ⚡ Bolt: Use int (milliseconds) for the key to avoid float imprecision cache misses
     private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
@@ -150,6 +151,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int msKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[msKey] = wait;
         int timeMs = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
         {
