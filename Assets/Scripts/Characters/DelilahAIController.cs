@@ -107,6 +107,7 @@ namespace Milehigh.Characters
             // BOLT: Reuse object from pool if available and valid
             if (_shadowClonePool.Count > 0)
             {
+                Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, Quaternion.identity);
                 clone = _shadowClonePool.Dequeue();
                 // Check for Unity 'null' (destroyed object) vs true null
             GameObject? clone = null;
