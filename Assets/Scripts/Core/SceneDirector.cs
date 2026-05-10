@@ -44,6 +44,12 @@ namespace Milehigh.Core
             if (data != null && data.scenarios.Count > 0)
         // BOLT: Consolidated caches to prevent expensive O(N) scene traversals and O(P) list searches.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Prefab cache to avoid O(M) linear searches through the characterPrefabs list
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private void Awake()
+        {
+            // BOLT: Pre-populate prefab cache for O(1) lookups during spawning
         private Dictionary<string, GameObject>? _prefabLookupCache = null;
 
         private void InitializePrefabCache()
@@ -54,6 +60,13 @@ namespace Milehigh.Core
             {
                 foreach (var prefab in characterPrefabs)
                 {
+                    if (prefab != null)
+                    {
+                        _prefabCache[prefab.name] = prefab;
+                    }
+                }
+            }
+        }
                     if (prefab != null && !_prefabLookupCache.ContainsKey(prefab.name))
                     {
                         _prefabLookupCache[prefab.name] = prefab;
@@ -157,6 +170,16 @@ namespace Milehigh.Core
             if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // BOLT: Negative caching implementation.
+                // ReferenceEquals(obj, null) checks if we explicitly cached a 'null' for a missing object.
+                if (ReferenceEquals(obj, null)) return null;
+
+                // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+                if (obj != null) return obj;
+
+                // If obj == null but was in cache, it was destroyed. Remove it to allow a fresh lookup.
+                _objectCache.Remove(objectName);
             // 🛡️ Sentinel: Input validation to prevent DoS attacks using extremely long or malformed strings in GameObject.Find.
             if (objectName.Length > 128 || !SafeNameRegex.IsMatch(objectName))
             {
@@ -629,6 +652,14 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Try O(1) prefab cache lookup first
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    // Fallback to O(M) linear search if not in dictionary (e.g. partial name match)
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null) _prefabCache[profile.name] = prefab; // Cache the match
+                }
+
                 // Try to find prefab if not in scene
                 GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
 
