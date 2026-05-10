@@ -27,6 +27,10 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2025-05-15 - [Unity MaterialPropertyBlock Optimization]
+**Learning:** Accessing `Renderer.material` in Unity (e.g., in `CombatManager.TriggerEnemyGlitch`) triggers a material clone on the heap, which increases memory overhead and breaks draw call batching (GPU instancing/SRP batcher).
+**Action:** Always use `MaterialPropertyBlock` for per-renderer shader property overrides. Cache property IDs with `Shader.PropertyToID` and reuse a static/shared `MaterialPropertyBlock` instance where possible to eliminate GC allocations during updates.
+
 ## 2026-04-22 - Surgical Cache Optimization in SceneDirector
 **Learning:** In 'SceneDirector.cs', prefab lookups were O(P) linear searches inside an O(C) character spawning loop, creating an O(C*P) initialization bottleneck. Additionally, aggressive cache clearing during scenario updates forced redundant O(N) scene traversals for persistent objects.
 **Action:** Implemented a 'Dictionary<string, GameObject>' prefab lookup cache for O(1) retrieval and enabled persistent surgical lazy-loading by removing redundant 'Clear()' calls. Added 'OnDestroy' to release Unity object references and 'null!' initializers to satisfy strict CI compilation checks.
