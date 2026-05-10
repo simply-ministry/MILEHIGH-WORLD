@@ -19,6 +19,12 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(environment)) return false;
+            if (environment.Length > 128) return false;
+            if (voidSaturationLevel < 0.0f) return false;
+            if (voidSaturationLevel > 1.0f) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and prevents resource exhaustion.
@@ -108,8 +114,17 @@ namespace Milehigh.Data
         public string behaviorScript = null!;
         public string name;
         public string role;
-        public string[] traits;
         public string behaviorScript;
+        public string[] traits;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            if (name.Length > 64) return false;
+            if (string.IsNullOrEmpty(role)) return false;
+            if (role.Length > 64) return false;
+            if (string.IsNullOrEmpty(behaviorScript)) return false;
+            if (behaviorScript.Length > 64) return false;
 
         /// <summary>
         /// 🛡️ Sentinel: Validates character profile data and enforces resource limits.
@@ -170,7 +185,6 @@ namespace Milehigh.Data
     {
         public string objectId;
         public string action;
-
         public bool isVector;
         public float floatValue;
         public float x;
@@ -182,6 +196,12 @@ namespace Milehigh.Data
             return new Vector3(x, y, z);
         }
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId)) return false;
+            if (objectId.Length > 128) return false;
+            if (string.IsNullOrEmpty(action)) return false;
+            if (action.Length > 128) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates object interaction data.
         /// </summary>
@@ -210,6 +230,12 @@ namespace Milehigh.Data
         public string text;
         public string trigger;
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(speaker)) return false;
+            if (speaker.Length > 64) return false;
+            if (string.IsNullOrEmpty(text)) return false;
+            if (text.Length > 1024) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates dialogue data and enforces resource limits.
         /// </summary>
@@ -241,6 +267,23 @@ namespace Milehigh.Data
         public List<ObjectInteraction> interactiveObjects;
         public List<Dialogue> dialogue;
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId)) return false;
+            if (scenarioId.Length > 128) return false;
+
+            if (interactiveObjects != null)
+            {
+                if (interactiveObjects.Count > 50) return false;
+                foreach (var obj in interactiveObjects)
+                {
+                    if (obj == null || !obj.IsValid()) return false;
+                }
+            }
+
+            if (dialogue != null)
+            {
+                if (dialogue.Count > 50) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates scene scenario data and enforces resource limits.
         /// </summary>
@@ -303,6 +346,17 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters;
         public List<SceneScenario> scenarios;
 
+        public bool IsValid()
+        {
+            if (metadata == null) return false;
+            if (!metadata.IsValid()) return false;
+
+            if (characters == null) return false;
+            if (characters.Count == 0) return false;
+            if (characters.Count > 50) return false;
+            foreach (var character in characters)
+            {
+                if (character == null || !character.IsValid()) return false;
         /// <summary>
         /// 🛡️ Sentinel: Performs hierarchical integrity and security validation on the entire dataset.
         /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
@@ -335,6 +389,14 @@ namespace Milehigh.Data
                 if (character != null && !character.IsValid()) return false;
             }
 
+            if (scenarios != null)
+            {
+                if (scenarios.Count > 100) return false;
+                foreach (var scenario in scenarios)
+                {
+                    if (scenario == null || !scenario.IsValid()) return false;
+                }
+            }
             if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios count out of range (1-100).");

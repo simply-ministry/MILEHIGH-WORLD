@@ -42,10 +42,11 @@ namespace Milehigh.Core
         private void LoadCampaignData()
         {
             string fileName = "campaign_master.json";
-            string filePath;
+            string filePath = "";
 
 #if UNITY_EDITOR
-            filePath = Path.Combine(Application.dataPath, "Scripts/Data", fileName);
+            filePath = Path.Combine(Application.dataPath, "Scripts/Data");
+            filePath = Path.Combine(filePath, fileName);
 #else
             filePath = Path.Combine(Application.streamingAssetsPath, fileName);
 #endif
@@ -65,10 +66,13 @@ namespace Milehigh.Core
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
-                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                        Debug.Log("Campaign data loaded and validated from " + fileName);
                     }
                     else
                     {
+                        Debug.LogError("Failed to parse or validate campaign data from " + fileName);
+                        currentCampaignData = null; // Ensure we don't use invalid data
+                    }
                         Debug.LogError($"[Security] Campaign data from {fileName} failed security validation or parsing.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
@@ -114,9 +118,8 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
-                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
-                    Debug.LogError($"Failed to load or parse campaign data from {fileName}.");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
+                    Debug.LogError("Error loading campaign data from " + fileName + ": " + ex.Message);
                     Debug.LogError($"Error loading or parsing campaign data from {fileName}: {ex.Message}");
                     Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
                     currentCampaignData = null; // Ensure failure state is consistent
@@ -126,6 +129,7 @@ namespace Milehigh.Core
             else
             {
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                Debug.LogError("Campaign master JSON not found: " + fileName);
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
                 currentCampaignData = null;
             }
@@ -134,7 +138,7 @@ namespace Milehigh.Core
         public void IncreaseVoidSaturation(float amount)
         {
             currentVoidSaturationLevel = Mathf.Clamp01(currentVoidSaturationLevel + amount);
-            Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
+            Debug.Log("Void Saturation Level: " + currentVoidSaturationLevel);
         }
     }
 }

@@ -116,6 +116,14 @@ namespace Milehigh.Editor
                 Debug.Log($"Created character asset: {assetPath}");
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
+                // Required sequence for robust sanitization:
+                string safeFileName = charProfile.name;
+                if (string.IsNullOrEmpty(safeFileName))
+                {
+                    safeFileName = "unnamed_character";
+                }
+
+                // 1. Replace invalid filename characters with underscores
                 // Standardized Path Sanitization Sequence:
                 // 1. replace invalid chars with underscores
                 // 2. use Path.GetFileName to prevent traversal
@@ -163,6 +171,14 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+
+                // 2. Use Path.GetFileName to ensure no directory traversal sequences remain (strip paths)
+                safeFileName = Path.GetFileName(safeFileName);
+
+                // 3. Replace whitespace with underscores
+                safeFileName = safeFileName.Replace(" ", "_");
+
+                string assetPath = folderPath + "/" + safeFileName + ".asset";
                 // Ensure no directory traversal sequences remain
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
                 // Ensure no directory traversal sequences remain and replace spaces
@@ -216,7 +232,7 @@ namespace Milehigh.Editor
                 AssetDatabase.CreateAsset(asset, assetPath);
 
                 // SECURITY: Log relative asset path to avoid absolute path disclosure
-                Debug.Log($"Created character asset: {assetPath}");
+                Debug.Log("Created character asset: " + assetPath);
             }
 
             return safeName;
