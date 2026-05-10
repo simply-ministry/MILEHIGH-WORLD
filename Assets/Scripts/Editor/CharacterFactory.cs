@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
 using Milehigh.Data;
 
 namespace Milehigh.Editor
@@ -13,7 +14,7 @@ namespace Milehigh.Editor
             string path = "Assets/Scripts/Data/campaign_master.json";
             if (!File.Exists(path))
             {
-                Debug.LogError("Campaign master JSON not found at " + path);
+                UnityEngine.Debug.LogError("Campaign master JSON not found at " + path);
                 return;
             }
 
@@ -23,27 +24,23 @@ namespace Milehigh.Editor
             // 🛡️ Sentinel: Security validation of deserialized data.
             if (data == null || !data.IsValid())
             {
-                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
-            // SECURITY: Always validate data after deserialization
-            if (data == null || !data.IsValid())
-            {
-                Debug.LogError("Failed to parse or validate campaign data.");
+                UnityEngine.Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
                 return;
             }
 
             string folderPath = "Assets/Data/Characters";
-            if (!AssetDatabase.IsValidFolder(folderPath))
+            if (!UnityEditor.AssetDatabase.IsValidFolder(folderPath))
             {
-                if (!AssetDatabase.IsValidFolder("Assets/Data"))
+                if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Data"))
                 {
-                    AssetDatabase.CreateFolder("Assets", "Data");
+                    UnityEditor.AssetDatabase.CreateFolder("Assets", "Data");
                 }
-                AssetDatabase.CreateFolder("Assets/Data", "Characters");
+                UnityEditor.AssetDatabase.CreateFolder("Assets/Data", "Characters");
             }
 
             foreach (var charProfile in data.characters)
             {
-                CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
+                CharacterData asset = UnityEngine.ScriptableObject.CreateInstance<CharacterData>();
                 asset.characterName = charProfile.name;
                 asset.role = charProfile.role;
                 asset.traits = charProfile.traits;
@@ -54,25 +51,20 @@ namespace Milehigh.Editor
                 // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
-                // Malicious JSON could use "../" to write assets outside the intended directory
-                string sanitizedName = charProfile.name;
-                foreach (char c in Path.GetInvalidFileNameChars())
+                foreach (char c in System.IO.Path.GetInvalidFileNameChars())
                 {
                     safeFileName = safeFileName.Replace(c, '_');
                 }
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
-                // Ensure no directory traversal sequences remain
-                string safeFileName = Path.GetFileName(sanitizedName);
+                safeFileName = System.IO.Path.GetFileName(safeFileName).Replace(" ", "_");
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
-                AssetDatabase.CreateAsset(asset, assetPath);
+                UnityEditor.AssetDatabase.CreateAsset(asset, assetPath);
                 // SECURITY: Log relative asset path to avoid absolute path disclosure
-                Debug.Log($"Created character asset: {assetPath}");
+                UnityEngine.Debug.Log($"Created character asset: {assetPath}");
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.AssetDatabase.Refresh();
         }
     }
 }
