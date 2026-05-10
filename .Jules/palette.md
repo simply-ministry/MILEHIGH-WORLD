@@ -60,6 +60,9 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-04-09 - [Advanced Rhythmic Typewriter and Color-Coded Cues]
+**Learning:** Look-ahead logic in typewriter effects prevents awkward pauses for mid-word periods (e.g., 'Sky.ix') and enables distinct pacing for ellipses (5x delay) versus sentence ends (15x delay). Additionally, color-coding the dialogue completion cue ('▽') with the speaker's unique theme color (captured via ColorUtility) creates a more cohesive and immersive narrative experience.
+**Action:** Use look-ahead character checks for nuanced punctuation pacing and ensure all terminal UI cues are visually tied to the active speaker's color palette.
 ## 2026-03-25 - [Context-Aware Dialogue Pacing and Cohesive Feedback]
 **Learning:** Typewriter effects in dialogue systems are enhanced by context-aware pacing: using look-ahead/look-behind logic to detect ellipses (typing them faster) and avoid pauses for mid-word periods (like "Sky.ix") prevents rhythmic glitches. Furthermore, color-coding completion cues (e.g., '▽') to match speaker-specific themes provides a subtle but effective visual anchor that reinforces character identity and interaction state.
 **Action:** Implement ellipsis detection and mid-word period look-ahead in typewriter loops, and use speaker-theme color-coding for all progression-related UI cues.

@@ -645,6 +645,10 @@ namespace Milehigh.Cinematics
         public GameObject Delilah_Character = null!;
         public AudioSource Delilah_VoiceSource = null!;
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
         [Header("UI Components")]
         public GameObject DialogueBox = null!;
         public CanvasGroup? DialogueCanvasGroup;
