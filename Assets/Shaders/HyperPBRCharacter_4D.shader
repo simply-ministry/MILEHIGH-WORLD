@@ -149,7 +149,13 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half sss_sq = sss_base * sss_base;
                 half sss_4 = sss_sq * sss_sq;
                 half sss = sss_4 * sss_4 * _SSSScale;
+                // BOLT: Ensure albedo is assigned *before* SSS is added to avoid overwriting SSS calculation
+                o.Albedo = albedo.rgb;
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
+            }
+            else
+            {
+                o.Albedo = albedo.rgb;
             }
         }
         ENDCG
