@@ -213,6 +213,12 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
+                return false;
+            }
+
             return true;
         }
     }

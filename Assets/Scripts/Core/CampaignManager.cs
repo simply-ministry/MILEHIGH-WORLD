@@ -65,6 +65,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         // SECURITY: Use generic error message for validation failure
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");

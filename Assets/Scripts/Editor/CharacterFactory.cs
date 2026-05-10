@@ -30,6 +30,10 @@ namespace Milehigh.Editor
                 return;
             }
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             if (data == null || data.characters == null || !data.IsValid())
             if (data == null || !data.IsValid())
             {
@@ -77,6 +81,7 @@ namespace Milehigh.Editor
                 // We sanitize by replacing invalid chars and ensuring only the filename component is used.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
+
                 foreach (char c in Path.GetInvalidFileNameChars())
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
