@@ -28,6 +28,7 @@ namespace Milehigh.Editor
             catch (System.Exception ex)
             {
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
+                Debug.LogError($"Failed to read or parse campaign data from {Path.GetFileName(path)}.");
                 Debug.LogError($"Error loading or parsing campaign data from {path}: {ex.Message}");
                 return;
             }
