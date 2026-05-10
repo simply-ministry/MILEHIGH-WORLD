@@ -83,6 +83,11 @@ namespace Milehigh.Editor
 
             // 🛡️ Sentinel: Security validation of deserialized data.
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
@@ -182,6 +187,11 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    safeFileName = safeFileName.Replace(c, '_');
+                }
+                // Ensure no directory separators or traversal sequences remain
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));

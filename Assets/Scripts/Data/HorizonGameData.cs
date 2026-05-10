@@ -34,6 +34,7 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // 🛡️ Sentinel: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
