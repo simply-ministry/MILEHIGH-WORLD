@@ -63,6 +63,7 @@ namespace Milehigh.Core
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        Debug.Log($"Campaign data loaded from {fileName}"); // Security: Don't log full paths
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
@@ -85,6 +86,9 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                    // Log only the file name, not the absolute path, to prevent information disclosure
+                    Debug.LogError($"Error loading campaign data from {Path.GetFileName(filePath)}: {ex.Message}");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}.");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
@@ -94,6 +98,12 @@ namespace Milehigh.Core
             else
             {
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                Debug.LogError($"Campaign master JSON not found: {Path.GetFileName(filePath)}");
+
+                // Fallback for current environment if needed
+                if (!Application.isEditor) {
+                     // In some platforms we might need to use UnityWebRequest for StreamingAssets
+                }
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
         }
