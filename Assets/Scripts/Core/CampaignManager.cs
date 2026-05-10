@@ -57,15 +57,15 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
-                    // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
-                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
                     else
                     {
+                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null;
                         // SECURITY: Fail securely and don't use invalid data
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
                         // 🛡️ Sentinel: Failed validation means we cannot trust the campaign data.
@@ -76,6 +76,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                     Debug.LogError($"Error loading campaign data from {fileName}");
@@ -84,7 +85,6 @@ namespace Milehigh.Core
             }
             else
             {
-                // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
         }

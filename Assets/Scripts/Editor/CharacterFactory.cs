@@ -29,7 +29,8 @@ namespace Milehigh.Editor
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
             }
-
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (data == null || data.characters == null || !data.IsValid())
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
@@ -65,6 +66,11 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
+                if (string.IsNullOrEmpty(safeFileName))
                 // Malicious JSON could use "../" to attempt writing assets outside the intended directory.
                 // We sanitize by replacing invalid chars and ensuring only the filename component is used.
                 string baseName = charProfile.name ?? "unnamed_character";

@@ -65,6 +65,7 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
@@ -80,7 +81,7 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
-            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
+            if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
             if (controller != null)
@@ -130,10 +131,11 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             {
-                SetupScene(campaignData.scenarios[0]);
+                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
             }
         }
 
@@ -145,6 +147,7 @@ namespace Milehigh.Core
             _objectCache.Clear();
             _controllerCache.Clear();
 
+            if (CampaignManager.Instance.currentCampaignData != null)
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
             {
@@ -189,7 +192,6 @@ namespace Milehigh.Core
                 }
             }
 
-            // Execute interactive objects logic
             if (scenario.interactiveObjects != null)
             {
                 foreach (var interaction in scenario.interactiveObjects)
@@ -241,6 +243,7 @@ namespace Milehigh.Core
 
             if (characterObj != null)
             {
+                var controller = GetCharacterController(characterObj);
                 // BOLT: Optimized component access using GetInstanceID() to avoid redundant GetComponent calls
                 int instanceId = characterObj.GetInstanceID();
                 if (!_controllerCache.TryGetValue(instanceId, out CharacterControllerBase controller) || controller == null)
@@ -276,6 +279,13 @@ namespace Milehigh.Core
                     target.transform.localScale = Vector3.one * interaction.floatValue;
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            _objectCache.Clear();
+            _prefabCache.Clear();
+            _controllerCache.Clear();
         }
     }
 }
