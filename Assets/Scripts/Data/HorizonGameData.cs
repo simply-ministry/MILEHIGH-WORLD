@@ -30,6 +30,10 @@ namespace Milehigh.Data
         /// Validates metadata integrity and safety bounds.
         public bool IsValid()
         {
+            // SECURITY: Enforce resource limits on string lengths to prevent DoS
+            if (environment != null && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment string exceeds 128 characters.");
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
@@ -102,6 +106,7 @@ namespace Milehigh.Data
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (role != null && role.Length > 64) return false;
             if (string.IsNullOrEmpty(role) || role.Length > 64) return false;
             if (string.IsNullOrEmpty(behaviorScript) || behaviorScript.Length > 64) return false;
             if (traits == null || traits.Length > 10) return false;
@@ -164,6 +169,8 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (objectId != null && objectId.Length > 64) return false;
+            if (action != null && action.Length > 64) return false;
             if (string.IsNullOrEmpty(objectId) || objectId.Length > 64) return false;
             if (string.IsNullOrEmpty(action) || action.Length > 64) return false;
             if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
@@ -183,6 +190,9 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (speaker != null && speaker.Length > 64) return false;
+            if (text != null && text.Length > 1024) return false;
+            if (trigger != null && trigger.Length > 64) return false;
             if (string.IsNullOrEmpty(speaker) || speaker.Length > 64) return false;
             if (string.IsNullOrEmpty(text) || text.Length > 1024) return false;
             if (trigger != null && trigger.Length > 64) return false;
@@ -208,6 +218,10 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (scenarioId != null && scenarioId.Length > 128) return false;
+            if (interactiveObjects != null)
+            {
+                if (interactiveObjects.Count > 50) return false;
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
             if (interactiveObjects == null || interactiveObjects.Count > 50) return false;
             if (dialogue == null || dialogue.Count > 50) return false;
@@ -234,6 +248,9 @@ namespace Milehigh.Data
             }
             if (dialogue != null)
             {
+                if (dialogue.Count > 50) return false;
+                foreach (var d in dialogue) if (!d.IsValid()) return false;
+            }
                 foreach (var d in dialogue) if (!d.IsValid()) return false;
             }
 
@@ -259,6 +276,31 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (metadata == null || !metadata.IsValid())
+            {
+                Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
+                return false;
+            }
+
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid character profile count.");
+                return false;
+            }
+
+            foreach (var character in characters)
+            {
+                if (!character.IsValid()) return false;
+            }
+
+            if (scenarios != null)
+            {
+                if (scenarios.Count > 100) return false;
+                foreach (var scenario in scenarios)
+                {
+                    if (!scenario.IsValid()) return false;
+                }
+            }
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 64)
             {
                 Debug.LogError("[Security] Game data validation failed: sceneId is missing or too long.");

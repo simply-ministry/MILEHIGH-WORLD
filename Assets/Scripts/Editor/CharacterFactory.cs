@@ -91,6 +91,19 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 // Standardized Path Sanitization Sequence:
+                // 1. replace invalid chars with underscores
+                // 2. use Path.GetFileName to prevent traversal
+                // 3. replace whitespace with underscores
+                string rawName = charProfile.name ?? "unnamed_character";
+                string sanitizedName = rawName;
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    sanitizedName = sanitizedName.Replace(c, '_');
+                }
+                sanitizedName = Path.GetFileName(sanitizedName);
+                sanitizedName = sanitizedName.Replace(" ", "_");
+
+                string assetPath = $"{folderPath}/{sanitizedName}.asset";
                 // 1. Replace invalid filename characters with underscores.
                 // 2. Use Path.GetFileName() to prevent directory traversal.
                 // 3. Replace whitespaces with underscores.
