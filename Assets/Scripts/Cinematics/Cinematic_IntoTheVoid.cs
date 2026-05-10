@@ -84,6 +84,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 {
+    [Header("Characters")]
     [Header("Character References")]
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
@@ -235,6 +236,7 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private string cachedHexColor = "FFFFFF";
     private string currentSpeakerHex;
     private Vector3 speakerNameOriginalScale;
     private Coroutine popCoroutine;
@@ -301,6 +303,8 @@ namespace Milehigh.Cinematics
         {
             yield return null;
         }
+    }
+
         skipRequested = false;
     }
 
@@ -465,6 +469,8 @@ namespace Milehigh.Cinematics
         }
 
         SpeakerNameText.color = speakerColor;
+        // BOLT: Cache hex color to avoid per-character allocation in the reveal loop
+        cachedHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
         speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
 
                 SpeakerNameText.color = Color.cyan;
@@ -495,6 +501,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        DialogueText.text = $"{message} <color=#{cachedHexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
@@ -743,6 +754,9 @@ namespace Milehigh.Cinematics
                     }
                     else if (c == '.' || c == '!' || c == '?')
                     {
+                        // Check for ellipsis (consecutive dots)
+                        bool isEllipsis = false;
+                        if (c == '.')
                         // Look-ahead to avoid pausing on mid-word periods (e.g., Sky.ix)
                         bool isEndOfSentence = (i >= totalVisibleCharacters) || Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                         if (isEndOfSentence) delay = currentTypingSpeed * 15f;
@@ -760,6 +774,17 @@ namespace Milehigh.Cinematics
                             if (nextC == '.' || nextC == '!' || nextC == '?') isEndOfCluster = false;
                         }
 
+                        if (isEllipsis)
+                            delay = currentTypingSpeed * 5f;
+                        else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                            delay = currentTypingSpeed; // Mid-word period (Sky.ix)
+                        else
+                            delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                         if (isEndOfCluster)
                         {
                             bool isEndOfSentence = true;
@@ -803,6 +828,7 @@ namespace Milehigh.Cinematics
             yield return GetWait(delay);
         }
 
+                // BOLT: Zero-allocation yield via shared cache
         // Finalize text display
         DialogueText.maxVisibleCharacters = totalVisibleCharacters;
             }
@@ -1040,6 +1066,9 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
+        DialogueBox.SetActive(true);
+        yield return WaitForSecondsOrSkip(1.0f);
+
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
 

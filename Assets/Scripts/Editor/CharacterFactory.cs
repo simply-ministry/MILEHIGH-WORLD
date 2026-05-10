@@ -38,6 +38,11 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (data == null || !data.IsValid())
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
@@ -57,6 +62,9 @@ namespace Milehigh.Editor
             }
 
             string folderPath = "Assets/Data/Characters";
+            if (!AssetDatabase.IsValidFolder(folderPath))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/Data"))
             if (!UnityEditor.AssetDatabase.IsValidFolder(folderPath))
             {
                 if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Data"))
@@ -115,6 +123,17 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
+                string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");
+
+                if (string.IsNullOrEmpty(safeFileName))
+                {
+                    safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+                }
+
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 string rawName = charProfile.name ?? "unnamed_character";

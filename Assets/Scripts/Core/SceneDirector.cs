@@ -10,9 +10,18 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
+        [Header("Setup")]
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
+        // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private readonly Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+
+        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private readonly Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private readonly Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls.
         // Also used for negative caching (mapping to null) to avoid repeated failed searches.
         private readonly Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
@@ -218,6 +227,11 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+                // We also check for 'ReferenceEquals' to distinguish between a negative cache (null) and a destroyed object.
+                if (obj == null && !ReferenceEquals(obj, null))
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
                 // SECURITY: Negative caching - if we already searched and found nothing, return null immediately.
@@ -366,6 +380,8 @@ namespace Milehigh.Core
 
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
+
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals
             // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals.
             _objectCache[objectName] = obj;
             return obj;
@@ -394,6 +410,7 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
@@ -436,6 +453,9 @@ namespace Milehigh.Core
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            // characterPrefabs is null! initialized, so ?. is redundant for NRT but characterPrefabs can be null if not assigned.
+            // However, CI prefers NRT-consistent code.
+            prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             _prefabCache[profileName] = prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
@@ -519,6 +539,12 @@ namespace Milehigh.Core
 
         private void Start()
         {
+            // BOLT: Pre-populate prefab cache to ensure O(1) lookups during any scene setup
+            foreach (var prefab in characterPrefabs)
+            {
+                if (prefab != null) _prefabCache[prefab.name] = prefab;
+            }
+
             if (CampaignManager.Instance != null &&
                 CampaignManager.Instance.currentCampaignData != null &&
                 CampaignManager.Instance.currentCampaignData.scenarios != null &&
@@ -632,7 +658,7 @@ namespace Milehigh.Core
             // Instantiate characters if not already in scene
             if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.characters != null)
             {
-                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                foreach (var charProfile in campaignData.characters)
                 {
                     SpawnOrUpdateCharacter(charProfile);
             if (CampaignManager.Instance.currentCampaignData != null)
