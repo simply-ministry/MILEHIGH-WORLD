@@ -24,6 +24,15 @@ namespace Milehigh.Editor
             {
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
+            }
+            catch (System.Exception ex)
+            {
+                // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
+                Debug.LogError($"Error loading or parsing campaign data from {path}: {ex.Message}");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
 
                 if (data == null || data.characters == null)
                 {
