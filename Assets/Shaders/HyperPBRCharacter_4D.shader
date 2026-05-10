@@ -98,8 +98,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
 
         void surf (Input IN, inout SurfaceOutputStandardSpecular o)
         {
-            fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
-            clip(albedo.a - _Cutoff);
+            // BOLT: Moved base albedo assignment to the start to prevent dead-work and correctly apply additive effects.
+            fixed4 texAlbedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            o.Albedo = texAlbedo.rgb;
+            clip(texAlbedo.a - _Cutoff);
 
             // --- PBR Properties ---
             fixed4 rmai = tex2D(_RMAIMap, IN.uv_MainTex);
@@ -147,10 +149,14 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half sss_sq = sss_base * sss_base;
                 half sss_4 = sss_sq * sss_sq;
                 half sss = sss_4 * sss_4 * _SSSScale;
+                // BOLT: Ensure albedo is assigned *before* SSS is added to avoid overwriting SSS calculation
+                o.Albedo = albedo.rgb;
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
             }
-
-            o.Albedo = albedo.rgb;
+            else
+            {
+                o.Albedo = albedo.rgb;
+            }
         }
         ENDCG
     }
