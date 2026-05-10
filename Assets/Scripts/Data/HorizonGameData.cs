@@ -285,6 +285,11 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
             // 🛡️ Sentinel: Enforce list size limit to mitigate DoS
             foreach (var character in characters)
             {
