@@ -50,6 +50,9 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Rhythmic Typewriter Refinement and Thematic Cues]
+**Learning:** Standard punctuation-aware typewriter effects often fail on edge cases like mid-word periods (e.g., "Sky.ix") or ellipses ("..."), leading to jarring pauses. By implementing look-ahead logic (checking for whitespace after a period) and neighbor-dot detection for ellipses, the pacing remains natural. Additionally, color-coding visual progression cues (like '▽') using speaker-specific hex colors reinforces character identity and provides a more cohesive "thematic" feel to the UI.
+**Action:** Always implement look-ahead/behind checks for punctuation pauses and ensure completion cues are visually integrated with the speaker's established color palette.
 ## 2026-03-25 - [Unified Cinematic Skipping]
 **Learning:** In interactive cinematics, players expect a single input to advance the scene meaningfully. By centralizing the 'skipRequested' flag lifecycle within a dedicated 'WaitForSecondsOrSkip' coroutine, we ensure that skipping a typewriter reveal naturally flows into skipping the subsequent pause, creating a more responsive and respectful UX.
 **Action:** Implement 'WaitForSecondsOrSkip' for all cinematic delays and only reset the skip flag at the end of the pause, not the reveal.
