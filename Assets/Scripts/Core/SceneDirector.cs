@@ -11,6 +11,9 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private readonly Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefabs to avoid repeated string matching in the list
+        private readonly Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Cache for character prefabs to turn O(N) searches into O(1) lookups
@@ -235,7 +238,7 @@ namespace Milehigh.Core
                 return obj;
             }
 
-            // BOLT: Fallback to O(N) scene traversal only if not cached.
+            // BOLT: Fallback to O(N) scene traversal only if not in cache.
             obj = GameObject.Find(objectName);
             // Cache the result (including null if not found) for future O(1) retrieval.
             _objectCache[objectName] = obj!;
@@ -282,6 +285,16 @@ namespace Milehigh.Core
             if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // Clear caches at start of setup to avoid stale references across scenes
+            _objectCache.Clear();
+            _prefabCache.Clear();
+
+            // BOLT: Pre-populate object cache with a single O(N) pass to avoid multiple GameObject.Find calls
+            // Using FindObjectsOfType for maximum compatibility across Unity versions.
+            GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();
+            foreach (var go in allObjects)
+            {
+                if (!_objectCache.ContainsKey(go.name))
             // BOLT: Removed redundant .Clear() to allow lazy-loading caches to persist across scenario updates.
             // Unity's null check (obj != null) safely handles destroyed objects from previous scenes.
 
@@ -384,6 +397,12 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use prefab cache to avoid repeated string matching in the list
+                GameObject prefab;
+                if (!_prefabCache.TryGetValue(profile.name, out prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profile.name));
+                    _prefabCache[profile.name] = prefab;
                 GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: O(1) prefab lookup instead of O(M) list search
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab) || prefab == null)
