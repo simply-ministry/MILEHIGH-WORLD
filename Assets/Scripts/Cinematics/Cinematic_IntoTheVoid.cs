@@ -146,6 +146,7 @@ namespace Milehigh.Cinematics
     public GameObject DialogueBox = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI SkipHint = null!;
 
     [Header("UX Settings")]
     [FormerlySerializedAs("typingSpeed")]
@@ -167,6 +168,8 @@ namespace Milehigh.Cinematics
     private string speakerHexColor;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private float idleTimer;
+    private bool playerInteracted;
     private string currentSpeakerHex;
 
     // BOLT: Cache for WaitForSeconds using int (milliseconds) to eliminate GC allocations during coroutine execution.
@@ -361,6 +364,22 @@ namespace Milehigh.Cinematics
         {
             skipRequested = true;
             playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+            idleTimer = 0;
+        }
+
+        // UX Enhancement: Show skip hint after 2 seconds of inactivity
+        if (!playerInteracted && typingCoroutine != null)
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2.0f && SkipHint != null)
+            {
+                SkipHint.text = "[Space] Skip";
+                SkipHint.gameObject.SetActive(true);
+            }
+        }
+    }
+
             idleTimer = 0f;
             if (SkipHint != null) SkipHint.gameObject.SetActive(false);
         }
@@ -418,6 +437,11 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // Programmatically find SkipHint if not assigned
+        if (SkipHint == null && DialogueBox != null)
+        {
+            SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
+        }
         private IEnumerator WaitForSecondsOrSkip(float seconds)
         {
             float elapsed = 0;
@@ -430,9 +454,9 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
-    void Update()
-    {
-        if (Input.anyKeyDown) skipRequested = true;
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
     public void ShowDialogue(string speaker, string message)
@@ -469,6 +493,7 @@ namespace Milehigh.Cinematics
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
         }
         SpeakerNameText.text = speaker;
+        idleTimer = 0;
         popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
 
         // Apply speaker-specific speed multipliers based on voice profiles
@@ -613,6 +638,8 @@ namespace Milehigh.Cinematics
         for (int i = 0; i <= totalCharacters; i++)
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
 
         // We use the existing GetWait(float) method to ensure zero-allocation yields,
         // avoiding GC pressure during dialogue sequences.
@@ -684,6 +711,7 @@ namespace Milehigh.Cinematics
 
         private WaitForSeconds GetWait(float time)
         {
+            if (skipRequested)
             if (!_waitForSecondsCache.TryGetValue(time, out var wait))
             {
                 break;
@@ -692,6 +720,19 @@ namespace Milehigh.Cinematics
             int totalVisibleCharacters = DialogueText.textInfo.characterCount;
             skipRequested = false;
 
+            if (i > 0 && i <= totalVisibleCharacters)
+            {
+                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i - 1].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Refined ellipsis detection
+                    bool isEllipsis = (i > 1 && textInfo.characterInfo[i - 2].character == '.') ||
+                                     (i < totalVisibleCharacters && textInfo.characterInfo[i].character == '.');
+
+                    // Smart Punctuation: Look ahead to avoid pauses in mid-word (e.g., Sky.ix)
             for (int i = 1; i <= totalVisibleCharacters; i++)
             {
                 if (skipRequested)
@@ -709,12 +750,13 @@ namespace Milehigh.Cinematics
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEndOfSentence = true;
-                    if (i < totalVisibleCharacters)
+                    if (i < totalVisibleCharacters && !char.IsWhiteSpace(textInfo.characterInfo[i].character))
                     {
-                        char nextChar = DialogueText.textInfo.characterInfo[i].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        isEndOfSentence = false;
                     }
 
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
                     if (isEndOfSentence)
                     {
                         // Check for ellipsis
@@ -3533,6 +3575,9 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // Finalize text reveal
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        DialogueText.ForceMeshUpdate();
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = totalCharacters + 2;

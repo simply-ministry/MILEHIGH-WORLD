@@ -53,6 +53,13 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion character after typewriter reveals to improve readability and interaction clarity.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
+**Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
+**Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2025-05-21 - [Discoverable Skip Mechanics with Idle Hints]
+**Learning:** For cinematic sequences, a "Skip" hint that only appears after a period of user inactivity (e.g., 2 seconds) provides a clean UI for experienced players while ensuring accessibility and discoverability for new ones. Using 'Input.anyKeyDown' for skip interactions ensures the mechanic is responsive to any deliberate user input (keyboard or mouse), making the interface feel more intuitive.
+**Action:** Implement idle-timer-based UX hints for non-obvious interactions and prefer 'anyKeyDown' for global sequence skips.
 ## 2026-03-25 - [Dynamic Dialogue Cohesion and Responsive Skipping]
 **Learning:** Micro-UX polish in dialogue systems is best achieved by unifying visual cues (like matching the completion icon color to the speaker name) and ensuring interaction responsiveness. A persistent 'skipRequested' flag that carries through both the typewriter reveal and subsequent pauses provides a much more fluid experience for fast readers.
 **Action:** Always implement skippable pauses in cinematic sequences and use 'ColorUtility' to maintain visual consistency across dynamic UI elements.
