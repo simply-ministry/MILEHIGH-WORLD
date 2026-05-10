@@ -57,6 +57,7 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Security validation of deserialized data to ensure data integrity
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     // SECURITY: Perform validation after deserialization to ensure data integrity
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
@@ -68,6 +69,16 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Log only the file name to avoid absolute path disclosure
+                        Debug.LogError($"Failed to validate campaign data from {fileName}.");
+                        currentCampaignData = null; // Ensure we don't use invalid data
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely.
+                    // Mask runtime exception stack traces and avoid leaking absolute paths in logs
+                    Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
                         Debug.LogError($"[Security] Failed to parse or validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
