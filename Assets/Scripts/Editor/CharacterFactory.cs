@@ -99,6 +99,18 @@ namespace Milehigh.Editor
 
             if (data.characters != null)
             {
+                foreach (var charProfile in data.characters)
+                {
+                    if (charProfile == null) continue;
+
+                    CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
+                    asset.characterName = charProfile.name;
+                    asset.role = charProfile.role;
+                    asset.traits = charProfile.traits;
+                    asset.behaviorScript = charProfile.behaviorScript;
+
+                    string safeFileName = GetSafeFileName(charProfile.name);
+                    string assetPath = $"{folderPath}/{safeFileName}.asset";
                 if (charProfile == null) continue;
 
                 CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
@@ -162,10 +174,43 @@ namespace Milehigh.Editor
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
 
-                foreach (char c in Path.GetInvalidFileNameChars())
-                {
-                    safeFileName = safeFileName.Replace(c, '_');
+                    AssetDatabase.CreateAsset(asset, assetPath);
+                    // SECURITY: Log relative asset path to avoid absolute path disclosure.
+                    Debug.Log($"Created character asset: {assetPath}");
                 }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+        /// </summary>
+        private static string GetSafeFileName(string baseName)
+        {
+            if (string.IsNullOrWhiteSpace(baseName))
+            {
+                return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+
+            // 🛡️ Sentinel: Use a whitelist-based approach to replace all non-alphanumeric characters.
+            // This prevents path traversal (../), hidden files (.name), and invalid OS characters.
+            string safeName = Regex.Replace(baseName, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Ensure no directory separators or traversal sequences remain by taking only the filename
+            safeName = Path.GetFileName(safeName);
+
+            // Strip leading underscores/dots to prevent traversal or hidden files
+            while (safeName.StartsWith("_") || safeName.StartsWith("."))
+            {
+                safeName = safeName.Substring(1);
+            }
+
+            if (string.IsNullOrWhiteSpace(safeName))
+            {
+                safeName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.
                 safeFileName = safeFileName.Replace(" ", "_");
 
