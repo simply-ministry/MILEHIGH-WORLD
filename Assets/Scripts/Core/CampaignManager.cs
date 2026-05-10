@@ -15,7 +15,7 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CampaignManager>();
+                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
@@ -34,11 +34,11 @@ namespace Milehigh.Core
         {
             if (_instance != null && _instance != this)
             {
-                Destroy(gameObject);
+                UnityEngine.Object.Destroy(gameObject);
                 return;
             }
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            UnityEngine.Object.DontDestroyOnLoad(gameObject);
             LoadCampaignData();
         }
 
@@ -99,6 +99,12 @@ namespace Milehigh.Core
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata!.voidSaturationLevel;
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                        UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
                     else
@@ -145,6 +151,8 @@ namespace Milehigh.Core
             }
             else
             {
+                // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                UnityEngine.Debug.LogError($"Campaign master JSON not found: {fileName}");
                 // SECURITY: Log only the filename to prevent information disclosure.
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
@@ -153,7 +161,7 @@ namespace Milehigh.Core
         public void IncreaseVoidSaturation(float amount)
         {
             currentVoidSaturationLevel = Mathf.Clamp01(currentVoidSaturationLevel + amount);
-            Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
+            UnityEngine.Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
         }
     }
 }

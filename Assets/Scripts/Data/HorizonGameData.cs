@@ -18,6 +18,10 @@ namespace Milehigh.Data
         /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                UnityEngine.Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // SECURITY: Input validation for environment string length (DoS mitigation)
             if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
             {
@@ -167,6 +171,9 @@ namespace Milehigh.Data
         public float y;
         public float z;
 
+        public UnityEngine.Vector3 GetVectorValue()
+        {
+            return new UnityEngine.Vector3(x, y, z);
         public Vector3 GetVectorValue() => new Vector3(x, y, z);
 
         public bool IsValid()
@@ -398,6 +405,7 @@ namespace Milehigh.Data
             if (scenarios == null || scenarios.Count == 0) return false;
             if (characters == null || characters.Count == 0)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
                 Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
                 return false;
             }
@@ -416,6 +424,15 @@ namespace Milehigh.Data
 
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
                 Debug.LogError("[Security] Game data validation failed: Character profiles count invalid.");
                 return false;
             }
