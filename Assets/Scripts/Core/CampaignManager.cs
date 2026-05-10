@@ -68,6 +68,9 @@ namespace Milehigh.Core
                     {
                         // SECURITY: Fail securely and don't use invalid data
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        // 🛡️ Sentinel: Failed validation means we cannot trust the campaign data.
+                        // SECURITY: Log the validation failure without exposing internal paths
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or is malformed.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }

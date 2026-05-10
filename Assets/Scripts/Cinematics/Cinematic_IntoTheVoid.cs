@@ -33,6 +33,84 @@ namespace Milehigh.Cinematics
             if (CinematicOverlay == null) CinematicOverlay = GetComponent<CanvasGroup>();
 
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    // ====================================================================
+    //
+    // CHARACTER ASSET & VOICE REFERENCE BLOCK
+    //
+    // ====================================================================
+
+    // Protagonist: Sky.ix the The Bionic Goddess
+    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void. She was a brilliant xenolinguist who, along with her family, was part of the research team at the Onalym Nexus.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
+    // Ability Script: Ability_Skyix.cs
+    /* VOICE PROFILE:
+     * Pitch: Mid-Range Mezzo-Shorano
+     * Tempo: Steady and Precise (130-140 WPM)
+     * Texture & Effects: Clean, Clear, and Articulated. Subtle Digital/Synthetic Filter (low chorus).
+     * Projection: Medium-High, Direct
+     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
+     * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
+    */
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+
+
+    // Protagonist: Kai the The Child of Prophecy
+    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
+    // Ability Script: Ability_Kai.cs
+    /* VOICE PROFILE:
+     * Pitch: Gender Neutral/Mid-Range
+     * Tempo: Slow and Paused (70-90 WPM)
+     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
+     * Projection: Soft, but Infinitely Resonant
+     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
+     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
+    */
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
+
+
+    // Antagonist: Delilah the The Desolate
+    // Description: A corrupted form of Ingris, wielding Voidfire.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
+    // Ability Script: Ability_Delilah.cs
+    /* VOICE PROFILE:
+     * Not available.
+    */
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
+
+    [Header("UI Components")]
+    public GameObject DialogueBox = null!;
+    public TextMeshProUGUI SpeakerNameText = null!;
+    public TextMeshProUGUI DialogueText = null!;
+
+    [Header("UX Settings")]
+    [FormerlySerializedAs("typingSpeed")]
+    [Tooltip("Base delay in seconds between each character being revealed.")]
+    public float baseTypingSpeed = 0.03f;
+    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
+    public float kaiSpeedMultiplier = 3.0f;
+    [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
+    public float skyixSpeedMultiplier = 1.2f;
+
+    private Coroutine? typingCoroutine;
+    private float currentTypingSpeed;
+    private string currentSpeakerColorTag;
+    private bool skipRequested;
+
+    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // BOLT: Use int (milliseconds) instead of float for dictionary key to avoid floating-point tolerance cache misses
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
+
+    private WaitForSeconds GetWait(float time)
+    {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
         }
 
         private void Update()
@@ -71,17 +149,27 @@ namespace Milehigh.Cinematics
 
             SpeakerNameText.text = speaker;
 
-            // Set speaker theme color
-            Color speakerColor = speaker switch
-            {
-                "Delilah" => new Color(0.4f, 0.8f, 0.2f), // Sickly green
-                "Sky.ix" => new Color(0.2f, 0.6f, 1.0f), // Cyber blue
-                "Kai" => new Color(1.0f, 0.8f, 0.2f),   // Warning yellow
-                _ => Color.white
-            };
-            SpeakerNameText.color = speakerColor;
-
-            typingCoroutine = StartCoroutine(TypeDialogue(message));
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+        // Apply character-specific colors for better speaker identification
+        switch (speaker)
+        {
+            case "Sky.ix":
+                SpeakerNameText.color = Color.cyan;
+                currentSpeakerColorTag = "<color=#00FFFF>";
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                currentSpeakerColorTag = "<color=#FFD700>";
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                currentSpeakerColorTag = "<color=#9919E6>";
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                currentSpeakerColorTag = "<color=#FFFFFF>";
+                break;
         }
 
         private IEnumerator TypeDialogue(string message)
@@ -123,10 +211,30 @@ namespace Milehigh.Cinematics
                 else if (c == ',')
                 {
                     delay = commaPause;
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // PALETTE: Check for ellipsis or mid-word periods to maintain natural flow.
+                        bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                        (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+
+                        bool isMidWord = (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character));
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isMidWord) delay = currentTypingSpeed; // No pause for mid-word abbreviations
+                        else delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                 }
 
                 yield return GetWait(delay);
             }
+        }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // PALETTE: Color-coded cue to match the speaker's theme for a delightful touch.
+        DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
             DialogueText.maxVisibleCharacters = totalCharacters + 2; // Include the cue
             skipRequested = false;

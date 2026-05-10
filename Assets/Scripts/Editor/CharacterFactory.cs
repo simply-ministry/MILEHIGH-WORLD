@@ -33,6 +33,14 @@ namespace Milehigh.Editor
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
+            string json = File.ReadAllText(path);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity and prevent out-of-bounds impacts.
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation or is malformed.");
                 return;
             }
 
@@ -56,12 +64,24 @@ namespace Milehigh.Editor
 
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
+                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Malicious JSON could use "../" to attempt writing assets outside the intended directory.
+                // We sanitize by replacing invalid chars and ensuring only the filename component is used.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
+                foreach (char c in Path.GetInvalidFileNameChars())
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
+                // Ensure no directory traversal sequences remain and normalize spacing
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
+                // SECURITY: Log relative asset path only to avoid internal path disclosure
                 Debug.Log($"Created character asset: {assetPath}");
             }
 
