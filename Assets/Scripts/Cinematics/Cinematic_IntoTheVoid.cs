@@ -111,6 +111,8 @@ namespace Milehigh.Cinematics
     public float skyixSpeedMultiplier = 1.2f;
     public float idleHintThreshold = 2.0f;
 
+    private Coroutine? typingCoroutine;
+    private CanvasGroup? dialogueCanvasGroup;
     private Coroutine typingCoroutine;
     private Coroutine namePopCoroutine;
     private string lastSpeaker;
@@ -274,8 +276,27 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    void Awake()
+    {
+        if (DialogueBox != null)
+        {
+            dialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
+            if (dialogueCanvasGroup == null) dialogueCanvasGroup = DialogueBox.AddComponent<CanvasGroup>();
+            dialogueCanvasGroup.alpha = 0f;
+        }
+    }
+
     void Update()
     {
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
+    private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
+    {
+        if (dialogueCanvasGroup == null) yield break;
+        float startAlpha = dialogueCanvasGroup.alpha;
+        float elapsed = 0f;
+        while (elapsed < duration)
         if (Input.anyKeyDown || (Input.GetMouseButtonDown(0)))
         {
             skipRequested = true;
@@ -339,8 +360,17 @@ namespace Milehigh.Cinematics
         float startTime = Time.time;
         while (Time.time - startTime < time && !skipRequested)
         {
+            elapsed += Time.deltaTime;
+            dialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
             yield return null;
         }
+        dialogueCanvasGroup.alpha = targetAlpha;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested) yield return null;
         skipRequested = false;
     }
 
@@ -409,6 +439,9 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
     void Update()
     {
         // Reset idle timer and hide hint on any interaction
@@ -534,6 +567,13 @@ namespace Milehigh.Cinematics
         typingCoroutine = StartCoroutine(TypeDialogue(message, speakerColor));
 
         // Apply character-specific colors for better speaker identification
+        Color speakerColor = speaker switch
+        {
+            "Sky.ix" => Color.cyan,
+            "Kai" => new Color(1f, 0.84f, 0f), // Gold
+            "Delilah" => new Color(0.6f, 0.1f, 0.9f), // Void Purple
+            _ => Color.white
+        };
         Color speakerColor;
         switch (speaker)
         idleTimer = 0;
@@ -653,6 +693,9 @@ namespace Milehigh.Cinematics
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
 
+        // Ensure TMP is updated to get accurate character info
+        DialogueText.ForceMeshUpdate();
+
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
@@ -706,6 +749,9 @@ namespace Milehigh.Cinematics
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            if (i > 0 && i < totalVisibleCharacters)
+            {
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
             if (i < totalCharacters - 1) // Don't delay after the last character (cue)
             if (i > 0 && i <= textOnlyCount)
             if (i > 0 && i <= totalVisibleCharacters)
@@ -714,6 +760,14 @@ namespace Milehigh.Cinematics
                 float delay = currentTypingSpeed;
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') || (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (i < totalVisibleCharacters && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character)) delay = currentTypingSpeed * 15f;
+                }
+                else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
                 // We check the character at current index (i) because it just became visible.
                 if (c == '.' || c == '!' || c == '?')
@@ -1041,6 +1095,7 @@ namespace Milehigh.Cinematics
                     yield return GetWait(currentTypingSpeed * 10f);
                 }
             }
+            else if (i == 0) yield return GetWait(currentTypingSpeed);
 
             yield return UnityUtils.GetWait(delay);
         }
@@ -1144,6 +1199,8 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
+        DialogueBox.SetActive(true);
+        yield return StartCoroutine(FadeDialogueBox(1f, 0.5f));
         yield return FadeDialogueBox(1f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
@@ -1241,6 +1298,8 @@ namespace Milehigh.Cinematics
 
         yield return WaitForSecondsOrSkip(2.0f);
 
+        // --- Dialogue Line 6: Kai ---
+
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         yield return WaitForSecondsOrSkip(3.5f);
 
@@ -1280,6 +1339,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(7.5f);
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        yield return StartCoroutine(FadeDialogueBox(0f, 0.5f));
         yield return FadeDialogueBox(0f, 0.5f);
 
         Debug.Log("Cinematic Sequence Complete.");

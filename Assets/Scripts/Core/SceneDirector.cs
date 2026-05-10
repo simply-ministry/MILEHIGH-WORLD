@@ -440,6 +440,11 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+
+            if (_prefabLookupCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) search happens only once per profile name
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // Fallback to searching the list if not pre-cached
@@ -622,6 +627,12 @@ namespace Milehigh.Core
                 SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
                 foreach (var prefab in characterPrefabs)
                 {
+                    if (prefab != null) _prefabLookupCache[prefab.name] = prefab;
+                }
+            }
+
+            if (CampaignManager.Instance?.currentCampaignData != null)
+            {
                     if (prefab != null)
                     {
                          _prefabCache[prefab.name] = prefab;

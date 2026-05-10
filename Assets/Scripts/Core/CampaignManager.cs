@@ -12,6 +12,15 @@ namespace Milehigh.Core
         {
             get
             {
+                if (_instance == null)
+                {
+                    _instance = FindFirstObjectByType<CampaignManager>();
+                    if (_instance == null)
+                    {
+                        GameObject go = new GameObject("CampaignManager");
+                        _instance = go.AddComponent<CampaignManager>();
+                    }
+                }
                 if (_instance == null) InitializeInstance();
                 return _instance!;
             }
@@ -90,6 +99,8 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception)
                 {
+                    // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
+                    Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // Consolidate redundant comments and remove ex.Message to prevent path leakage.
                     Debug.LogError($"Error loading campaign data from {fileName}. Parsing failure.");

@@ -215,5 +215,25 @@ namespace Milehigh.Editor
 
             return sanitized;
         }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Path sanitization logic to prevent directory traversal and hidden file creation.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Whitelist approach: only allow alphanumeric, underscores, and hyphens.
+            // Strip leading dots and underscores to prevent hidden files/special names.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized))
+            {
+                sanitized = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+
+            return sanitized;
+        }
     }
 }
