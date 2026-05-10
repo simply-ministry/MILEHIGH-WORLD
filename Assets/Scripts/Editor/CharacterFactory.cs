@@ -39,6 +39,9 @@ namespace Milehigh.Editor
 
             //  Sentinel: Security validation of deserialized data.
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity
+            if (data == null || !data.IsValid())
+            {
             // SECURITY: Always validate data after deserialization to ensure project integrity.
             if (data == null || !data.IsValid())
             {
@@ -111,6 +114,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Required sequence: strip invalid chars, use Path.GetFileName, replace whitespace.
                 // Required sequence: replace invalid chars with underscores, use Path.GetFileName, replace whitespace.
                 //  Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // 🛡️ Sentinel: Robust Path Traversal prevention using strict whitelist.
@@ -232,6 +236,11 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+
+                // Use Path.GetFileName to prevent directory traversal (e.g. "../")
+                safeFileName = Path.GetFileName(safeFileName);
+                // Standardize by replacing whitespace with underscores
+                safeFileName = safeFileName.Replace(" ", "_");
                 // Use Path.GetFileName to prevent directory traversal, then replace whitespace
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
@@ -319,6 +328,8 @@ namespace Milehigh.Editor
                 return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
+                // SECURITY: Log only the relative asset path to avoid absolute path disclosure
+                Debug.Log($"Created character asset: {assetPath}");
 
                 // SECURITY: Log relative asset path to avoid absolute path disclosure
                 Debug.Log("Created character asset: " + assetPath);
