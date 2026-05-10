@@ -83,6 +83,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = string.IsNullOrEmpty(charProfile.name) ? "unnamed_character" : charProfile.name;
                 string safeFileName = GetSafeFileName(charProfile.name);
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
@@ -132,6 +133,7 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name ?? "unnamed_character");
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
 
+                if (string.IsNullOrEmpty(safeFileName) || safeFileName == "_")
                 AssetDatabase.CreateAsset(asset, assetPath);
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))

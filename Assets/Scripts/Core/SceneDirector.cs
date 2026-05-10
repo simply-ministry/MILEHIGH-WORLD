@@ -294,6 +294,10 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                if (obj != null) return obj;
+            }
+
                 // If it's a Unity null (native object destroyed), we should try to find it again
                 if (obj == null)
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
@@ -483,6 +487,20 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
+            {
+                if (prefab != null) return prefab;
+            }
+
+            // BOLT: Optimized prefab lookup using characterPrefabs list
+            // We do a partial match search only if the name isn't already cached.
+            if (characterPrefabs != null)
+            {
+                prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+            }
+
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search only happens once per profile name
@@ -622,6 +640,10 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
+            if (_controllerCache.TryGetValue(objId, out var controller))
+            {
+                if (controller != null) return controller;
+            }
             // BOLT: Use dictionary lookup with negative caching support
             if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
 
@@ -692,6 +714,9 @@ namespace Milehigh.Core
                 }
             }
 
+            // BOLT: Capture property in local variable for NRT flow analysis
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null)
             if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             {
             var campaignData = CampaignManager.Instance.currentCampaignData;
@@ -785,6 +810,7 @@ namespace Milehigh.Core
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
             if (profile == null) return;
+            GameObject? characterObj = GetCachedObject(profile.name);
             InitializePrefabCache();
             GameObject characterObj = GetCachedObject(profile.name);
 
@@ -970,6 +996,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            if (interaction == null) return;
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR)
             // Block external data from manipulating core architectural managers.
             string[] protectedObjects = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
