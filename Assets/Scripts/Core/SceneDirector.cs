@@ -56,6 +56,14 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
+            // Limit object name length and restrict to safe characters to prevent expensive Find operations.
+            if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
+                return null;
+            }
+
             // BOLT: Perform an O(1) dictionary lookup first.
             // We use System.Object.ReferenceEquals(obj, null) to distinguish between a truly null reference
             // and a destroyed Unity object, which allows us to implement "negative caching" for missing objects.

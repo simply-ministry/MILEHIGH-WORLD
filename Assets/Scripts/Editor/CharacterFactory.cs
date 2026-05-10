@@ -36,6 +36,10 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure data integrity
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             if (data == null || !data.IsValid() || data.characters == null)
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
@@ -136,6 +140,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                // Ensure no directory traversal sequences remain by using Path.GetFileName
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 safeFileName = safeFileName.Replace(" ", "_");
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
