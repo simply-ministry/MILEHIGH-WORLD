@@ -97,6 +97,7 @@ namespace Milehigh.Cinematics
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI SkipHint = null!;
     public TextMeshProUGUI? SkipHint;
     public TextMeshProUGUI SkipHint = null!;
     public GameObject DialogueBox;
@@ -270,6 +271,18 @@ namespace Milehigh.Cinematics
 
     void Update()
     {
+        if (Input.anyKeyDown || (Input.GetMouseButtonDown(0)))
+        {
+            skipRequested = true;
+            idleTimer = 0;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2.0f && !playerInteracted && SkipHint != null && DialogueBox != null && DialogueBox.activeInHierarchy)
+            {
         // Poll for skip input to ensure responsiveness
         // 🎨 Palette: Prefer specific keys for skip to avoid accidental triggers
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return))
@@ -376,6 +389,8 @@ namespace Milehigh.Cinematics
             Debug.LogError("Missing UI components! Cinematic aborted.");
             return;
         }
+
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         if (SkipHint == null)
         {
@@ -631,6 +646,7 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
 
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -685,12 +701,29 @@ namespace Milehigh.Cinematics
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            if (i < totalCharacters - 1) // Don't delay after the last character (cue)
             if (i > 0 && i <= textOnlyCount)
             if (i > 0 && i <= totalVisibleCharacters)
             {
+                char c = textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // We check the character at current index (i) because it just became visible.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Smart Punctuation: Look ahead/behind to refine pacing
+                    bool isEllipsis = (c == '.' && ((i > 0 && textInfo.characterInfo[i - 1].character == '.') || (i < totalCharacters - 2 && textInfo.characterInfo[i + 1].character == '.')));
+                    bool isMidWordPeriod = (c == '.' && i < totalCharacters - 2 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character));
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (isMidWordPeriod) delay = currentTypingSpeed;
+                    else delay = currentTypingSpeed * 15f;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
                 if (c == '.' || c == '!' || c == '?')
                 {
@@ -1007,6 +1040,7 @@ namespace Milehigh.Cinematics
             yield return UnityUtils.GetWait(delay);
         }
 
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
         skipRequested = false;
         typingCoroutine = null;
     }
