@@ -137,6 +137,7 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Specular = lerp(o.Specular, o.Specular * iridescence, iridescenceMask);
             }
 
+            o.Albedo = albedo.rgb;
             // ⚡ Bolt: Removed dead SSS calculation block that was previously here.
             // It was performing expensive texture samples and ALU ops only to be
             // completely overwritten by the following assignment.

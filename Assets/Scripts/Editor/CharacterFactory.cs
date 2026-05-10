@@ -122,6 +122,7 @@ namespace Milehigh.Editor
                 string safeFileName = baseName;
 
                 // Malicious JSON could use "../" to write assets outside the intended directory.
+                // Required sequence: replace invalid chars, use Path.GetFileName, then replace spaces.
                 string rawName = charProfile.name ?? "unnamed_character";
 
                 // 1. Strip directory traversal sequences using Path.GetFileName.
