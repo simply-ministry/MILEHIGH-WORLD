@@ -50,6 +50,9 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-26 - [Skip Hint Discoverability and User Agency]
+**Learning:** In cinematic-heavy games, discoverability of skip mechanics is crucial for user agency, especially for returning players or those with cognitive load preferences. A "soft" hint that only appears after a short period of user inactivity (e.g., 2 seconds) provides guidance without cluttering the UI for engaged first-time viewers. Programmatically discovering UI components like hints allows for robust UX enhancements that don't strictly depend on manual Inspector setup.
+**Action:** Implement idle-timer-based UI hints for secondary interactions to balance clean aesthetics with accessible discoverability.
 ## 2026-03-26 - [Universal Skip Accessibility and Smart Pacing]
 **Learning:** Consolidating skip logic into a single 'Input.anyKeyDown' check in 'Update' is the most robust way to ensure accessibility across keyboard, mouse, and gamepads in Unity. Furthermore, rhythmic typewriter pacing is most natural when it employs 'smart' look-ahead logic to distinguish between end-of-sentence punctuation and mid-word characters (like 'Sky.ix') to avoid unintended delays.
 **Action:** Always prefer 'anyKeyDown' for global interaction skips and implement look-ahead checks for rhythmic punctuation pauses.

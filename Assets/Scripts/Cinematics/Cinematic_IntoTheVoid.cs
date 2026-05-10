@@ -97,6 +97,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public GameObject DialogueBox = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI? SkipHintText;
 
     [Header("UX Settings")]
     [FormerlySerializedAs("typingSpeed")]
@@ -112,6 +113,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private Coroutine? scalingCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
+    private bool playerInteracted;
     private Vector3 originalSpeakerScale;
     private Coroutine? popCoroutine;
     private float currentTypingSpeed;
@@ -263,6 +265,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // Palette: Find SkipHint programmatically if not assigned
+        if (SkipHintText == null && DialogueBox != null)
+        {
+            Transform hintTransform = DialogueBox.transform.Find("SkipHint");
+            if (hintTransform != null) SkipHintText = hintTransform.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
         // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
         originalScale = SpeakerNameText.transform.localScale;
 
@@ -276,6 +286,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
 
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    void Update()
+    {
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+        }
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
     }
 
     /// <summary>
@@ -404,6 +425,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
+        float startTime = Time.time;
+        bool hintShown = false;
+
+        for (int i = 0; i < totalCharacters; i++)
         // The message length excluding the cue (▽ is 1 char)
         int messageChars = totalCharacters - 1;
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
@@ -416,6 +441,19 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            // Palette: Show skip hint if player is idle for 2 seconds
+            if (!playerInteracted && !hintShown && Time.time - startTime > 2f)
+            {
+                if (SkipHintText != null)
+                {
+                    SkipHintText.text = "[Space] Skip";
+                    SkipHintText.gameObject.SetActive(true);
+                    hintShown = true;
+                }
+            }
+
+            char c = textInfo.characterInfo[i].character;
+            float delay = typingSpeed;
             char c = DialogueText.textInfo.characterInfo[i].character;
             float delay = currentTypingSpeed;
 
