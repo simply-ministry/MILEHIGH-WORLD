@@ -417,6 +417,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         SpeakerNameText.color = speakerColor;
         speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
 
@@ -552,6 +553,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (c == '!' || c == '?')
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Rhythmic Look-ahead: Detect ellipses (multiple dots) and mid-word periods (like Sky.ix)
+                        bool isEllipsis = (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') ||
+                                          (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.');
+
+                        bool isMidWord = i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isMidWord) delay = currentTypingSpeed; // No extra pause for mid-word punctuation
+                        else delay = currentTypingSpeed * 15f;
 
                     // Advanced Rhythmic Pacing: Natural speech patterns via punctuation pauses.
                     if (c == '.' || c == '!' || c == '?')
@@ -594,7 +606,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
                 yield return GetWait(delay);
             }
+            else if (i == totalVisibleCharacters && totalVisibleCharacters > 0)
+            {
+                // Final pause for punctuation endings before the completion cue appears
+                char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+                if (lastChar == '.' || lastChar == '!' || lastChar == '?') yield return GetWait(currentTypingSpeed * 15f);
+            }
         }
+
+        // UX Enhancement: Visual progression cue color-coded to the speaker's theme.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
         skipRequested = false;
         typingCoroutine = null;
