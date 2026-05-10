@@ -28,6 +28,7 @@ namespace UnityEngine
     {
         public static void Log(object message) => Console.WriteLine(message);
         public static void LogError(object message) => Console.Error.WriteLine(message);
+        public static void LogWarning(object message) => Console.WriteLine($"WARNING: {message}");
     }
     public class Mathf
     {
@@ -46,26 +47,6 @@ namespace UnityEngine
     {
         public float x, y, z;
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
-    }
-
-namespace UnityEngine
-{
-    public class Debug
-    {
-        public static void Log(object message) => Console.WriteLine(message);
-        public static void LogError(object message) => Console.WriteLine($"ERROR: {message}");
-        public static void LogWarning(object message) => Console.WriteLine($"WARNING: {message}");
-    }
-
-    public struct Vector3
-    {
-        public float x, y, z;
-        public Vector3(float x, float y, float z)
-        {
-            this.x = x;
-            this.y = y;
-            this.z = z;
-        }
     }
 
     public class SerializableAttribute : Attribute { }
@@ -87,5 +68,9 @@ namespace UnityEngine
         }
     }
 
-    public class MonoBehaviour { }
+    public class DefaultExecutionOrderAttribute : Attribute
+    {
+        public int order;
+        public DefaultExecutionOrderAttribute(int order) { this.order = order; }
+    }
 }

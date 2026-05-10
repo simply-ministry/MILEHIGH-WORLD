@@ -152,6 +152,21 @@
 **Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
 **Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
 
+## 2024-05-24 - Float to Int Key in Dictionary for Unity Caching
+**Learning:** Using a float as a key in a Dictionary for caching (like caching WaitForSeconds in Cinematic_IntoTheVoid.cs) can lead to dictionary cache misses due to floating-point precision issues, generating unnecessary garbage collection allocations.
+**Action:** Convert the float to an integer (e.g., using `Mathf.RoundToInt(time * 1000f)`) before using it as a key in the Dictionary to ensure consistent cache hits and prevent memory allocations during runtime.
+## 2024-05-26 - Robust Unity Object Caching and Pooling
+**Learning:** When implementing caches for Unity GameObjects, it is critical to distinguish between a 'true' null (explicitly cached as missing) and a 'Unity' null (native object destroyed). Using `ReferenceEquals(obj, null)` identifies true nulls, while `obj == null` (via Unity's operator overload) identifies destroyed objects. This prevents unnecessary O(N) `GameObject.Find` calls for objects confirmed missing while allowing re-acquisition of destroyed ones. Additionally, when recycling from an object pool, always verify the dequeued object is not a Unity null.
+**Action:** Use the `ReferenceEquals` check for negative caching and verify pool integrity before reuse to ensure robust performance in dynamic scene managers.
+## 2026-05-07 - Unity WaitForSeconds float key cache miss
+**Learning:** When caching `WaitForSeconds` instances in a Dictionary for Unity coroutines, using a `float` key can lead to cache misses due to floating-point imprecision. This defeats the purpose of the cache and still causes redundant Garbage Collection (GC) allocations on every creation of `WaitForSeconds` during frame stuttering sequences.
+**Action:** Use an integer key representing milliseconds (e.g., `Mathf.RoundToInt(time * 1000f)`) rather than a `float` to guarantee consistent cache hits and prevent memory allocations.
+## 2024-05-26 - Unity WaitForSeconds Float Caching Pitfalls
+**Learning:** When caching `WaitForSeconds` instances in a Dictionary for Unity coroutines, using a `float` as the key can lead to cache misses due to floating-point imprecision, causing unnecessary GC allocations.
+**Action:** Use an integer key instead (e.g., representing milliseconds via `Mathf.RoundToInt(time * 1000f)`) to ensure reliable dictionary lookups and prevent garbage creation.
+## 2024-05-28 - Unity WaitForSeconds float key imprecision
+**Learning:** Caching `WaitForSeconds` in a Dictionary using a `float` as the key leads to cache misses due to floating-point imprecision. This defeats the purpose of the cache and causes unexpected GC allocations when yielding delays.
+**Action:** Use an integer key representing milliseconds (e.g., `Mathf.RoundToInt(time * 1000f)`) to guarantee stable lookups and prevent unnecessary object allocations in performance-critical loops.
 ## 2026-05-06 - Float Keys in WaitForSeconds Cache
 **Learning:** Using floats as keys in a Dictionary for caching WaitForSeconds causes cache misses due to floating-point imprecision, leading to unnecessary GC allocations and defeating the purpose of the cache.
 **Action:** Use an integer key representing milliseconds (via `Mathf.RoundToInt(time * 1000f)`) to ensure cache hits.

@@ -73,6 +73,16 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-26 - [Contextual Skip Hints for Narrative Engagement]
+**Learning:** Forcing players to discover skip mechanics through trial-and-error can lead to frustration, but permanent "Skip" buttons can break immersion. A contextual "Skip Hint" that only appears after a short period of user inactivity (e.g., 2 seconds) during dialogue provides a balance between assistance and cinematic immersion.
+**Action:** Implement an `idleTimer` that triggers a subtle skip hint after a period of inactivity, and ensure it resets immediately upon any user interaction or dialogue transition.
+## 2026-03-26 - [Smart Punctuation and Smooth Transitions]
+**Learning:** Cinematic dialogue is greatly enhanced by 'smart punctuation' in typewriter effects, which uses look-ahead logic to distinguish between sentence terminators and mid-word periods (e.g., in names like 'Sky.ix'), avoiding immersion-breaking pauses. Additionally, using 'CanvasGroup' for alpha-based transitions provides a more professional feel than binary 'SetActive' calls and allows for easily adjustable transition speeds.
+**Action:** Implement look-ahead checks for punctuation in typewriter loops and prefer 'CanvasGroup' fading for UI element transitions.
+
+## 2026-03-26 - [Discoverable Skip Hint for Narrative UX]
+**Learning:** In narrative-heavy sequences, users may not always know that dialogue can be skipped. Implementing a "lazy" skip hint that only appears after a period of idle time (e.g., 2 seconds) provides guidance without cluttering the UI for experienced players. This preserves immersion while ensuring accessibility for new or distracted users.
+**Action:** Use an `idleTimer` and `playerInteracted` flag to show skip prompts only when the user appears stuck or inactive.
 ## 2026-03-26 - [Discoverable Dialogue Skip Hint]
 **Learning:** Implementing a "discoverable" skip hint that only appears after a short period of inactivity (e.g., 2 seconds) during dialogue provides essential guidance for new or struggling users without cluttering the UI or breaking immersion for experienced players. This "just-in-time" assistance balances accessibility with cinematic aesthetics.
 **Action:** Use an 'idleTimer' and 'playerInteracted' flag pattern in cinematic scripts to show skip prompts only when needed.
