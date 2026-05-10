@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 
 namespace Milehigh.Editor
@@ -28,11 +29,19 @@ namespace Milehigh.Editor
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
             }
-
             // 🛡️ Sentinel: Security validation of deserialized data.
             if (data == null || data.characters == null || !data.IsValid())
+            if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
+            string json = File.ReadAllText(path);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity and prevent out-of-bounds impacts.
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation or is malformed.");
                 return;
             }
 
@@ -54,23 +63,43 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                string safeFileName = GetSafeFileName(charProfile.name);
+                if (string.IsNullOrEmpty(safeFileName))
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
                 if (string.IsNullOrEmpty(safeFileName))
+                // Malicious JSON could use "../" to attempt writing assets outside the intended directory.
+                // We sanitize by replacing invalid chars and ensuring only the filename component is used.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
+                foreach (char c in Path.GetInvalidFileNameChars())
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
+                // Ensure no directory traversal sequences remain and normalize spacing
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
+                // SECURITY: Log relative asset path only to avoid internal path disclosure
                 Debug.Log($"Created character asset: {assetPath}");
             }
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "";
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "");
+            return sanitized.TrimStart('.', '_');
         }
     }
 }
