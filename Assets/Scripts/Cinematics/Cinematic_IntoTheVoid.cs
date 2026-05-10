@@ -712,6 +712,7 @@ namespace Milehigh.Cinematics
                 break;
         }
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         // Capture hex for color-coded UI cues
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
 
@@ -727,7 +728,10 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
-        DialogueText.text = message;
+        // UX Enhancement: Include the completion cue from the start to prevent layout shifts
+        // when the symbol is revealed. We use rich text to color-code it.
+        string fullText = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+        DialogueText.text = fullText;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
         int totalCharacters = DialogueText.textInfo.characterCount;
@@ -744,6 +748,14 @@ namespace Milehigh.Cinematics
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
 
+        // BOLT: Typewriter effect optimized for performance.
+        // We use the existing GetWait(float) method to ensure zero-allocation yields,
+        // avoiding GC pressure during dialogue sequences.
+        // Note: textInfo.characterCount includes the '▽' but excludes rich text tags.
+        int totalCharacters = DialogueText.textInfo.characterCount;
+        int messageCharacters = totalCharacters - 1; // Everything except the '▽'
+
+        for (int i = 0; i <= totalCharacters; i++)
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
@@ -763,6 +775,8 @@ namespace Milehigh.Cinematics
 
             if (c == '.' || c == '!' || c == '?')
             {
+                DialogueText.maxVisibleCharacters = totalCharacters;
+                break;
                 // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
                 bool isMidWord = false;
                 if (i + 1 < totalVisibleCharacters)
@@ -830,6 +844,8 @@ namespace Milehigh.Cinematics
         }
         if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
+            // Rhythmic pause loop: pauses after each character is revealed
+            if (i > 0 && i <= messageCharacters)
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
         private void Start()
@@ -838,10 +854,9 @@ namespace Milehigh.Cinematics
             if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
             {
                 float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the previous character (i-1) to pause *after* it has been revealed.
-                if (i > 0)
+                if (c == '!' || c == '?')
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
