@@ -3281,6 +3281,8 @@ namespace Milehigh.Cinematics
         rect.localScale = initialScale;
     }
 
+    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
     private IEnumerator WaitForSecondsOrSkip(float seconds)
     {
         float timer = 0f;
@@ -3294,6 +3296,11 @@ namespace Milehigh.Cinematics
 
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
+        int timeMs = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeMs] = wait;
         float elapsed = 0f;
         while (elapsed < duration && !skipRequested)
         {
