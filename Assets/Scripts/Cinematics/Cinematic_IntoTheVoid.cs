@@ -784,6 +784,9 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+
         DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
@@ -1528,6 +1531,12 @@ namespace Milehigh.Cinematics
                 char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                // Note: Delay occurs *after* character reveal for natural rhythm.
+                if (i > 0)
+                {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') delay += 0.4f;
+                    else if (c == ',' || c == ';' || c == ':') delay += 0.2f;
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEndOfSentence = true;
