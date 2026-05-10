@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 
 namespace Milehigh.Editor
@@ -17,6 +18,21 @@ namespace Milehigh.Editor
                 return;
             }
 
+            HorizonGameData? data = null;
+            try
+            {
+                string json = File.ReadAllText(path);
+                data = JsonUtility.FromJson<HorizonGameData>(json);
+            }
+            catch (System.Exception)
+            {
+                Debug.LogError("Failed to load or parse campaign data.");
+                return;
+            }
+
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             string json = File.ReadAllText(path);
             HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
@@ -46,6 +62,8 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                string safeFileName = GetSafeFileName(charProfile.name);
+                if (string.IsNullOrEmpty(safeFileName))
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 // Malicious JSON could use "../" to attempt writing assets outside the intended directory.
                 // We sanitize by replacing invalid chars and ensuring only the filename component is used.
@@ -53,8 +71,11 @@ namespace Milehigh.Editor
                 string safeFileName = baseName;
                 foreach (char c in Path.GetInvalidFileNameChars())
                 {
-                    safeFileName = safeFileName.Replace(c, '_');
+                    safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
                 // Ensure no directory traversal sequences remain and normalize spacing
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
@@ -66,6 +87,13 @@ namespace Milehigh.Editor
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "";
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "");
+            return sanitized.TrimStart('.', '_');
         }
     }
 }
