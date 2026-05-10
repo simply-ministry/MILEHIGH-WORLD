@@ -24,7 +24,7 @@ namespace Milehigh.Editor
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
-            // SECURITY: Always validate data after deserialization
+8            // SECURITY: Always validate data after deserialization
                 // 🛡️ Sentinel: Security validation of deserialized data.
                 if (data == null || !data.IsValid())
                 {
@@ -133,9 +133,6 @@ namespace Milehigh.Editor
                     safeFileName = safeFileName.Replace(c, '_');
                 }
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
-                // Ensure no directory traversal sequences remain
-                string safeFileName = Path.GetFileName(sanitizedName);
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
