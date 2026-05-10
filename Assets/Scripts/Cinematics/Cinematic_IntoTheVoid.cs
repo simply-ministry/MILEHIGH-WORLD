@@ -1,50 +1,126 @@
-// --- UNITY SCENE SETUP --- //
-//
-// 1. Create an empty GameObject in your scene and name it "SceneController".
-//
-// 2. Attach this script (`Cinematic_IntoTheVoid.cs`)
-//    to the "SceneController" GameObject.
-//
-// 3. Create or place the character prefabs/GameObjects for "Sky.ix", "Kai", and "Delilah" into the scene.
-//
-// 4. Ensure each character GameObject has the following components attached:
-//    - An Animator component with a configured Animation Controller.
-//    - An AudioSource component to be used for their voice lines.
-//    - Their respective ability script (e.g., Sky.ix needs `Ability_Skyix.cs`, Kai needs `Ability_Kai.cs`, etc.)
-//
-// 5. Create the UI for the dialogue system:
-//    - Right-click in the Hierarchy -> UI -> Canvas.
-//    - Inside the Canvas, create a UI -> Panel. Rename it "DialogueBox". This will be the background.
-//    - Inside the "DialogueBox", create two UI -> Text - TextMeshPro objects.
-//    - Name the first one "SpeakerNameText" and position it where the speaker's name should appear.
-//    - Name the second one "DialogueText" and position it for the main dialogue content.
-//    - Initially, set the "DialogueBox" GameObject to be inactive (uncheck the box in the Inspector).
-//
-// 6. Select the "SceneController" GameObject. In the Inspector, drag and drop the corresponding scene objects
-//    into the public fields of this script:
-//    - Drag the "Sky.ix" GameObject into the `Skyix_Character` field.
-//    - Drag the AudioSource from "Sky.ix" into the `Skyix_VoiceSource` field.
-//    - Drag the "Kai" GameObject into the `Kai_Character` field.
-//    - Drag the AudioSource from "Kai" into the `Kai_VoiceSource` field.
-//    - Drag the "Delilah" GameObject into the `Delilah_Character` field.
-//    - Drag the AudioSource from "Delilah" into the `Delilah_VoiceSource` field.
-//    - Drag the "DialogueBox" panel into the `Dialogue Box` field.
-//    - Drag the "SpeakerNameText" TMP object into the `Speaker Name Text` field.
-//    - Drag the "DialogueText" TMP object into the `Dialogue Text` field.
-//
-// 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
-
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using TMPro;
+using System.Collections;
 
-/// <summary>
-/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'—a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
-/// </summary>
-public class Cinematic_IntoTheVoid : MonoBehaviour
+namespace Milehigh.Cinematics
 {
+    public class Cinematic_IntoTheVoid : MonoBehaviour
+    {
+        public GameObject DialogueBox = null!;
+        public TextMeshProUGUI SpeakerNameText = null!;
+        public TextMeshProUGUI DialogueText = null!;
+        public float defaultTypingSpeed = 0.05f;
+
+        private bool skipRequested = false;
+        private Coroutine? typingCoroutine;
+
+        private void Start()
+        {
+            if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+            {
+                Debug.LogError("Missing UI components required for cinematic.");
+                return;
+            }
+            StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+        }
+
+        private void Update()
+        {
+            if (Input.anyKeyDown)
+            {
+                skipRequested = true;
+            }
+        }
+
+        public void ShowDialogue(string speaker, string message)
+        {
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeDialogue(speaker, message));
+        }
+
+        private IEnumerator WaitForSecondsOrSkip(float seconds)
+        {
+            float timer = 0;
+            while (timer < seconds && !skipRequested)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+            skipRequested = false;
+        }
+
+        private IEnumerator TypeDialogue(string speaker, string message)
+        {
+            skipRequested = false;
+            SpeakerNameText.text = speaker;
+            DialogueText.text = message;
+            DialogueText.maxVisibleCharacters = 0;
+            DialogueText.ForceMeshUpdate();
+
+            int totalVisibleCharacters = message.Length;
+            for (int i = 0; i <= totalVisibleCharacters; i++)
+            {
+                if (skipRequested)
+                {
+                    DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                    break;
+                }
+
+                DialogueText.maxVisibleCharacters = i;
+
+                if (i > 0 && i <= totalVisibleCharacters)
+                {
+                    char c = message[i - 1];
+                    float delay = defaultTypingSpeed;
+
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEllipsis = false;
+                        if (c == '.')
+                        {
+                            if (i > 1 && message[i - 2] == '.') isEllipsis = true;
+                            if (i < totalVisibleCharacters && message[i] == '.') isEllipsis = true;
+                        }
+
+                        if (isEllipsis) delay *= 5f;
+                        else if (i < totalVisibleCharacters && !char.IsWhiteSpace(message[i])) delay = defaultTypingSpeed;
+                        else delay *= 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay *= 8f;
+using System.Collections.Generic;
+
+namespace Milehigh.Cinematics
+{
+    /// <summary>
+    /// Manages the cinematic sequence "Into the Void", handling dialogue, camera transitions, and character animations.
+    /// This script uses a typewriter effect for dialogue reveal with rhythmic punctuation pauses.
+    /// </summary>
+    public class Cinematic_IntoTheVoid : MonoBehaviour
+    {
+        [Header("UI Components")]
+        public GameObject DialogueBox = null!;
+        public TextMeshProUGUI SpeakerNameText = null!;
+        public TextMeshProUGUI DialogueText = null!;
+        public CanvasGroup CinematicOverlay = null!;
+
+        [Header("Settings")]
+        public float typingSpeed = 0.05f;
+        public float punctuationPause = 0.4f;
+        public float commaPause = 0.2f;
+
+        private bool skipRequested = false;
+        private Coroutine? typingCoroutine;
+        private Dictionary<float, WaitForSeconds> waitCache = new Dictionary<float, WaitForSeconds>();
+
+        private void Start()
+        {
+            if (DialogueBox == null) DialogueBox = transform.Find("DialogueBox")?.gameObject!;
+            if (SpeakerNameText == null) SpeakerNameText = GetComponentInChildren<TextMeshProUGUI>();
+            if (CinematicOverlay == null) CinematicOverlay = GetComponent<CanvasGroup>();
+
+            StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     // ====================================================================
     //
     // CHARACTER ASSET & VOICE REFERENCE BLOCK
@@ -63,8 +139,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
      * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
      * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
     */
-    public GameObject Skyix_Character;
-    public AudioSource Skyix_VoiceSource;
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
 
 
     // Protagonist: Kai the The Child of Prophecy
@@ -79,8 +155,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
      * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
      * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
     */
-    public GameObject Kai_Character;
-    public AudioSource Kai_VoiceSource;
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
 
 
     // Antagonist: Delilah the The Desolate
@@ -90,13 +166,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     /* VOICE PROFILE:
      * Not available.
     */
-    public GameObject Delilah_Character;
-    public AudioSource Delilah_VoiceSource;
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
 
     [Header("UI Components")]
-    public GameObject DialogueBox;
-    public TextMeshProUGUI SpeakerNameText;
-    public TextMeshProUGUI DialogueText;
+    public GameObject DialogueBox = null!;
+    public TextMeshProUGUI SpeakerNameText = null!;
+    public TextMeshProUGUI DialogueText = null!;
 
     [Header("UX Settings")]
     [FormerlySerializedAs("typingSpeed")]
@@ -107,54 +183,59 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
-    private Coroutine typingCoroutine;
+    private Coroutine? typingCoroutine;
     private float currentTypingSpeed;
+    private string currentSpeakerColorTag;
     private bool skipRequested;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
+    // BOLT: Use int (milliseconds) instead of float for dictionary key to avoid floating-point tolerance cache misses
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
     private WaitForSeconds GetWait(float time)
     {
-        if (!_waitForSecondsCache.TryGetValue(time, out var wait))
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
             wait = new WaitForSeconds(time);
-            _waitForSecondsCache[time] = wait;
+            _waitForSecondsCache[key] = wait;
         }
-        return wait;
-    }
 
-    void Start()
-    {
-        // 🛡️ Sentinel: Security enhancement - Defensive programming
-        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
-        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        private void Update()
         {
-            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
-            return;
+            // UX Enhancement: Allow skipping dialogue reveal with Space or Left Click.
+            if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            {
+                skipRequested = true;
+            }
         }
 
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
+        private WaitForSeconds GetWait(float seconds)
+        {
+            if (!waitCache.TryGetValue(seconds, out var wait))
+            {
+                wait = new WaitForSeconds(seconds);
+                waitCache[seconds] = wait;
+            }
+            return wait;
+        }
 
-    void Update()
-    {
-        if (Input.anyKeyDown) skipRequested = true;
-    }
+        private IEnumerator WaitForSecondsOrSkip(float seconds)
+        {
+            float elapsed = 0;
+            while (elapsed < seconds && !skipRequested)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            skipRequested = false;
+        }
 
-    /// <summary>
-    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
-    /// </summary>
-    public void ShowDialogue(string speaker, string message)
-    {
-        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        public void ShowDialogue(string speaker, string message)
+        {
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
 
-        SpeakerNameText.text = speaker;
-
-        // Apply speaker-specific speed multipliers based on voice profiles
-        float multiplier = 1.0f;
-        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
-        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+            SpeakerNameText.text = speaker;
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
@@ -163,68 +244,109 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             case "Sky.ix":
                 SpeakerNameText.color = Color.cyan;
+                currentSpeakerColorTag = "<color=#00FFFF>";
                 break;
             case "Kai":
                 SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                currentSpeakerColorTag = "<color=#FFD700>";
                 break;
             case "Delilah":
                 SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                currentSpeakerColorTag = "<color=#9919E6>";
                 break;
             default:
                 SpeakerNameText.color = Color.white;
+                currentSpeakerColorTag = "<color=#FFFFFF>";
                 break;
         }
 
         typingCoroutine = StartCoroutine(TypeDialogue(message));
         StartCoroutine(PopScale(SpeakerNameText.rectTransform));
     }
-
-    private IEnumerator TypeDialogue(string message)
-    {
-        DialogueText.text = message;
-        DialogueText.maxVisibleCharacters = 0;
-        DialogueText.ForceMeshUpdate();
-
-        // BOLT: Typewriter effect optimized for performance.
-        // We use the existing GetWait(float) method to ensure zero-allocation yields,
-        // avoiding GC pressure during dialogue sequences.
-        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
-
-        for (int i = 0; i <= totalVisibleCharacters; i++)
+        private IEnumerator TypeDialogue(string message)
         {
-            // UX Enhancement: Robust skip logic using persistent flag
-            if (skipRequested)
+            // UX Enhancement: Color-coded completion cue that matches speaker theme.
+            // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
+            string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+            DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+            DialogueText.maxVisibleCharacters = 0;
+
+            // Ensure TMP is updated to get accurate character info
+            DialogueText.ForceMeshUpdate();
+            TMP_TextInfo textInfo = DialogueText.textInfo;
+            int totalCharacters = textInfo.characterCount;
+
+            for (int i = 0; i < totalCharacters; i++)
             {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-                break;
-            }
+                if (skipRequested) break;
 
-            DialogueText.maxVisibleCharacters = i;
+                DialogueText.maxVisibleCharacters = i + 1;
 
-            if (i < totalVisibleCharacters)
-            {
-                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
+                float delay = typingSpeed;
 
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the previous character (i-1) to pause *after* it has been revealed.
-                if (i > 0)
+                // UX Pattern: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
                 {
-                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                    if (c == '.' || c == '!' || c == '?') delay = currentTypingSpeed * 15f;
-                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
+                    // Look ahead for ellipsis
+                    if (i + 1 < totalCharacters && textInfo.characterInfo[i + 1].character == '.')
+                    {
+                        delay = typingSpeed * 2f;
+                    }
+                    else
+                    {
+                        delay = punctuationPause;
+                    }
                 }
+                else if (c == ',')
+                {
+                    delay = commaPause;
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // PALETTE: Check for ellipsis or mid-word periods to maintain natural flow.
+                        bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                        (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
 
-                yield return GetWait(delay);
+                        bool isMidWord = (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character));
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isMidWord) delay = currentTypingSpeed; // No pause for mid-word abbreviations
+                        else delay = currentTypingSpeed * 15f;
+                    }
+
+                    float timer = 0;
+                    while (timer < delay && !skipRequested)
+                    {
+                        timer += Time.deltaTime;
+                        yield return null;
+                    }
+                }
+                else
+                {
+                    yield return null;
+                }
             }
+
+            string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+            DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+            DialogueText.maxVisibleCharacters = totalVisibleCharacters + 1;
+
+            typingCoroutine = null;
+        }
+
         }
 
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        DialogueText.text = message + " ▽";
+        // PALETTE: Color-coded cue to match the speaker's theme for a delightful touch.
+        DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
-        skipRequested = false;
-        typingCoroutine = null;
-    }
+            DialogueText.maxVisibleCharacters = totalCharacters + 2; // Include the cue
+            skipRequested = false;
+            typingCoroutine = null;
+        }
 
     /// <summary>
     /// Performs a subtle scale-up and scale-down animation to provide visual feedback.
@@ -362,5 +484,88 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
+        private IEnumerator Cinematic_IntoTheVoid_Sequence()
+        {
+            DialogueBox.SetActive(true);
+            yield return WaitForSecondsOrSkip(1.0f);
+
+            ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+            yield return WaitForSecondsOrSkip(7.5f);
+
+            ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+            yield return WaitForSecondsOrSkip(6.0f);
+
+            ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+            yield return WaitForSecondsOrSkip(8.0f);
+
+            ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+            yield return WaitForSecondsOrSkip(7.0f);
+
+            ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+            yield return WaitForSecondsOrSkip(4.5f);
+
+            yield return WaitForSecondsOrSkip(2.0f);
+
+            ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+            yield return WaitForSecondsOrSkip(3.5f);
+
+            ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+            yield return WaitForSecondsOrSkip(5.5f);
+
+            ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+            yield return WaitForSecondsOrSkip(7.5f);
+
+            DialogueBox.SetActive(false);
+            Debug.Log("Cinematic Sequence Complete");
+            // --- Dialogue Line 1: Delilah ---
+            yield return WaitForSecondsOrSkip(1.5f);
+            ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+            yield return WaitForSecondsOrSkip(7.5f);
+
+            // --- Dialogue Line 2: Sky.ix ---
+            yield return WaitForSecondsOrSkip(0.5f);
+            ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+            yield return WaitForSecondsOrSkip(6.0f);
+
+            // --- Dialogue Line 3: Kai ---
+            yield return WaitForSecondsOrSkip(0.7f);
+            ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+            yield return WaitForSecondsOrSkip(8.0f);
+
+            // --- Dialogue Line 4: Delilah ---
+            yield return WaitForSecondsOrSkip(1.2f);
+            ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+            yield return WaitForSecondsOrSkip(7.0f);
+
+            // --- Dialogue Line 5: Sky.ix ---
+            yield return WaitForSecondsOrSkip(0.8f);
+            ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+            yield return WaitForSecondsOrSkip(4.5f);
+
+            // --- ACTION: Sky.ix dashes towards the conduit ---
+            yield return WaitForSecondsOrSkip(2.0f);
+
+            // --- Dialogue Line 6: Kai ---
+            yield return WaitForSecondsOrSkip(0.5f);
+            ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+            yield return WaitForSecondsOrSkip(3.5f);
+
+            // --- Dialogue Line 7: Delilah ---
+            yield return WaitForSecondsOrSkip(1.5f);
+            ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+            yield return WaitForSecondsOrSkip(5.5f);
+
+            // --- Dialogue Line 8: Sky.ix ---
+            yield return WaitForSecondsOrSkip(1.0f);
+            ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+            yield return WaitForSecondsOrSkip(7.5f);
+
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            SpeakerNameText.text = "";
+            DialogueText.text = "";
+            DialogueBox.SetActive(false);
+
+            Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
+        }
     }
 }
