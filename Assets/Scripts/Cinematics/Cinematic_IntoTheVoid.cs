@@ -159,6 +159,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     /// </summary>
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
+        // Poll for any skip input to ensure maximum accessibility and responsiveness
+        if (Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across all input types
         if (Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across keyboard and mouse
@@ -274,11 +276,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
 
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-    void Update()
-    {
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
     }
 
     /// <summary>
@@ -399,6 +396,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
         DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
@@ -460,12 +458,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             if (skipRequested) break;
             if (skipRequested)
             {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                DialogueText.maxVisibleCharacters = totalCharacters;
                 break;
             }
 
             DialogueText.maxVisibleCharacters = i;
 
+            if (i > 0 && i <= messageChars)
+            {
+                char c = textInfo.characterInfo[i - 1].character;
             if (i < messageChars)
             {
                 char c = textInfo.characterInfo[i].character;
@@ -473,6 +474,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Multipliers are used to ensure pacing scales with base typing speed.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Smart Punctuation: Look ahead to distinguish between end-of-sentence and mid-word periods (e.g., Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (i < messageChars)
+                    {
+                        char nextChar = textInfo.characterInfo[i].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
                 // Delay occurs after character reveal for natural rhythm.
                 if (c == '.' || c == '!' || c == '?')
                 {
@@ -578,6 +588,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                     else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                     bool isEllipsis = i > 1 && c == '.' && DialogueText.textInfo.characterInfo[i - 2].character == '.';
 
+                    if (isEndOfSentence)
+                    {
+                        // Check for ellipsis (multiple dots)
+                        bool isEllipsis = (c == '.' && ((i > 1 && textInfo.characterInfo[i - 2].character == '.') || (i < messageChars && textInfo.characterInfo[i].character == '.')));
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                     if (isEllipsis)
                     {
                         delay = currentTypingSpeed * 5f;
