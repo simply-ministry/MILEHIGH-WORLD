@@ -24,6 +24,8 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // Void saturation must be within a safe 0.0 to 1.0 range.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
             {
@@ -108,6 +110,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
