@@ -36,16 +36,13 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity and prevent DoS.
             // SECURITY: Always validate data after deserialization
             // SECURITY: Always validate data after deserialization to ensure integrity
             // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
-            // SECURITY: Always validate data after deserialization
-            if (data == null || !data.IsValid())
-            {
-                Debug.LogError("Failed to parse or validate campaign data.");
                 return;
             }
 
@@ -85,6 +82,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = safeFileName.Replace(c, '_');
                 }
+                // Ensure no directory traversal sequences remain and replace spaces for clean paths
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
 
                 // Ensure no directory traversal sequences remain
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");

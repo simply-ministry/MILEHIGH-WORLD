@@ -68,6 +68,8 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: If data fails validation, ensure it's not used by the application
+                        Debug.LogError($"Failed to validate campaign data from {fileName}.");
                         // SECURITY: Fail securely and don't use invalid data
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         currentCampaignData = null;
