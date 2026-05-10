@@ -11,7 +11,7 @@ namespace Milehigh.Data
         Dynamic
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Metadata
     {
         public LightingState lighting;
@@ -28,6 +28,7 @@ namespace Milehigh.Data
             if (voidSaturationLevel < 0.0f) return false;
             if (voidSaturationLevel > 1.0f) return false;
         /// <summary>
+        ///  Sentinel: Security validation to ensure deserialized data meets business constraints.
         /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and prevents resource exhaustion.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
@@ -147,7 +148,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class CharacterProfile
     {
         public string name = null!;
@@ -250,7 +251,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class ObjectInteraction
     {
         public string objectId = null!;
@@ -301,7 +302,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Dialogue
     {
         public string speaker;
@@ -357,7 +358,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class SceneScenario
     {
         public string scenarioId;
@@ -476,7 +477,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class HorizonGameData
     {
         public string sceneId;
@@ -505,6 +506,7 @@ namespace Milehigh.Data
         /// Validates the deserialized game data for security and integrity.
         /// </summary>
         /// <summary>
+        ///  Sentinel: Performs integrity and security validation on the entire campaign dataset.
         /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
         /// Validates the deserialized game data for security and integrity.
         /// </summary>

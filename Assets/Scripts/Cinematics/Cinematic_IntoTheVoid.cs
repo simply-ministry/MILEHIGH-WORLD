@@ -42,6 +42,10 @@ using UnityEngine.Serialization;
 using TMPro;
 using Milehigh.Core;
 
+/// <summary>
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'--a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
+/// </summary>
+public class Cinematic_IntoTheVoid : MonoBehaviour
 namespace Milehigh.Cinematics
 {
     // ====================================================================
@@ -243,6 +247,8 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        //  Sentinel: Security enhancement - Defensive programming
+        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
         // 🛡️ Sentinel: Security enhancement - Defensive programming
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         private void Update()
@@ -621,6 +627,9 @@ namespace Milehigh.Cinematics
             typingCoroutine = null;
         }
 
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.text = message + " V";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         private IEnumerator WaitForSecondsOrSkip(float duration)
         {
             float elapsed = 0f;
@@ -775,6 +784,7 @@ namespace Milehigh.Cinematics
         // Example: PlayerInput.Instance.EnableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
+        Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of THE VOID...]");
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
             ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
             yield return WaitForSecondsOrSkip(7.5f);

@@ -137,12 +137,41 @@ namespace Milehigh.Core
         // BOLT: Prefab cache to replace O(M) list searching with O(1) dictionary lookup
         private Dictionary<string, GameObject> _prefabCache;
 
+        // BOLT: Prefab cache to replace O(M) linear search through characterPrefabs list with O(1) lookups
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private void Awake()
+        {
+            InitializePrefabCache();
+        }
+
+        private void InitializePrefabCache()
+        {
+            _prefabCache.Clear();
+            if (characterPrefabs != null)
+            {
+                foreach (var prefab in characterPrefabs)
+                {
+                    if (prefab != null && !string.IsNullOrEmpty(prefab.name))
+                    {
+                        _prefabCache[prefab.name] = prefab;
+                    }
+                }
+            }
+        }
+
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // BOLT: Robust negative caching - use ReferenceEquals to check for real nulls
+                // vs fake nulls (destroyed Unity objects).
+                if (ReferenceEquals(obj, null)) return null; // Negative cache hit
+
+                if (obj != null) return obj; // Valid cached object
             {
                 // BOLT: Performance Learning - Robust negative caching requires checking both Unity null (destroyed) and C# null (not found)
                 // If ReferenceEquals is true, it's a legitimate negative cache hit (real null).
@@ -287,6 +316,10 @@ namespace Milehigh.Core
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             obj = GameObject.Find(objectName);
 
+            // BOLT: Cache the result, including nulls for negative caching
+            _objectCache[objectName] = obj;
+
+            return obj;
             // BOLT: Negative caching - store the result even if it is null to avoid repeated O(N) traversals
             _objectCache[objectName] = obj;
 
@@ -499,6 +532,14 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use O(1) prefab cache lookup instead of O(M) linear Find
+                _prefabCache.TryGetValue(profile.name, out GameObject prefab);
+
+                // Fallback to partial name match only if exact match fails
+                if (prefab == null && characterPrefabs != null)
+                {
+                    prefab = characterPrefabs.Find(p => p.name.Contains(profile.name));
+                }
                 // BOLT: Optimized prefab lookup using O(1) dictionary instead of O(M) List.Find
                 GameObject prefab = null;
 

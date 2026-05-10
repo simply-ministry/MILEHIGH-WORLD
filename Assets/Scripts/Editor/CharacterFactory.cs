@@ -37,6 +37,7 @@ namespace Milehigh.Editor
                 return;
             }
 
+            //  Sentinel: Security validation of deserialized data.
             // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization to ensure project integrity.
             if (data == null || !data.IsValid())
@@ -109,6 +110,7 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                //  Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // 🛡️ Sentinel: Robust Path Traversal prevention using strict whitelist.
                 // Strips all characters except alphanumeric, underscore, and hyphen.
                 // Also strips leading dots/underscores to prevent hidden files/traversal.
@@ -185,6 +187,7 @@ namespace Milehigh.Editor
                 // 3. Replace whitespaces with underscores.
 
                 // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
+                // Follows standardized path sanitization sequence: replace invalid chars, GetFileName, then space to underscore.
                 // Required sequence: replace Path.GetInvalidFileNameChars() with underscores, then use Path.GetFileName(), then replace whitespace.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 string sanitizedName = charProfile.name ?? "unnamed_character";
