@@ -436,6 +436,7 @@ namespace Milehigh.Cinematics
 
     private Coroutine? typingCoroutine;
     private Coroutine typingCoroutine;
+    private Coroutine popCoroutine;
     private Coroutine speakerPopCoroutine;
     private Coroutine popCoroutine;
     private Coroutine? typingCoroutine;
@@ -705,6 +706,34 @@ namespace Milehigh.Cinematics
             elapsed += Time.deltaTime;
             yield return null;
         }
+    }
+
+    private IEnumerator PopScale(RectTransform rect)
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        Vector3 startScale = Vector3.one * 1.15f;
+        Vector3 endScale = Vector3.one;
+
+        while (elapsed < duration)
+        {
+            rect.localScale = Vector3.Lerp(startScale, endScale, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        rect.localScale = endScale;
+        popCoroutine = null;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
     }
 
     void Start()
@@ -2893,6 +2922,12 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator WaitForSecondsOrSkip(float time)
     {
+        skipRequested = false;
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
+
+        SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.rectTransform));
         float startTime = Time.time;
         while (Time.time - startTime < time && !skipRequested)
         {
