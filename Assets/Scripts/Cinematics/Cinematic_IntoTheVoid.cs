@@ -3282,6 +3282,8 @@ namespace Milehigh.Cinematics
     }
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // BOLT: Changed key to int (milliseconds) to prevent float tolerance cache misses
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
     private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
     private IEnumerator WaitForSecondsOrSkip(float seconds)
     {
