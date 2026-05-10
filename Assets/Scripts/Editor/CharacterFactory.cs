@@ -110,6 +110,8 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Required sequence: replace invalid chars with underscores, use Path.GetFileName, replace whitespace.
                 //  Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // 🛡️ Sentinel: Robust Path Traversal prevention using strict whitelist.
                 // Strips all characters except alphanumeric, underscore, and hyphen.

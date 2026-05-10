@@ -441,6 +441,7 @@ namespace Milehigh.Cinematics
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
+            using persistent flag
             if (skipRequested)
             {
                 DialogueText.maxVisibleCharacters = totalCharacters;
