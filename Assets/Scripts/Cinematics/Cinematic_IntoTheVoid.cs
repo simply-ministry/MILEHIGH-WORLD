@@ -108,6 +108,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine? typingCoroutine;
+    private Coroutine? popScaleCoroutine;
     private Coroutine? scalingCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
@@ -115,6 +116,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private Coroutine? popCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
+    private Vector3 originalScale;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // BOLT: Use int (milliseconds) for dictionary key instead of float to prevent cache misses from floating-point inaccuracies
@@ -157,6 +159,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     /// </summary>
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
+        // Poll for skip input to ensure responsiveness across all input types
+        if (Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across keyboard and mouse
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
         float start = Time.time;
@@ -176,6 +180,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion to ensure it doesn't bleed into the next reveal.
         target.localScale = initialScale;
     }
 
@@ -254,6 +261,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
+        originalScale = SpeakerNameText.transform.localScale;
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         originalSpeakerScale = SpeakerNameText.transform.localScale;
 
         // 🎨 Palette: Accessibility - Text outline for better contrast in dark scenes
@@ -302,6 +313,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 0.15f));
         }
 
+        // UX Enhancement: Trigger a subtle "Pop" animation when the speaker changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (popScaleCoroutine != null) StopCoroutine(popScaleCoroutine);
+            popScaleCoroutine = StartCoroutine(PopScaleEffect());
+        }
+
         if (SpeakerNameText.text != speaker)
         {
             SpeakerNameText.text = speaker;
@@ -338,10 +356,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 break;
         }
         SpeakerNameText.color = speakerColor;
-
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
 
+    private IEnumerator PopScaleEffect()
+    {
+        float elapsed = 0f;
+        float duration = 0.2f;
     private IEnumerator PopScaleSpeaker()
     {
         float duration = 0.2f;
@@ -351,6 +372,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            // Simple ease-out curve using Sin
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            SpeakerNameText.transform.localScale = originalScale * (1f + (targetScale - 1f) * curve);
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalScale;
+        popScaleCoroutine = null;
             float t = elapsed / duration;
             // Simple bounce-out curve
             float s = 1f + Mathf.Sin(t * Mathf.PI) * (targetScale - 1f);
@@ -369,10 +399,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
 
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
+        // The message length excluding the cue (▽ is 1 char)
+        int messageChars = totalCharacters - 1;
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         // The cue character is at the end. We reveal it only after the main message is typed.
         int mainMessageLength = totalVisibleCharacters - 1;
@@ -419,8 +454,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // avoiding GC pressure during dialogue sequences.
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
 
-        for (int i = 0; i <= totalVisibleCharacters; i++)
+        for (int i = 0; i <= messageChars; i++)
         {
+            // UX Enhancement: Robust skip logic using persistent flag
+            if (skipRequested) break;
             if (skipRequested)
             {
                 DialogueText.maxVisibleCharacters = totalVisibleCharacters;
@@ -429,12 +466,22 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             DialogueText.maxVisibleCharacters = i;
 
-            if (i < totalVisibleCharacters)
+            if (i < messageChars)
             {
+                char c = textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
                 char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Delay occurs after character reveal for natural rhythm.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i < messageChars - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEndOfSentence = true;
@@ -541,8 +588,31 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                         bool isEndOfSentence = (i >= totalVisibleCharacters) || Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                         if (isEndOfSentence) delay = currentTypingSpeed * 15f;
                     }
-                    else if (c == ',' || c == ';' || c == ':')
+                    else
                     {
+                        // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                        bool isEndOfSentence = true;
+                        if (i < messageChars - 1)
+                        {
+                            char nextChar = textInfo.characterInfo[i + 1].character;
+                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
+                }
+
+                // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
+                yield return GetWait(delay);
+            }
+        }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
                         delay = currentTypingSpeed * 8f;
                     }
                 }
