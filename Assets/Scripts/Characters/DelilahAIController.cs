@@ -5,7 +5,7 @@ namespace Milehigh.Characters
 {
     public class DelilahAIController : CharacterControllerBase
     {
-        public GameObject shadowClonePrefab;
+        public GameObject shadowClonePrefab = null!;
 
         public override void ExecuteBehavior()
         {
@@ -24,6 +24,8 @@ namespace Milehigh.Characters
             if (shadowClonePrefab != null)
             {
                 UnityEngine.Object.Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, UnityEngine.Quaternion.identity);
+                // SECURITY: Ensure we use the UnityEngine.Random to avoid ambiguity and ensure correct behavior.
+                Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, Quaternion.identity);
             }
         }
 

@@ -5,11 +5,22 @@ namespace Milehigh.Data
     [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Milehigh/Character Data")]
     public class CharacterData : ScriptableObject
     {
-        public string characterName;
-        public string role;
+        public string characterName = null!;
+        public string role = null!;
         [TextArea(3, 10)]
-        public string[] traits;
+        public string[] traits = null!;
         [TextArea(10, 20)]
-        public string behaviorScript;
+        public string characterName = "";
+        public string role = "";
+        [TextArea(3, 10)]
+        public string[] traits = System.Array.Empty<string>();
+        [TextArea(10, 20)]
+        public string behaviorScript = "";
+        public string characterName = null!;
+        public string role = null!;
+        [TextArea(3, 10)]
+        public string[] traits = null!;
+        [TextArea(10, 20)]
+        public string behaviorScript = null!;
     }
 }
