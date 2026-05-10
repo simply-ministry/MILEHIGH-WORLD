@@ -403,6 +403,11 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios collection is null.");
+                return false;
+            }
             if (scenarios == null) return false;
             if (scenarios == null)
             {

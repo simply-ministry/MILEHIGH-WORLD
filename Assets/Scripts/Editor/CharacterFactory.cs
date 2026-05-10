@@ -149,6 +149,8 @@ namespace Milehigh.Editor
                 string safeFileName = baseName;
                 string baseName = charProfile.name ?? "unnamed_character";
 
+                // 1. Replace invalid filename characters with underscores
+                string safeFileName = baseName;
                 // Ensure no directory traversal sequences remain
                 string safeFileName = Path.GetFileName(baseName);
                 string safeFileName = baseName;
@@ -171,6 +173,12 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+
+                // 2. Use Path.GetFileName to prevent directory traversal
+                safeFileName = Path.GetFileName(safeFileName);
+
+                // 3. Replace whitespaces with underscores
+                safeFileName = safeFileName.Replace(" ", "_");
 
                 // 2. Use Path.GetFileName to ensure no directory traversal sequences remain (strip paths)
                 safeFileName = Path.GetFileName(safeFileName);
