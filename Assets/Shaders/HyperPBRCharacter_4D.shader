@@ -96,6 +96,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
             clip(albedo.a - _Cutoff);
 
+            // ⚡ Bolt: Move Albedo assignment to the top to ensure additive effects
+            // (like SSS) are applied to the final color and avoid redundant work.
+            o.Albedo = albedo.rgb;
+
             // --- PBR Properties ---
             fixed4 rmai = tex2D(_RMAIMap, IN.uv_MainTex);
             o.Smoothness = rmai.r * _Glossiness;
@@ -147,6 +151,7 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Albedo = albedo.rgb;
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
             }
+
             else
             {
                 o.Albedo = albedo.rgb;
