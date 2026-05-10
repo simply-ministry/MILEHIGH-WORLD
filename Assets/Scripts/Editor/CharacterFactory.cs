@@ -133,6 +133,7 @@ namespace Milehigh.Editor
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
+                // Malicious JSON could use "../" or absolute paths to write assets outside the intended directory.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
                 // Malicious JSON could use "../" to write assets outside the intended directory.
@@ -157,6 +158,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                // Ensure no directory traversal sequences remain and replace spaces
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 // Ensure no directory traversal sequences remain and replace spaces for cleanliness
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
