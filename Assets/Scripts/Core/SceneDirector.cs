@@ -489,6 +489,21 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+                if (obj != null) return obj;
+
+                // BOLT: Robust negative caching check.
+                // If obj == null but ReferenceEquals is false, the object was destroyed (fake null).
+                if (System.Object.ReferenceEquals(obj, null))
+                {
+                    return null; // Negative cache hit (real null).
+                }
+
+                // Object was destroyed; remove stale reference from cache.
+                _objectCache.Remove(objectName);
             // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
             // Limit object name length and restrict to safe characters to prevent expensive Find operations.
             if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
@@ -1269,6 +1284,12 @@ namespace Milehigh.Core
             }
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
+            // BOLT: Fallback to O(N) scene traversal only if not cached or reference is stale.
+            obj = GameObject.Find(objectName);
+
+            // BOLT: Cache the result even if null to enable negative caching.
+            _objectCache[objectName] = obj;
+
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             obj = GameObject.Find(objectName);
 
@@ -1638,6 +1659,18 @@ namespace Milehigh.Core
             _objectCache.Clear();
             _controllerCache.Clear();
 
+            // BOLT: Pre-populate cache with a single O(N) pass to avoid repeated O(N) GameObject.Find calls.
+            GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();
+            foreach (var go in allObjects)
+            {
+                if (go != null && !string.IsNullOrEmpty(go.name))
+                {
+                    // If multiple objects have the same name, the last one found wins,
+                    // which matches the behavior of GameObject.Find.
+                    _objectCache[go.name] = go;
+                }
+            }
+
             // Capture singleton instance to satisfy NRT flow analysis
             var campaignManager = CampaignManager.Instance;
             if (campaignManager != null)
@@ -1725,6 +1758,15 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use O(1) prefab cache lookup instead of O(M) list search.
+                _prefabCache.TryGetValue(profile.name, out GameObject prefab);
+
+                if (prefab == null && characterPrefabs != null)
+                {
+                    // Fallback to partial name matching if exact match not in cache.
+                    prefab = characterPrefabs.Find(p => p.name.Contains(profile.name));
+                }
+
                 // BOLT: Optimized O(1) prefab lookup via dictionary
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 {

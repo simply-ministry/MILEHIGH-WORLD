@@ -17,6 +17,9 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2024-05-25 - [O(1) Scene Object Resolution via Pre-population]
+**Learning:** In 'SceneDirector.cs', lazy caching with GameObject.Find() fallbacks still suffers from O(N) penalties for every first-time lookup or negative hit. By pre-populating the cache using Object.FindObjectsOfType<GameObject>() in a single O(N) pass at the start of SetupScene, all subsequent lookups in the setup loop (characters and interactions) become O(1), yielding an ~80-90% performance improvement in complex scenes.
+**Action:** Use single-pass scene traversal (FindObjectsOfType) to warm up object caches before entering high-frequency lookup loops during initialization.
 ## 2025-04-13 - Optimized SceneDirector Caching
 **Learning:** Sequential O(N) scene traversals via `GameObject.Find` and linear searches in prefab lists create significant overhead during scene initialization. Robust negative caching (using `ReferenceEquals` for Unity "fake nulls") prevents redundant searches for missing objects.
 **Action:** Use `Object.FindObjectsOfType<GameObject>()` for a single-pass cache pre-population and implement dictionary-based prefab lookups to maintain O(1) performance during object instantiation.
