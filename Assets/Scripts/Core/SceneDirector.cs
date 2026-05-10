@@ -1301,6 +1301,12 @@ namespace Milehigh.Core
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+            {
                 // BOLT: Check if the cached reference is a 'true' null (explicitly cached as missing).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
@@ -1575,6 +1581,10 @@ namespace Milehigh.Core
             return obj;
         }
 
+            var data = CampaignManager.Instance.currentCampaignData;
+            if (data != null && data.scenarios != null && data.scenarios.Count > 0)
+            {
+                SetupScene(data.scenarios[0]);
             var campaignData = CampaignManager.Instance?.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
         private void Start()
