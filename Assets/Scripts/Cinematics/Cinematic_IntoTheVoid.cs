@@ -117,6 +117,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private string currentSpeakerColorTag;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Use int (milliseconds) instead of float as key to avoid precision issues that cause cache misses
     // BOLT: Changed to int (milliseconds) to prevent float precision cache misses.
     // BOLT: Changed dictionary key to int (milliseconds) to avoid floating-point precision cache misses
     // BOLT: Changed float-keyed dictionary to int-keyed (milliseconds) to avoid floating-point precision issues
@@ -125,6 +126,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private WaitForSeconds GetWait(float time)
     {
+        int msTime = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(msTime, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[msTime] = wait;
         int key = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
