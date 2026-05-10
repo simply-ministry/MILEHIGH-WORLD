@@ -30,11 +30,6 @@ Shader "Milehigh/HyperPBRCharacter_4D"
         _ParallaxMap ("Height Map (A)", 2D) = "gray" {}
         _Parallax ("Height Scale", Range (0.005, 0.08)) = 0.02
 
-        // --- Subsurface Scattering (for Skin) ---
-        _SSSColor ("Subsurface Color", Color) = (0.7, 0.1, 0.1, 1)
-        _SSSMask ("Subsurface Mask (R)", 2D) = "white" {}
-        _SSSScale ("SSS Scale", Range(0, 5)) = 1.0
-
         // --- 4D Procedural Effects (e.g., Void Corruption) ---
         _NoiseTex ("3D Noise Texture", 3D) = "gray" {}
         _EffectTime ("Effect Time (For 4D Noise)", Float) = 0.0
@@ -69,11 +64,11 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             float3 N; // Normal
         };
 
-        sampler2D _MainTex, _BumpMap, _RMAIMap, _SSSMask, _EffectMask, _ParallaxMap;
+        sampler2D _MainTex, _BumpMap, _RMAIMap, _EffectMask, _ParallaxMap;
         sampler3D _NoiseTex;
-        fixed4 _Color, _EffectColor, _SSSColor;
+        fixed4 _Color, _EffectColor;
         half _BumpScale, _Metallic, _Glossiness, _Ao, _Cutoff, _Parallax;
-        half _SSSScale, _EffectScale, _EffectSpeed, _IridescenceThickness;
+        half _EffectScale, _EffectSpeed, _IridescenceThickness;
 
         void vert (inout appdata_full v, out Input o)
         {
@@ -135,6 +130,7 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Specular = lerp(o.Specular, o.Specular * iridescence, iridescenceMask);
             }
 
+            o.Albedo = albedo.rgb;
             // --- Subsurface Scattering ---
             half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
             if (sssMask > 0)
