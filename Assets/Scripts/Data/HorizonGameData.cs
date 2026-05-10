@@ -18,6 +18,8 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
+        private const int MAX_STRING_LENGTH = 128;
+
         /// <summary>
         /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
@@ -53,6 +55,12 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (environment != null && environment.Length > MAX_STRING_LENGTH)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: environment string exceeds {MAX_STRING_LENGTH} characters.");
+                return false;
+            }
+
             return true;
         }
     }
@@ -69,6 +77,15 @@ namespace Milehigh.Data
         public string[] traits;
         public string behaviorScript;
 
+        private const int MAX_STRING_LENGTH = 128;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > MAX_STRING_LENGTH) return false;
+            if (role != null && role.Length > MAX_STRING_LENGTH) return false;
+            if (behaviorScript != null && behaviorScript.Length > MAX_STRING_LENGTH) return false;
+            return true;
+        }
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(name) || name.Length > 128)
@@ -106,6 +123,15 @@ namespace Milehigh.Data
         public float y;
         public float z;
 
+        private const int MAX_STRING_LENGTH = 128;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > MAX_STRING_LENGTH) return false;
+            if (action != null && action.Length > MAX_STRING_LENGTH) return false;
+            return true;
+        }
+
         public Vector3 GetVectorValue()
         {
             return new Vector3(x, y, z);
@@ -133,6 +159,16 @@ namespace Milehigh.Data
         public string text;
         public string trigger;
 
+        private const int MAX_STRING_LENGTH = 128;
+
+        public bool IsValid()
+        {
+            if (speaker != null && speaker.Length > MAX_STRING_LENGTH) return false;
+            if (trigger != null && trigger.Length > MAX_STRING_LENGTH) return false;
+            // Dialogue text can be longer, but we might want to cap it too for DoS
+            if (text != null && text.Length > 2048) return false;
+            return true;
+        }
         public bool IsValid()
         {
             if (speaker != null && speaker.Length > 128) return false;
@@ -160,6 +196,15 @@ namespace Milehigh.Data
         public List<ObjectInteraction> interactiveObjects;
         public List<Dialogue> dialogue;
 
+        private const int MAX_STRING_LENGTH = 128;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > MAX_STRING_LENGTH) return false;
+
+            if (interactiveObjects != null)
+            {
+                foreach (var obj in interactiveObjects) if (!obj.IsValid()) return false;
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
@@ -178,6 +223,7 @@ namespace Milehigh.Data
 
             if (dialogue != null)
             {
+                foreach (var d in dialogue) if (!d.IsValid()) return false;
                 foreach (var d in dialogue)
                 {
                     if (d == null || !d.IsValid()) return false;
@@ -213,6 +259,16 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters = null!;
         public List<SceneScenario> scenarios = null!;
 
+        private const int MAX_STRING_LENGTH = 128;
+        private const int MAX_CHARACTERS = 50;
+        private const int MAX_SCENARIOS = 100;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(sceneId) || sceneId.Length > MAX_STRING_LENGTH)
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
@@ -223,15 +279,45 @@ namespace Milehigh.Data
 
             if (metadata == null)
             {
-                Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
+                Debug.LogError("[Security] Game data validation failed: Invalid sceneId.");
                 return false;
             }
 
-            if (!metadata.IsValid())
+            if (metadata == null || !metadata.IsValid())
             {
+                Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
                 return false;
             }
 
+            if (characters == null || characters.Count == 0 || characters.Count > MAX_CHARACTERS)
+            {
+                Debug.LogError($"[Security] Game data validation failed: Character count {characters?.Count} out of bounds.");
+                return false;
+            }
+
+            foreach (var character in characters)
+            {
+                if (!character.IsValid())
+                {
+                    Debug.LogError($"[Security] Game data validation failed: Invalid character profile {character.name}.");
+                    return false;
+                }
+            }
+
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > MAX_SCENARIOS)
+            {
+                Debug.LogError($"[Security] Game data validation failed: Scenario count {scenarios?.Count} out of bounds.");
+                return false;
+            }
+
+            foreach (var scenario in scenarios)
+            {
+                if (!scenario.IsValid())
+                {
+                    Debug.LogError($"[Security] Game data validation failed: Invalid scenario {scenario.scenarioId}.");
+                    return false;
+                }
+            }
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
                 Debug.LogError("[Security] Game data validation failed: Character profiles count invalid.");
