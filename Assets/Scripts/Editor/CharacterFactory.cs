@@ -37,6 +37,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             // SECURITY: Always validate data after deserialization to ensure integrity
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 return;
@@ -92,6 +93,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
                 string safeFileName = baseName;
                 // Malicious JSON could use "../" or absolute paths to write assets outside the intended directory.
                 string baseName = charProfile.name ?? "unnamed_character";

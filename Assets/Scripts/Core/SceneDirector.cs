@@ -22,6 +22,9 @@ namespace Milehigh.Core
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int).
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // BOLT: Prefab cache to avoid O(N) list searching during character spawning
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
@@ -107,8 +110,11 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
-        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
+        // 🛡️ Sentinel: Pre-compiled regex for object name validation to improve performance.
+        private static readonly System.Text.RegularExpressions.Regex _objectNameRegex =
+            new System.Text.RegularExpressions.Regex(@"^[a-zA-Z0-9_\s\(\)\-$\_\.\/\[\]]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
         // BOLT: Component cache to avoid redundant GetComponent calls.
         // Note: Using CharacterControllerBase? to support negative caching.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
@@ -1321,6 +1327,24 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (ReferenceEquals(obj, null)) return null;
 
+            // 🛡️ Sentinel: DoS Mitigation - Limit name length and whitelist characters to prevent expensive GameObject.Find
+            // from being triggered by malicious or oversized strings from external data.
+            if (objectName.Length > 128 || !_objectNameRegex.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked: invalid or oversized object name '{objectName}'");
+                return null;
+            }
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            GameObject? obj;
+            if (_objectCache.TryGetValue(objectName, out obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                // In Unity, obj == null is true if the native object is destroyed.
                 // If it's a Unity null (native object destroyed), we remove it to allow re-finding.
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -1637,6 +1661,7 @@ namespace Milehigh.Core
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null)
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
             {
@@ -1691,6 +1716,8 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Optimized prefab lookup using dictionary cache (O(1))
+                GameObject? prefab = GetPrefab(profile.name);
                 GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
                 GameObject? prefab = GetPrefab(profile.name);
@@ -1827,7 +1854,7 @@ namespace Milehigh.Core
                 GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 if (prefab != null)
                 {
-                    characterObj = Instantiate(prefab, characterSpawnRoot);
+                    characterObj = Instantiate<GameObject>(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
                     _objectCache[profile.name] = characterObj;
                 }
