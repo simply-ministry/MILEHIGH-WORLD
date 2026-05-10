@@ -352,6 +352,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.ForceMeshUpdate();
 
         // BOLT: Typewriter effect optimized for performance.
+        // We use local variables to ensure zero-allocation yields,
+        // avoiding GC pressure during dialogue sequences.
         // Avoiding GC pressure during dialogue sequences by caching WaitForSeconds.
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         var defaultWait = new WaitForSeconds(currentTypingSpeed);
@@ -395,6 +397,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         WaitForSeconds punctuationWaitLong = new WaitForSeconds(currentTypingSpeed * 15f);
         WaitForSeconds punctuationWaitShort = new WaitForSeconds(currentTypingSpeed * 8f);
 
+        var waitNormal = new WaitForSeconds(currentTypingSpeed);
+        var waitLong = new WaitForSeconds(currentTypingSpeed * 15f);
+        var waitMedium = new WaitForSeconds(currentTypingSpeed * 8f);
+
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
             if (skipRequested)
@@ -407,6 +413,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             if (i < totalVisibleCharacters)
             {
+                WaitForSeconds wait = waitNormal;
                 WaitForSeconds currentWait = defaultWait;
                 WaitForSeconds waitToYield = normalWait;
                 WaitForSeconds currentWait = normalWait;
@@ -475,6 +482,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') wait = waitLong;
+                    else if (c == ',' || c == ';' || c == ':') wait = waitMedium;
+                }
+
+                yield return wait;
                     if (c == '.' || c == '!' || c == '?')
                     {
                         // PALETTE: Check for ellipsis or mid-word periods to maintain natural flow.
@@ -676,6 +688,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
+        yield return new WaitForSeconds(1.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(7.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(1.5f));
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
@@ -716,6 +732,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
         yield return new WaitForSeconds(6.0f);
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        // Skyix_VoiceSource.Play();
+        yield return new WaitForSeconds(6.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(0.5f));
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
@@ -750,6 +769,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // --- Dialogue Line 3: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
+        yield return new WaitForSeconds(0.7f);
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        // Kai_VoiceSource.Play();
+        yield return new WaitForSeconds(8.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(0.7f));
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
@@ -784,6 +807,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // --- Dialogue Line 4: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
+        yield return new WaitForSeconds(1.2f);
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(7.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(1.2f));
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
@@ -822,6 +849,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
         yield return new WaitForSeconds(0.8f);
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        // Skyix_VoiceSource.Play();
+        yield return new WaitForSeconds(4.5f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
         yield return new WaitForSeconds(4.5f);
@@ -871,6 +901,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
         yield return new WaitForSeconds(3.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        // Kai_VoiceSource.Play();
+        yield return new WaitForSeconds(3.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(0.5f));
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
@@ -899,6 +932,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
         yield return new WaitForSeconds(1.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        // Delilah_VoiceSource.Play();
+        yield return new WaitForSeconds(5.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
         yield return new WaitForSeconds(5.5f);
@@ -943,6 +979,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
         yield return new WaitForSeconds(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        // Skyix_VoiceSource.Play();
+        yield return new WaitForSeconds(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
         yield return new WaitForSeconds(7.5f);
