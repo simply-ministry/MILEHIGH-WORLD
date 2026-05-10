@@ -93,6 +93,7 @@ namespace Milehigh.Core
                     else if (!currentCampaignData.IsValid())
                     {
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
                         currentCampaignData = null;
                     }
                     else
