@@ -71,6 +71,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: If validation fails, nullify data to fail securely
                         Debug.LogError($"[Security] Campaign data from {fileName} failed security validation.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }

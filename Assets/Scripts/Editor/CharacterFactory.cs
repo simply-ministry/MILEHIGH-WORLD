@@ -38,6 +38,9 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure project integrity.
+            if (data == null || !data.IsValid())
+            {
             // SECURITY: Always validate data after deserialization to ensure data integrity
             if (data == null || !data.IsValid())
             {
@@ -148,6 +151,11 @@ namespace Milehigh.Editor
                 // Required Sequence: 1. Replace invalid chars with underscores, 2. GetFileName, 3. Replace whitespace with underscores.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use "../" to write assets outside the intended directory.
+                // Standardized Path Sanitization Sequence:
+                // 1. Replace invalid filename characters with underscores.
+                // 2. Use Path.GetFileName to strip directory traversal sequences.
+                // 3. Replace whitespace with underscores.
+
                 // Required sequence: replace invalid chars, then use GetFileName, then replace whitespace.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // Required sequence for robust sanitization:
@@ -219,6 +227,9 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+
+                safeFileName = Path.GetFileName(safeFileName);
+                safeFileName = safeFileName.Replace(" ", "_");
 
                 // 2. Use Path.GetFileName to ensure only the final component is used (strips directory traversal)
                 safeFileName = Path.GetFileName(safeFileName);
