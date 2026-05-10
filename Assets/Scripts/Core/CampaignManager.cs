@@ -65,6 +65,7 @@ namespace Milehigh.Core
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         Debug.Log("Campaign data loaded and validated from " + fileName);
                     }
@@ -103,9 +104,6 @@ namespace Milehigh.Core
                         // SECURITY: If data fails validation, ensure it's not used by the application
                         Debug.LogError($"Failed to validate campaign data from {fileName}.");
                         // SECURITY: Fail securely and don't use invalid data
-                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
-                        currentCampaignData = null;
-                        // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
                         currentCampaignData = null;
                     }
@@ -119,8 +117,10 @@ namespace Milehigh.Core
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception)
                 {
+                    // SECURITY: Fail securely and avoid leaking internal details.
+                    Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}: {ex.Message}");
@@ -134,6 +134,7 @@ namespace Milehigh.Core
             }
             else
             {
+                // SECURITY: Log only the file name, not the absolute path.
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                 Debug.LogError("Campaign master JSON not found: " + fileName);
                 Debug.LogError($"Campaign master JSON not found: {fileName}");

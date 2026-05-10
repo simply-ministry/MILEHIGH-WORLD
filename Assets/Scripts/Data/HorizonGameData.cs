@@ -21,6 +21,8 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+        public bool IsValid()
+        {
             if (string.IsNullOrEmpty(environment)) return false;
             if (environment.Length > 128) return false;
             if (voidSaturationLevel < 0.0f) return false;
@@ -186,6 +188,7 @@ namespace Milehigh.Data
 
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
             if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             // SECURITY: behaviorScript can be long (it's code) but we still enforce a maximum for DoS prevention.
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 64) return false;
@@ -221,6 +224,8 @@ namespace Milehigh.Data
     [Serializable]
     public class ObjectInteraction
     {
+        public string objectId = null!;
+        public string action = null!;
         public string objectId;
         public string action;
         public bool isVector;
@@ -269,9 +274,6 @@ namespace Milehigh.Data
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
-        public string speaker;
-        public string text;
-        public string trigger;
 
         /// <summary>
         /// 🛡️ Sentinel: Validates dialogue data for security and length limits.
@@ -316,10 +318,6 @@ namespace Milehigh.Data
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
-        public string scenarioId;
-        public string description;
-        public List<ObjectInteraction> interactiveObjects;
-        public List<Dialogue> dialogue;
 
         /// <summary>
         /// 🛡️ Sentinel: Validates scenario data and collection sizes.
@@ -416,6 +414,9 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters;
         public List<SceneScenario> scenarios;
 
+        public bool IsValid()
+        {
+            if (metadata == null || !metadata.IsValid()) return false;
         public bool IsValid()
         {
             if (metadata == null) return false;
@@ -683,6 +684,7 @@ namespace Milehigh.Data
 
             foreach (var charProfile in characters)
             {
+                if (charProfile == null || !charProfile.IsValid()) return false;
                 if (charProfile == null || !charProfile.IsValid())
                 {
                     Debug.LogError($"[Security] Game data validation failed: Invalid character profile {charProfile?.name}");
@@ -702,6 +704,7 @@ namespace Milehigh.Data
                     }
             foreach (var scenario in scenarios)
             {
+                if (scenario == null || !scenario.IsValid()) return false;
                 if (scenario == null || !scenario.IsValid())
                 {
                     Debug.LogError("[Security] Game data validation failed: Invalid scene scenario.");

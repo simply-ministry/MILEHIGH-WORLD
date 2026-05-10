@@ -11,6 +11,7 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot;
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        // BOLT: Prefab lookup cache to avoid O(P) linear searches
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
@@ -26,9 +27,14 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 1        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
-        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        // BOLT: Component cache to avoid redundant GetComponent calls
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
 
+        private GameObject? GetCachedObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
         // BOLT: Cache for character prefabs to turn O(P) list searches into O(1) lookups
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
@@ -179,9 +185,9 @@ namespace Milehigh.Core
 1            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
-                // BOLT: Check if the cached reference is a destroyed Unity object (fake null)
-                // vs a legitimate negative cache entry (real null).
-                if (obj == null && !ReferenceEquals(obj, null))
+                // BOLT: Distinguish between negative cache (true null) and destroyed object (Unity null)
+                if (ReferenceEquals(obj, null)) return null;
+                if (obj == null) // Unity object was destroyed
                 {
                     _objectCache.Remove(objectName);
                 }
@@ -189,6 +195,13 @@ namespace Milehigh.Core
                 {
                     return obj;
                 }
+            }
+
+            GameObject foundObj = GameObject.Find(objectName);
+            _objectCache[objectName] = foundObj; // negative cache if not found
+            return foundObj;
+        }
+
             }
 
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
@@ -260,6 +273,11 @@ namespace Milehigh.Core
             }
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
+            if (characterPrefabs != null)
+            {
+                prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+                if (prefab != null) _prefabCache[profileName] = prefab;
+            }
             if (_prefabLookupCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search only once per profile name
@@ -302,6 +320,7 @@ namespace Milehigh.Core
             if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
+            if (controller != null) _controllerCache[objId] = controller;
             if (controller != null)
             {
                 _controllerCache[objId] = controller;
@@ -311,9 +330,9 @@ namespace Milehigh.Core
 
         private void Start()
         {
-            // BOLT: Pre-populate prefab cache to ensure O(1) lookups during any scene setup
-            if (characterPrefabs != null)
+            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
             {
+                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
                 foreach (var prefab in characterPrefabs)
                 {
                     if (prefab != null) _prefabLookupCache[prefab.name] = prefab;
@@ -331,10 +350,10 @@ namespace Milehigh.Core
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
-            // BOLT: Clear dynamic caches at start of setup to avoid stale references across scenes
             _objectCache.Clear();
             _controllerCache.Clear();
 
+            if (CampaignManager.Instance?.currentCampaignData?.characters != null)
             // Instantiate characters if not already in scene
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
@@ -345,7 +364,6 @@ namespace Milehigh.Core
                 }
             }
 
-            // Execute interactive objects logic
             if (scenario.interactiveObjects != null)
             {
                 foreach (var interaction in scenario.interactiveObjects)
@@ -363,6 +381,7 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: Optimized prefab lookup using the pre-populated dictionary (O(1) vs O(M))
                 // Try exact match first for O(1) performance
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
@@ -488,7 +507,6 @@ namespace Milehigh.Core
                 var controller = GetCharacterController(characterObj);
                 if (controller != null)
                 {
-                    // Create a dummy CharacterData for runtime initialization
                     CharacterData data = ScriptableObject.CreateInstance<CharacterData>();
                     data.characterName = profile.name;
                     data.role = profile.role;

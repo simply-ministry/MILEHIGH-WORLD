@@ -24,6 +24,11 @@ namespace Milehigh.Editor
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
             }
+            catch (System.Exception)
+            {
+                // 🛡️ Sentinel: Fail securely and avoid leaking stack traces
+                Debug.LogError("Failed to load or parse campaign data.");
+            }
             catch (System.Exception ex)
             {
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
@@ -74,6 +79,9 @@ namespace Milehigh.Editor
                 AssetDatabase.CreateFolder("Assets/Data", "Characters");
             }
 
+            if (data.characters == null) return;
+
+            foreach (var charProfile in data.characters)
             if (data.characters != null)
             {
                 foreach (var charProfile in data.characters)
@@ -91,6 +99,12 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Path Traversal prevention
+                string safeFileName = GetSafeFileName(charProfile.name);
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+
+                AssetDatabase.CreateAsset(asset, assetPath);
+                Debug.Log($"Created character asset: {assetPath}");
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 // Standardized Path Sanitization Sequence:
                 // 1. Replace invalid filename characters with underscores.
@@ -259,6 +273,18 @@ namespace Milehigh.Editor
             }
 
             return safeName;
+        }
+
+        private static string GetSafeFileName(string? name)
+        {
+            if (string.IsNullOrEmpty(name)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Whitelist-based sanitization
+            string sanitized = System.Text.RegularExpressions.Regex.Replace(name, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_'); // Prevent hidden files
+
+            if (string.IsNullOrEmpty(sanitized)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            return sanitized;
         }
     }
 }
