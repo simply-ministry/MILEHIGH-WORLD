@@ -3172,6 +3172,7 @@ namespace Milehigh.Cinematics
     private Coroutine typingCoroutine;
     private Coroutine speakerPopCoroutine;
     private float currentTypingSpeed;
+    private string currentSpeakerHex;
     private bool skipRequested;
             // --- Dialogue Line 5: Sky.ix ---
             yield return WaitForSecondsOrSkip(0.8f);
@@ -3415,6 +3416,7 @@ namespace Milehigh.Cinematics
 
             SpeakerNameText.text = speaker;
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
             float multiplier = 1.0f;
             if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
             else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
@@ -3586,6 +3588,35 @@ namespace Milehigh.Cinematics
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
+                    // PALETTE: Advanced rhythmic timing.
+                    // 1. Detect ellipsis dots for a faster, rhythmic pace.
+                    bool isEllipsis = false;
+                    if (c == '.' && i < totalVisibleCharacters)
+                    {
+                        if (DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                    }
+
+                    if (isEllipsis)
+                    {
+                        delay = currentTypingSpeed * 5f;
+                    }
+                    else if (c == '.' || c == '!' || c == '?')
+                    {
+                        // 2. Look-ahead to avoid pausing for mid-word periods (e.g., Sky.ix)
+                        bool isEndOfSentence = true;
+                        if (i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            if (!Char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                     // Ellipsis detection: dot with dot neighbors
                     bool isEllipsis = c == '.' && (
                         (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') ||
@@ -3664,6 +3695,18 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // UX Enhancement: Post-reveal pause for final punctuation to allow the player to absorb the sentence.
+        if (totalVisibleCharacters > 0 && !skipRequested)
+        {
+            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
+            {
+                yield return GetWait(currentTypingSpeed * 15f);
+            }
+        }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // The cue matches the speaker's theme color for visual cohesion.
         // UX Enhancement: Visual progression cue themed to the speaker.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
