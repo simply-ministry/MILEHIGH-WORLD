@@ -96,6 +96,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
             clip(albedo.a - _Cutoff);
 
+            // ⚡ Bolt: Initialize Albedo at the start of the surf function.
+            // This ensures additive effects like Subsurface Scattering are correctly accumulated
+            // into the final color instead of being overwritten, and avoids redundant calculations
+            // being discarded as dead work if they were assigned before a final overwrite.
             //  BOLT: Optimized albedo assignment.
             // By assigning early, we ensure that subsequent additive effects like SSS
             // are properly blended rather than being discarded or overwritten at the end.
