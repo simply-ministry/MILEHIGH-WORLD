@@ -76,7 +76,6 @@ namespace Milehigh.Editor
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent DoS.
             // SECURITY: Always validate data after deserialization
             // SECURITY: Always validate data after deserialization to ensure integrity
-            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
@@ -114,6 +113,11 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
+                string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");
+
                 // Required sequence: strip invalid chars, use Path.GetFileName, replace whitespace.
                 // Required sequence: replace invalid chars with underscores, use Path.GetFileName, replace whitespace.
                 //  Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities

@@ -4,6 +4,7 @@ using Milehigh.Data;
 
 namespace Milehigh.Core
 {
+    [DefaultExecutionOrder(-100)]
     public class CampaignManager : MonoBehaviour
     {
         private static CampaignManager _instance;
@@ -11,6 +12,22 @@ namespace Milehigh.Core
         {
             get
             {
+                if (_instance == null) InitializeInstance();
+                return _instance!;
+            }
+        }
+
+        private static void InitializeInstance()
+        {
+            _instance = FindObjectOfType<CampaignManager>();
+            if (_instance == null)
+            {
+                GameObject go = new GameObject("CampaignManager");
+                _instance = go.AddComponent<CampaignManager>();
+            }
+        }
+
+        public HorizonGameData? currentCampaignData;
                 if (_instance == null)
                 {
                     _instance = FindObjectOfType<CampaignManager>();
@@ -72,6 +89,8 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Fail securely and don't use invalid data
+                        // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                         Debug.LogError($"[Security] Campaign data from {fileName} failed security validation.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
@@ -90,7 +109,7 @@ namespace Milehigh.Core
                     }
                         // 🛡️ Sentinel: Combined logic to handle both deserialization failure and security validation rejection.
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
-                        currentCampaignData = null; // Ensure we don't use invalid data
+                        currentCampaignData = null;
                     }
                         // SECURITY: Log only the file name to avoid absolute path disclosure
                         Debug.LogError($"Failed to validate campaign data from {fileName}.");

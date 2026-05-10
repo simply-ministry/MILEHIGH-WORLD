@@ -220,6 +220,8 @@ namespace Milehigh.Cinematics
 
     private IEnumerator WaitForSecondsOrSkip(float time)
     {
+        // UX: Support all input types (keyboard, mouse, gamepad) for cinematic skipping
+        if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
         {
@@ -282,6 +284,11 @@ namespace Milehigh.Cinematics
                 skipRequested = true;
             }
         }
+
+        // Palette UX: Improve text contrast in the dark "Void" environment via outlines.
+        DialogueText.fontMaterial.EnableKeyword("OUTLINE_ON");
+        DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
 
         // Programmatic fallback for SkipHint to ensure UX feature works even if not assigned in inspector.
         if (SkipHint == null)
@@ -449,8 +456,6 @@ namespace Milehigh.Cinematics
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
-        TMP_TextInfo textInfo = DialogueText.textInfo;
-        int totalCharacters = textInfo.characterCount;
 
         for (int i = 0; i < totalCharacters; i++)
         {
@@ -485,6 +490,9 @@ namespace Milehigh.Cinematics
         DialogueText.ForceMeshUpdate();
 
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+        // Calculation: characterCount includes the completion cue '▽'.
+        // We only want to apply rhythmic pacing to the message itself.
+        int messageVisibleCount = totalVisibleCharacters - 2; // Subtracting ' ▽'
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
@@ -540,6 +548,9 @@ namespace Milehigh.Cinematics
                 DialogueText.characterSpacing = 0f;
             }
 
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Use characterInfo for robust detection that handles rich text correctly.
+                if (i > 0 && i <= messageVisibleCount)
             currentTypingSpeed = baseTypingSpeed * multiplier;
 
             // Apply character-specific colors
@@ -582,6 +593,9 @@ namespace Milehigh.Cinematics
 
                     if (c == '.' || c == '!' || c == '?')
                     {
+                        delay = currentTypingSpeed * 15f;
+
+                        // Refined ellipsis and mid-word detection
                         // Palette UX: Look ahead/back to distinguish sentence-end, ellipsis, or mid-word periods (e.g., Sky.ix).
                         bool isEllipsis = false;
                         if (c == '.' && i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
@@ -619,6 +633,11 @@ namespace Milehigh.Cinematics
                         if (c == '.')
                         {
                             if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                            if (i < messageVisibleCount && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        }
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (c == '.' && i < messageVisibleCount && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
                             else if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
                         }
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
@@ -628,7 +647,7 @@ namespace Milehigh.Cinematics
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
                         else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
                         {
-                            delay = currentTypingSpeed;
+                            delay = currentTypingSpeed; // Mid-word (e.g. Sky.ix)
                         }
                         else delay = currentTypingSpeed * 15f;
                     }
@@ -723,6 +742,7 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // Note: skipRequested is NOT reset here to allow skipping the subsequent pause.
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // Color-coded to the current speaker for a subtle touch of delight.
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
