@@ -143,6 +143,7 @@ namespace Milehigh.Cinematics
         // Poll for skip input to ensure responsiveness across multiple accessible inputs
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Use int (milliseconds) instead of float for dictionary key to avoid cache misses from float imprecision
     // ⚡ Bolt: Using int (milliseconds) instead of float for dictionary keys prevents cache misses from float imprecision
     // BOLT: Changed to int (milliseconds) key to prevent cache misses from float precision issues
     // BOLT: Refactored dictionary to use int (milliseconds) instead of float to prevent precision-based cache misses
