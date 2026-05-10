@@ -20,10 +20,20 @@ namespace Milehigh.Data
         public float voidSaturationLevel;
 
         /// <summary>
-        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
+        /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// </summary>
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // Void saturation must be within a safe 0.0 to 1.0 range.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
@@ -122,6 +132,40 @@ namespace Milehigh.Data
             if (metadata == null) return false;
             if (!metadata.IsValid()) return false;
             if (characters == null || scenarios == null) return false;
+
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
+                return false;
+            }
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid number of scenarios.");
+                return false;
+            }
+
+            foreach (var charProfile in characters)
+            {
+                if (charProfile == null || !charProfile.IsValid())
+                {
+                    Debug.LogError("[Security] Game data validation failed: Invalid character profile detected.");
+                    return false;
+                }
+            }
+
+            foreach (var scenario in scenarios)
+            {
+                if (scenario == null || !scenario.IsValid())
+                {
+                    Debug.LogError("[Security] Game data validation failed: Invalid scenario detected.");
+                    return false;
+                }
+            }
 
             return true;
         }
