@@ -20,6 +20,8 @@ namespace Milehigh.Core
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        // BOLT: Component cache to avoid redundant GetComponent calls.
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
@@ -685,6 +687,17 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
+        private GameObject? GetCachedObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Use ReferenceEquals to distinguish between a 'true' null and a 'Unity' null.
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+                if (obj == null) return null;
+                return obj;
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
 
@@ -750,6 +763,9 @@ namespace Milehigh.Core
             return prefab;
         }
 
+            // BOLT: Fallback to O(N) scene traversal only if not in cache.
+            obj = GameObject.Find(objectName);
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals
             return prefab;
         }
 
@@ -838,6 +854,12 @@ namespace Milehigh.Core
             }
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
+            // BOLT: O(P) search happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            if (prefab != null) _prefabCache[profileName] = prefab;
+            return prefab;
+        }
+
             if (characterPrefabs != null)
             {
                 prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
@@ -869,6 +891,7 @@ namespace Milehigh.Core
             if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
+            if (controller != null) _controllerCache[objId] = controller;
 
             // BOLT: Cache component reference to avoid redundant GetComponent calls
             // BOLT: Cache the result even if null (negative caching) to avoid redundant GetComponent calls
@@ -925,6 +948,7 @@ namespace Milehigh.Core
 
         private void Start()
         {
+            // BOLT: Pre-populate prefab cache
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups
             // BOLT: Pre-populate prefab cache for O(1) lookups
             if (characterPrefabs != null)
@@ -937,6 +961,8 @@ namespace Milehigh.Core
                 }
             }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             {
             // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
@@ -1000,6 +1026,11 @@ namespace Milehigh.Core
             if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            _objectCache.Clear();
+            _controllerCache.Clear();
+
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null)
             _objectCache.Clear();
             _controllerCache.Clear();
 

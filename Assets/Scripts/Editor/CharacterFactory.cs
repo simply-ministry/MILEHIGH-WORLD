@@ -16,6 +16,10 @@ namespace Milehigh.Editor
         {
             string fileName = "campaign_master.json";
             string path = Path.Combine("Assets/Scripts/Data", fileName);
+
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"Campaign master JSON not found at: {fileName}");
             if (!File.Exists(path))
             {
                 Debug.LogError($"Campaign master JSON not found at {path}");
@@ -28,6 +32,11 @@ namespace Milehigh.Editor
             {
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
+            }
+            catch (System.Exception ex)
+            {
+                // 🛡️ Sentinel: Security enhancement - Avoid leaking absolute paths or stack traces in logs.
+                Debug.LogError($"Failed to load campaign data: {ex.Message}");
             }
             catch (Exception)
 
@@ -98,6 +107,8 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Secure path generation to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name);
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
@@ -145,6 +156,8 @@ namespace Milehigh.Editor
                 safeName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             }
 
+                AssetDatabase.CreateAsset(asset, assetPath);
+                // SECURITY: Log only the asset path relative to the project root.
             return safeName;
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
@@ -441,6 +454,24 @@ namespace Milehigh.Editor
             sanitized = Path.GetFileName(sanitized);
 
             return sanitized;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Sanitizes a string for use as a filename using a whitelist approach.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Whitelist: only allow alphanumeric, underscores, and hyphens.
+            string safeName = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Strip leading dots or underscores to prevent hidden files or traversal tricks
+            safeName = safeName.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(safeName)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            return safeName;
         }
     }
 }

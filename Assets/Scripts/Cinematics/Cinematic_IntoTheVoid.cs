@@ -436,6 +436,7 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private CanvasGroup? dialogueCanvasGroup;
     private Vector3 _originalSpeakerScale;
     private Coroutine popCoroutine;
     private float idleTimer;
@@ -648,6 +649,33 @@ namespace Milehigh.Cinematics
         return wait!;
     }
 
+    void Awake()
+    {
+        if (DialogueBox != null)
+        {
+            dialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
+            if (dialogueCanvasGroup == null)
+            {
+                dialogueCanvasGroup = DialogueBox.AddComponent<CanvasGroup>();
+            }
+            dialogueCanvasGroup.alpha = 0;
+        }
+    }
+
+    void Start()
+    {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
+        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            return;
+        }
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    void Update()
     void Start()
     {
         // Poll for skip input to ensure responsiveness (anyKeyDown covers mouse/keyboard/gamepad)
@@ -2442,6 +2470,13 @@ namespace Milehigh.Cinematics
         yield return FadeDialogueBox(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
 
@@ -2451,12 +2486,44 @@ namespace Milehigh.Cinematics
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
 
+        for (int i = 0; i < totalCharacters - 1; i++)
+        {
+            if (skipRequested) break;
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
         yield return WaitForSecondsOrSkip(7.5f);
 
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Refined ellipsis detection
+                bool isEllipsis = (i > 0 && textInfo.characterInfo[i - 1].character == '.') ||
+                                 (i < totalCharacters - 2 && textInfo.characterInfo[i + 1].character == '.');
+
+                if (isEllipsis) delay = currentTypingSpeed * 5f;
+                // Special case: mid-word period (e.g., Sky.ix) should have no extra delay
+                else if (c == '.' && i < totalCharacters - 2 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
+                    delay = currentTypingSpeed;
+                else
+                    delay = currentTypingSpeed * 15f;
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        skipRequested = false;
+        typingCoroutine = null;
+    }
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're just a vandal smashing something beautiful you could never understand.");
         yield return WaitForSecondsOrSkip(6.0f);
 
@@ -2519,6 +2586,8 @@ namespace Milehigh.Cinematics
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         yield return WaitForSecondsOrSkip(4.5f);
 
+        yield return FadeDialogueBox(true);
+        yield return WaitForSecondsOrSkip(1.0f);
         yield return WaitForSecondsOrSkip(2.0f); // Dash sequence
 
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
@@ -2665,6 +2734,7 @@ namespace Milehigh.Cinematics
         Debug.Log("Cinematic Sequence Complete.");
         SpeakerNameText.text = "";
         DialogueText.text = "";
+        yield return FadeDialogueBox(false);
         DialogueBox.SetActive(false);
         Debug.Log("Cinematic Sequence Complete.");
         DialogueBox.SetActive(false);        if (SkipHint != null) SkipHint.gameObject.SetActive(false);

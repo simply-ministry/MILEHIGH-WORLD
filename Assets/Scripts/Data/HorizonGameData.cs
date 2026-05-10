@@ -61,10 +61,6 @@ namespace Milehigh.Data
         public string role = null!;
         public string[] traits = null!;
         public string behaviorScript = null!;
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
 
         /// <summary>
         /// 🛡️ Sentinel: Security validation for individual character data.
@@ -231,10 +227,6 @@ namespace Milehigh.Data
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
-        public string scenarioId;
-        public string description;
-        public List<ObjectInteraction> interactiveObjects;
-        public List<Dialogue> dialogue;
 
         /// <summary>
         /// 🛡️ Sentinel: Security validation for individual scenarios.
