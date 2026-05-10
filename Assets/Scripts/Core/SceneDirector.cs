@@ -117,6 +117,12 @@ namespace Milehigh.Core
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefabs to avoid linear searches in the characterPrefabs list
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private void Awake()
+        {
+            // BOLT: Pre-index prefabs for O(1) lookups during character spawning
         // BOLT: Prefab cache to avoid O(M) linear searches through the characterPrefabs list
         // BOLT: Cache for prefab lookups to avoid O(P) list searches during spawning
         private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
@@ -1229,6 +1235,21 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // BOLT: Robust negative caching check.
+                // In Unity, == null is true for destroyed objects. ReferenceEquals check
+                // distinguishes between a "legitimate" null (not found) and a "fake" null (destroyed).
+                if (obj == null)
+                {
+                    if (ReferenceEquals(obj, null)) return null; // Negative cache hit (object definitely doesn't exist)
+
+                    _objectCache.Remove(objectName); // Object was destroyed, remove from cache
+                }
+                else
+                {
+                    return obj;
+                }
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // SECURITY: Robust negative caching - store null explicitly if not found to prevent future traversals.
@@ -1248,6 +1269,10 @@ namespace Milehigh.Core
             }
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
+            // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
+            obj = GameObject.Find(objectName);
+
+            // BOLT: Cache the result, including null to enable negative caching
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
 
@@ -1438,6 +1463,7 @@ namespace Milehigh.Core
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
         private void Start()
         {
+            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups during scene setup
             // BOLT: Pre-populate prefab cache
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups
@@ -1559,6 +1585,17 @@ namespace Milehigh.Core
             Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // BOLT: Performance Optimization - Pre-populate cache with a single O(N) pass
+            // This eliminates redundant O(N) scene traversals for subsequent lookups.
+            _objectCache.Clear();
+            var allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
+            foreach (var go in allObjects)
+            {
+                if (!_objectCache.ContainsKey(go.name))
+                {
+                    _objectCache[go.name] = go;
+                }
+            }
             // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading to persist.
             // Unity's == null check in GetCachedObject handles destroyed objects safely.
             // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading cache
@@ -1688,6 +1725,14 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Optimized O(1) prefab lookup via dictionary
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    // Fallback to fuzzy search if exact name match isn't in dictionary
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null) _prefabCache[profile.name] = prefab;
+                }
+
                 // BOLT: Try O(1) prefab cache lookup first
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 {

@@ -123,6 +123,7 @@ namespace Milehigh.Data
         public float y;
         public float z;
 
+        public UnityEngine.Vector3 GetVectorValue()
         private const int MAX_STRING_LENGTH = 128;
 
         public bool IsValid()
@@ -134,7 +135,7 @@ namespace Milehigh.Data
 
         public Vector3 GetVectorValue()
         {
-            return new Vector3(x, y, z);
+            return new UnityEngine.Vector3(x, y, z);
         }
 
         public bool IsValid()
@@ -279,6 +280,7 @@ namespace Milehigh.Data
 
             if (metadata == null)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
                 Debug.LogError("[Security] Game data validation failed: Invalid sceneId.");
                 return false;
             }
@@ -291,6 +293,15 @@ namespace Milehigh.Data
 
             if (characters == null || characters.Count == 0 || characters.Count > MAX_CHARACTERS)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+
+            if (scenarios == null)
+            {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");
+                return false;
+            }
                 Debug.LogError($"[Security] Game data validation failed: Character count {characters?.Count} out of bounds.");
                 return false;
             }
