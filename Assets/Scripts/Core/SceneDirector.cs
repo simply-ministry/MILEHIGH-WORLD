@@ -16,6 +16,10 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
+
+        private static readonly System.Text.RegularExpressions.Regex _nameWhitelist = new System.Text.RegularExpressions.Regex(@"^[a-zA-Z0-9_\s\(\)\-$\.\/\[\]]+$", System.Text.RegularExpressions.RegexOptions.Compiled);
         // Note: Using GameObject? to support negative caching (storing confirmed nulls)
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
@@ -88,7 +92,25 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: DoS Mitigation - Limit string length and validate against whitelist
+            // to prevent expensive GameObject.Find from being triggered by malicious or oversized input.
+            if (objectName.Length > 128 || !_nameWhitelist.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious input: {objectName}");
+                return null;
+            }
+
+            GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                // by removing it from cache and falling through to GameObject.Find.
+                if (obj == null)
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -487,6 +509,7 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
 
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
@@ -531,6 +554,8 @@ namespace Milehigh.Core
 
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p.name.Contains(profileName));
+
+            // BOLT: Cache result (including null for negative caching) to ensure O(1) subsequent lookups
             if (prefab != null)
             {
                 _prefabCache[profileName] = prefab;
@@ -633,6 +658,7 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private CharacterControllerBase? GetCharacterController(GameObject? characterObj)
         private CharacterControllerBase? GetCharacterController(GameObject characterObj)
         {
             if (scenario == null) return;
@@ -648,6 +674,8 @@ namespace Milehigh.Core
             if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
+
+            // BOLT: Cache component reference to avoid redundant GetComponent calls
             // BOLT: Cache the result even if null (negative caching) to avoid redundant GetComponent calls
             _controllerCache[objId] = controller;
             if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
@@ -714,6 +742,9 @@ namespace Milehigh.Core
                 }
             }
 
+            // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null)
             // BOLT: Capture property in local variable for NRT flow analysis
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null)
@@ -776,6 +807,9 @@ namespace Milehigh.Core
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
+            // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null)
             if (CampaignManager.Instance.currentCampaignData != null)
             if (CampaignManager.Instance?.currentCampaignData != null)
             _objectCache.Clear();
