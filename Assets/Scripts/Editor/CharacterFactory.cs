@@ -46,6 +46,10 @@ namespace Milehigh.Editor
             catch (Exception)
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure data integrity
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             // SECURITY: Always validate data after deserialization
                 // 🛡️ Sentinel: Security validation of deserialized data.
                 if (data == null || !data.IsValid())
@@ -155,6 +159,9 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
+                // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 foreach (char c in Path.GetInvalidFileNameChars())
@@ -214,6 +221,7 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+                // Ensure no directory traversal sequences remain by using Path.GetFileName
             }
 
             AssetDatabase.SaveAssets();

@@ -392,6 +392,14 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
+            // Limit object name length and restrict to safe characters to prevent expensive Find operations.
+            if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
+                return null;
+            }
+
             // 🛡️ Sentinel: DoS Hardening - prevent expensive Find operations with malicious or oversized strings
             // SECURITY: Whitelist regex ensures only safe characters are passed to GameObject.Find
             if (objectName.Length > 128 || !Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\$\.\\[\]\/]+$"))
@@ -1526,6 +1534,11 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // BOLT: Explicitly clear the cache to release Unity engine object references
+            if (_objectCache != null)
+            {
+                _objectCache.Clear();
+            }
             _objectCache.Clear();
             _prefabCache.Clear();
             _controllerCache.Clear();
