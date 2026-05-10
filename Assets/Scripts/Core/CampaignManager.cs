@@ -61,6 +61,14 @@ namespace Milehigh.Core
                     // NRT Pattern: Explicitly mark deserialized object as nullable
                     HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Perform security and integrity validation after deserialization.
+                    if (currentCampaignData != null && currentCampaignData.IsValid())
+                    {
+                        if (currentCampaignData.metadata != null)
+                        {
+                            currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        }
+                        // SECURITY: Log only the filename to avoid exposing absolute filesystem paths.
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
                     // NRT Pattern: Use local variable 'data' for consistent flow analysis.
                     if (data != null && data.IsValid())
@@ -77,6 +85,8 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
+                        currentCampaignData = null; // Prevent use of invalid data.
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths in logs.
@@ -99,6 +109,8 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
+                    Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
                     // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
@@ -114,6 +126,7 @@ namespace Milehigh.Core
             }
             else
             {
+                // SECURITY: Log only the filename to prevent information disclosure.
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
         }

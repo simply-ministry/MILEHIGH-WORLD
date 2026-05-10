@@ -119,6 +119,9 @@ namespace Milehigh.Core
         // BOLT: Cache for character prefabs to avoid repeated O(M) searches in characterPrefabs list
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
+        // 🛡️ Sentinel: Whitelist regex for object names to prevent injection/DoS.
+        // Allows alphanumeric, spaces, parentheses, hyphens, dots, brackets, and forward slashes (for hierarchy).
+        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$", RegexOptions.Compiled);
         private GameObject GetCachedObject(string objectName)
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
         private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
@@ -127,6 +130,22 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Input validation to mitigate Denial of Service (DoS) attacks via GameObject.Find.
+            // 1. Length constraint.
+            if (objectName.Length > 128)
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: Object name '{objectName.Substring(0, 10)}...' exceeds 128 character limit.");
+                return null;
+            }
+
+            // 2. Character whitelist validation.
+            if (!_nameWhitelist.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: Object name contains illegal characters.");
+                return null;
+            }
+
+            // BOLT: Perform an O(1) dictionary lookup first.
             // 🛡️ Sentinel: Hardening against potential DoS via expensive GameObject.Find.
             // Limit the length of the name and validate allowed characters.
             if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
@@ -464,6 +483,11 @@ namespace Milehigh.Core
             _objectCache.Clear();
 
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
+            {
+                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
             var data = CampaignManager.Instance.currentCampaignData;
             if (data != null)
             {
@@ -602,6 +626,11 @@ namespace Milehigh.Core
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
             GameObject? characterObj = GetCachedObject(profile.name);
+
+            if (characterObj == null)
+            {
+                // Try to find prefab if not in scene
+                GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
 
             if (characterObj == null)
             {
@@ -795,6 +824,8 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // BOLT: Clear the cache on destroy to release references and prevent memory leaks.
+            _objectCache.Clear();
             // BOLT: Explicitly clear dictionaries to release Unity object references for GC
             _objectCache?.Clear();
             _prefabLookupCache?.Clear();
