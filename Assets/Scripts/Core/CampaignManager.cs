@@ -109,6 +109,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    currentCampaignData = null; // Ensure we don't use partially loaded or invalid data
                     // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
                     Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");

@@ -24,6 +24,7 @@ namespace Milehigh.Characters
             Debug.Log("Delilah: Spawning shadow clones...");
             if (shadowClonePrefab != null)
             {
+                // SECURITY: Ensure we use the UnityEngine.Random to avoid ambiguity and ensure correct behavior.
                 Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, Quaternion.identity);
             }
         }
