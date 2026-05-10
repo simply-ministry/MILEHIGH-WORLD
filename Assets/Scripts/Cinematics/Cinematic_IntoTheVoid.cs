@@ -2293,6 +2293,33 @@ namespace Milehigh.Cinematics
                 // UX Pattern: Rhythmic punctuation pauses for natural reading.
                 if (c == '.' || c == '!' || c == '?')
                 {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    bool isEllipsis = false;
+
+                    // Ellipsis detection: if current dot is part of a sequence
+                    if (c == '.' && i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.')
+                    {
+                        isEllipsis = true;
+                    }
+                    else if (c == '.' && i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.')
+                    {
+                        isEllipsis = true;
+                    }
+
+                    if (isEllipsis)
+                    {
+                        delay = currentTypingSpeed * 5f;
+                    }
+                    else if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Look-ahead to avoid sentence-end delays for mid-word periods (e.g., Sky.ix)
+                        bool isMidWord = i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+                        delay = isMidWord ? currentTypingSpeed : currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                     // Look ahead for ellipsis
                     if (i + 1 < totalCharacters && textInfo.characterInfo[i + 1].character == '.')
                     {
