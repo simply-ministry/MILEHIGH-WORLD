@@ -411,7 +411,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
-        DialogueText.text = message;
+        // BOLT: Optimization - Pre-concatenate cue and set text once to avoid redundant layout rebuilds and extra allocations.
+        DialogueText.text = message + " ▽";
         DialogueText.maxVisibleCharacters = 0;
         // UX Enhancement: Include the completion cue from the start to prevent layout shifts
         // when the symbol is revealed. We use rich text to color-code it.
@@ -444,12 +445,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
 
-        // BOLT: Typewriter effect optimized for performance.
         // We use the existing GetWait(float) method to ensure zero-allocation yields,
         // avoiding GC pressure during dialogue sequences.
-        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+        int totalWithCue = DialogueText.textInfo.characterCount;
+        int messageLength = totalWithCue - 2;
 
-        for (int i = 0; i <= totalVisibleCharacters; i++)
+        for (int i = 0; i <= messageLength; i++)
         {
             // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
@@ -516,12 +517,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             if (!_waitForSecondsCache.TryGetValue(time, out var wait))
             {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
                 break;
             }
 
             DialogueText.maxVisibleCharacters = i;
 
+            if (i < messageLength)
             if (i < totalVisibleCharacters)
             // Rhythmic pause loop: pauses after each character is revealed
             if (i > 0 && i <= messageCharacters)
@@ -571,6 +572,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         }
 
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.maxVisibleCharacters = totalWithCue;
         // Color-coded to match the speaker's theme for better visual cohesion.
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
