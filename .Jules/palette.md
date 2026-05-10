@@ -43,6 +43,9 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion character after typewriter reveals to improve readability and interaction clarity.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Rhythmic Typewriter and Speaker-Themed Feedback]
+**Learning:** Cinematic dialogue feels significantly more natural when the typewriter effect respects the rhythm of speech by distinguishing between sentence endings, mid-word punctuation (like "Sky.ix"), and ellipses. Furthermore, color-coding visual feedback cues (like the completion symbol '▽') to the speaker's theme provides a subtle but effective way to maintain character identity throughout the dialogue reveal.
+**Action:** Implement rhythmic look-ahead logic in typewriter effects to handle edge-case punctuation and use speaker-specific hex colors for UI completion indicators to improve visual cohesion.
 ## 2026-03-25 - [Layout-Safe Cinematic Dialogue Reveal]
 **Learning:** Appending visual elements (like a completion cue '▽') to the end of a typewriter-revealed string can cause jarring layout shifts if the new character forces a line break or word wrap. By setting the final text (including the cue) at the beginning and using 'maxVisibleCharacters' to reveal it, the layout is pre-calculated and remains stable throughout the animation.
 **Action:** Pre-append completion cues and use 'maxVisibleCharacters' to ensure visual stability in all Unity text animations.
