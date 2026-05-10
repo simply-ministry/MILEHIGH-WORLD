@@ -289,6 +289,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");

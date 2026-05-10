@@ -1,3 +1,6 @@
+## 2025-05-14 - [SceneDirector Code Rot Cleanup]
+**Learning:** Found significant code rot and syntax errors in SceneDirector.cs, including stray characters and broken loop nesting that would have blocked compilation.
+**Action:** Always perform a manual code health check on core scripts before implementing tests to ensure a stable baseline.
 ## 2024-05-26 - [SceneDirector Caching Optimization]
 **Learning:** [SceneDirector.cs was performing expensive O(N) `GameObject.Find()` calls and linear prefab searches inside character instantiation loops. Unity's native object destruction creates "fake nulls" (C# reference is not null, but native object is destroyed), which complicates dictionary-based caching.]
 **Action:** [Implemented a multi-level caching system in `SceneDirector.cs`. 1. `_objectCache` for GameObjects with negative caching and `ReferenceEquals` checks for fake nulls. 2. `_prefabCache` to avoid repeated linear searches on the prefab list. 3. `_controllerCache` using `GetInstanceID()` to avoid redundant `GetComponent` calls. All caches are cleared during scenario setup to prevent memory leaks and stale references.]
@@ -20,25 +23,13 @@
 **Learning:** `GameObject.Find()` in Unity executes an O(N) full scene graph traversal across all active objects. In data-driven setup loops (e.g., parsing JSON to build a scene or instantiating/finding characters and interactive objects in `SceneDirector.cs`), using it repeatedly causes significant CPU spikes on initialization.
 **Action:** Always cache `GameObject.Find()` results in a generic `Dictionary<string, GameObject>` specifically for repeating setups, and check the cache before issuing the underlying `GameObject.Find()` call.
 
-## 2024-03-20 - GameObject.Find caching during scene initialization
-**Learning:** The SceneDirector repeatedly used the highly expensive `GameObject.Find` to resolve objects dynamically based on campaign JSON data during scene setup. For scenarios with multiple interactive objects or characters, this O(N) hierarchy traversal scales poorly.
-**Action:** Implemented a simple dictionary cache (`_objectCache`) to memoize object lookups within `SceneDirector`, falling back to `GameObject.Find` only when necessary and caching newly instantiated objects. Always cache `GameObject.Find` results if they might be queried multiple times in a setup loop.
-## 2026-03-20 - [GameObject.Find() Cache Optimization]
-**Learning:** [SceneDirector.cs was doing expensive `GameObject.Find()` calls in a loop when spawning characters or applying interactions, which scans the entire scene tree. Unity overrides the == operator for GameObjects, making cached null checks a safe and effective way to see if an object was destroyed.]
-**Action:** [Use a `Dictionary<string, GameObject>` to cache GameObjects found or created, substituting repeated `GameObject.Find()` calls with dictionary lookups for faster scene setups.]
-## 2024-05-24 - O(N*M) lookup bottleneck in SetupScene
-**Learning:** SceneDirector.cs used multiple GameObject.Find() calls inside iterative loops across characters and interactions. Since GameObject.Find() traverses the entire scene hierarchy, nesting this in a loop causes significant setup spikes.
-**Action:** Use a Dictionary to cache GameObject lookups. When instantiating new objects dynamically, immediately add them to the dictionary cache to avoid secondary lookups.
-## 2025-03-15 - [Coroutines in Unity Cinematics]
-**Learning:** Unity coroutine `new WaitForSeconds()` creates a new object instance every time it's called, causing GC pressure during long sequences.
-**Action:** Cache the yield instructions or use constant values in long coroutines/cinematics to avoid allocating memory for short delays repeatedly.
-## 2024-05-24 - Avoid GameObject.Find in Scene Initialization Loops
-**Learning:** Using `GameObject.Find` inside loops or scene initialization sequences (like in `SceneDirector.cs`) causes expensive O(N) scene hierarchy traversals, leading to severe performance bottlenecks during level load or scenario updates.
-**Action:** Always use dictionary caches (e.g., `Dictionary<string, GameObject>`) to store and retrieve object references instead of relying on `GameObject.Find` inside loops.
-## 2024-05-24 - Expensive `GameObject.Find` in Setup Loops
-**Learning:** `GameObject.Find` is an O(N) operation that iterates over the entire scene hierarchy. When executed inside setup loops (e.g. `SceneDirector.cs` reading from JSON configurations), it creates a severe performance bottleneck during scene initialization and updates. Furthermore, caching GameObjects via `Dictionary<string, GameObject>` requires checking `obj != null` on retrieval, as Unity's overloaded equality operator natively checks if the object was destroyed in the C++ layer, even if the managed C# reference still exists.
-**Action:** Replace `GameObject.Find` inside loops with O(1) Dictionary lookups (`Dictionary<string, GameObject>`). Always check `obj != null` when retrieving cached objects to avoid NullReferenceExceptions on natively destroyed instances.
+## 2025-05-14 - [Unity Testing via .NET CLI]
+**Learning:** In environments without the Unity Editor, logic can be verified by bootstrapping a temporary .NET console project and stubbing Unity-specific dependencies.
+**Action:** Use this 'stubbing' pattern to gain confidence in C# logic when the full Unity engine is unavailable.
 
+## 2025-05-14 - [Nullable Reference Type (NRT) in Unity Caches]
+**Learning:** Using `GameObject?` in Dictionaries helps satisfy NRT requirements and clarifies the intent of 'negative caching' (explicitly caching a missing object).
+**Action:** Prefer nullable types for cache values when the cache is expected to store null results from lookups like `GameObject.Find`.
 ## 2024-05-15 - Shader 'pow()' optimization
 **Learning:** Using `pow(x, c)` for small constant integer exponents in pixel-evaluated fragment shaders can be highly unoptimized depending on the graphics API.
 **Action:** Always rewrite integer-based exponentiation as explicit variable multiplications. For example, use `x * x * x` instead of `pow(x, 3.0)` to save ALU cycles and improve GPU fragment processing times.

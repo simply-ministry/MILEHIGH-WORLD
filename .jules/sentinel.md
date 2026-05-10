@@ -1,3 +1,7 @@
+## 2025-05-14 - [Information Disclosure in Unity Logs]
+**Vulnerability:** Absolute file paths being logged during data loading.
+**Learning:** Hardcoded paths or `Application.dataPath` in logs can reveal developer filesystem structure.
+**Prevention:** Only log filenames or relative identifiers in production-facing logs.
 
 ## 2025-01-24 - Restoration of Data Integrity Framework and Unit Testing for Core Mechanics
 **Vulnerability:** Critical syntax errors and redundant logic were found in `HorizonGameData.cs` and `CampaignManager.cs`, breaking the security validation framework and CI/CD pipelines.

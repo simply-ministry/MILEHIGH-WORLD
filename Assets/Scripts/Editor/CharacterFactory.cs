@@ -57,6 +57,8 @@ namespace Milehigh.Editor
                 return;
             }
 
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
             // 🛡️ Sentinel: Security validation of deserialized data.            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to ensure integrity
                 Debug.LogError($"Failed to load or parse campaign data. Error parsing file.");
@@ -388,6 +390,24 @@ namespace Milehigh.Editor
             }
 
             return safeName;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Robust filename sanitization to prevent Path Traversal exploits.
+        /// Uses a strict whitelist-based regex and strips leading dots/underscores.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "";
+
+            // SECURITY: Use a strict whitelist to only allow alphanumeric characters, underscores, and hyphens.
+            // This prevents directory traversal sequences like '..' and platform-specific path separators.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "");
+
+            // SECURITY: Strip leading dots or underscores to prevent hidden files or other OS-level exploits.
+            sanitized = sanitized.TrimStart('.', '_');
+
+            return sanitized;
         }
     }
 }

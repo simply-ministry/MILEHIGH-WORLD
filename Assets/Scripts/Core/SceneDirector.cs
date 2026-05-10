@@ -19,6 +19,8 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
         private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\-.\[\]\(\)\$]+$", RegexOptions.Compiled);
@@ -571,12 +573,24 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                // or just return the Unity null which behaves like null.
+                if (obj == null)
+                {
+                    _objectCache.Remove(objectName);
+                }
+                else
+                {
+                    return obj;
+                }
 
                 // If it's a Unity null (native object destroyed), we should try to find it again
                 // or just return the Unity null which behaves like null.
@@ -639,6 +653,7 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
@@ -669,6 +684,7 @@ namespace Milehigh.Core
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
             if (characterPrefabs != null)
             {
@@ -703,6 +719,9 @@ namespace Milehigh.Core
             {
                 _prefabCache[profileName] = prefab;
             }
+            return prefab;
+        }
+
             if (prefab != null) _prefabCache[profileName] = prefab;
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (prefab != null) _prefabCache[profileName] = prefab;
