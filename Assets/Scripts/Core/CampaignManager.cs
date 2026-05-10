@@ -69,11 +69,13 @@ namespace Milehigh.Core
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
+                        currentVoidSaturationLevel = currentCampaignData.metadata!.voidSaturationLevel;
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
                     else
                     {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         Debug.LogError($"[Security] Campaign data from {fileName} failed validation.");
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");

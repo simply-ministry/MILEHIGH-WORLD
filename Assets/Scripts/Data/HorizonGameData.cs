@@ -10,6 +10,7 @@ namespace Milehigh.Data
     public class Metadata
     {
         public LightingState lighting;
+        public string environment = "";
         public string environment = null!;
         public int systemParity;
         public float voidSaturationLevel;
@@ -49,6 +50,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = "";
+        public string role = "";
+        public string[] traits = Array.Empty<string>();
+        public string behaviorScript = "";
         public string name = null!;
         public string role = null!;
         public string[] traits = null!;
@@ -81,6 +86,8 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
+        public string objectId = "";
+        public string action = "";
         public string objectId = null!;
         public string action = null!;
 
@@ -102,6 +109,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = "";
+        public string text = "";
+        public string trigger = "";
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
@@ -141,6 +151,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = "";
+        public string description = "";
+        public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
+        public List<Dialogue> dialogue = new List<Dialogue>();
         public string scenarioId;
         public string description;
         public List<ObjectInteraction> interactiveObjects;
@@ -163,6 +177,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class HorizonGameData
     {
+        public string sceneId = "";
+        public Metadata? metadata;
+        public List<CharacterProfile> characters = new List<CharacterProfile>();
+        public List<SceneScenario> scenarios = new List<SceneScenario>();
         public string sceneId = null!;
         public Metadata metadata = null!;
         public List<CharacterProfile> characters = null!;
@@ -225,6 +243,9 @@ namespace Milehigh.Data
 
             if (scenarios == null)
             {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
+                return false;
+            }
                 return false;
             }
 
