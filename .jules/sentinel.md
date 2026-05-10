@@ -28,6 +28,10 @@
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
 
+## 2026-04-14 - Denial of Service (DoS) mitigation for GameObject.Find
+**Vulnerability:** Untrusted input from JSON was used in `GameObject.Find` in `SceneDirector.cs`. Maliciously long strings or path-traversal-like patterns (e.g., using `/`) could lead to expensive scene traversals or unexpected object access.
+**Learning:** `GameObject.Find` is an O(N) operation that can be abused. While caching helps, the initial lookup using unsanitized strings is a risk.
+**Prevention:** Implement strict string length limits (e.g., 128 chars) and character whitelists (alphanumeric, underscores, spaces, etc.) for any string passed to `GameObject.Find` or used as a key in object caches derived from external data.
 ## 2025-05-24 - DoS Protection and Resource Limits in Scene Lookups and Data Ingestion
 **Vulnerability:** The application was vulnerable to Denial of Service (DoS) attacks via unsanitized user input in `GameObject.Find` and lack of resource limits (string lengths, object counts) in deserialized campaign data.
 **Learning:** External data, even if trusted as "local assets", must have enforced resource limits to prevent memory exhaustion or CPU-intensive operations (like O(N) scene traversals with complex search patterns).
