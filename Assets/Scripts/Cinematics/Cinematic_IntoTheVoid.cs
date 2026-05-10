@@ -387,6 +387,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int timeKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeKey] = wait;
         int key = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
