@@ -33,6 +33,14 @@ namespace Milehigh.Data
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+            if (string.IsNullOrEmpty(environment))
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment is missing.");
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range to prevent out-of-bounds visual artifacts or logic errors.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {

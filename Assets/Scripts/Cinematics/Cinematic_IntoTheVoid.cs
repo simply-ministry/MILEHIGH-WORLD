@@ -158,6 +158,8 @@ namespace Milehigh.Cinematics
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine? typingCoroutine;
+    private float currentTypingSpeed;
+    private bool skipRequested;
     private Coroutine? popCoroutine;
     private Coroutine typingCoroutine;
     private Coroutine popCoroutine;
@@ -3290,6 +3292,32 @@ namespace Milehigh.Cinematics
         skipRequested = false;
     }
 
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    private IEnumerator PopEffect(Transform target)
+    {
+        target.localScale = Vector3.one;
+        float duration = 0.2f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float scale = 1f + Mathf.Sin((elapsed / duration) * Mathf.PI) * 0.15f;
+            target.localScale = Vector3.one * scale;
+            yield return null;
+        }
+        target.localScale = Vector3.one;
+    }
+
     void Start()
     {
         // 🛡️ Sentinel: Security enhancement - Defensive programming
@@ -3380,10 +3408,17 @@ namespace Milehigh.Cinematics
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
 
+        bool speakerChanged = SpeakerNameText.text != speaker;
         SpeakerNameText.text = speaker;
         speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        if (speakerChanged) StartCoroutine(PopEffect(SpeakerNameText.transform));
+
+        // Apply speaker-specific speed multipliers based on voice profiles
+        float multiplier = 1.0f;
+        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
         SpeakerNameText.text = speaker;
         popCoroutine = StartCoroutine(PopScale(SpeakerNameText.rectTransform));
         float startTime = Time.time;
