@@ -98,6 +98,10 @@
 **Learning:** Incomplete or improperly merged security fixes can be as dangerous as the original vulnerabilities, as they may lead to compilation failures or bypassed security checks. Centralizing validation logic and ensuring clean path sanitization is critical.
 **Prevention:** Always perform a full code review and basic sanity check (even if just manual brace counting) after applying security fixes to ensure no regressions or syntax errors are introduced.
 
+## 2025-05-24 - Prevent IDOR in Unity Data-Driven Interactions
+**Vulnerability:** Insecure Direct Object Reference (IDOR) in `SceneDirector.cs` where untrusted external input (JSON) was passed directly to `GameObject.Find` via `GetCachedObject` during `ApplyInteraction`, allowing manipulation of any scene object.
+**Learning:** Using unsanitized external strings to look up and modify GameObjects grants uncontrolled access to the scene hierarchy. Validation and blocklists must be applied at the application boundary where untrusted input is first processed, rather than inside generic internal retrieval utilities, to prevent functional regressions in internal logic.
+**Prevention:** Always sanitize and validate object IDs from external sources against an explicit allowlist or blocklist before using them to interact with the game world.
 ## 2024-05-24 - Information Disclosure via Exception Messages in Logs
 **Vulnerability:** Found `Debug.LogError` statements in `CampaignManager.cs` outputting `ex.Message` directly in catch blocks. This can inadvertently leak absolute file paths or internal system details if the exception message contains them.
 **Learning:** Exception messages often contain platform-specific paths or environment details that should not be exposed in production logs.
