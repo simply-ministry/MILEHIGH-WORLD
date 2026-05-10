@@ -36,6 +36,23 @@
 **Learning:** In Unity TextMeshPro, iterating over string length for typewriter reveals can break when rich text tags (like <color> or <b>) are present, as the tag characters are revealed one-by-one. Using 'TMP_Text.ForceMeshUpdate()' followed by iterating over 'TMP_Text.textInfo.characterCount' ensures only rendered characters are revealed, maintaining both accessibility (screen readers) and visual polish.
 **Action:** Always use 'textInfo.characterCount' and 'ForceMeshUpdate' for typewriter effects to ensure compatibility with rich text and accurate character-based pacing.
 
+## 2026-04-18 - [Rhythmic Typewriter and Speaker-Themed Progression Cues]
+**Learning:** Rhythmic punctuation pauses (15x delay for ends, 8x for clauses) significantly improve dialogue readability by mimicking natural speech cadence. Using look-ahead logic to distinguish mid-word periods (e.g., in names like 'Sky.ix') from sentence endings prevents jarring pauses. Additionally, color-coding the dialogue completion symbol ('▽') using the speaker's theme color provides a subtle but effective visual anchor for user progression.
+**Action:** Implement look-ahead logic for punctuation and use speaker-specific hex colors for UI completion cues to enhance rhythmic flow and visual consistency.
+## 2026-03-26 - [Discoverable Skip Hint for Narrative Immersion]
+**Learning:** In narrative-heavy cinematics, a permanent "Skip" prompt can break immersion. Implementing a "discoverable" skip hint that only appears after a short period of user inactivity (e.g., 2 seconds) provides necessary guidance for new or impatient users without cluttering the screen for those fully engaged in the story. This balance preserves the cinematic atmosphere while maintaining accessibility and user agency.
+**Action:** Use an 'idleTimer' and 'playerInteracted' flag pattern to trigger contextual UI hints in narrative sequences.
+## 2026-03-25 - [Unified Cinematic Skip Pattern]
+**Learning:** A "Unified Skip" (skipping both the typewriter reveal and the subsequent wait period with a single input) is best implemented by NOT resetting the 'skipRequested' flag after the typewriter effect ends. Instead, the flag should be consumed and reset only at the end of the final 'WaitForSecondsOrSkip' delay in the dialogue block. This ensures that player intent is fully honored across multiple yielded coroutines.
+**Action:** In cinematic sequences, manage the 'skipRequested' lifecycle such that it persists through the reveal and is only cleared after the following pause is handled.
+## 2026-03-25 - [Unified Cinematic Skip and Text Legibility Outlines]
+**Learning:** For a smooth cinematic experience in Unity, implementing a unified skip mechanic (using a 'WaitForSecondsOrSkip' coroutine) allows players to bypass both the typewriter reveal and the subsequent pause with a single input, making the dialogue feel more responsive. Additionally, applying black outlines to TextMeshProUGUI components (outlineWidth = 0.2f, outlineColor = Color.black) is a critical accessibility pattern to ensure text legibility against dynamic or visually complex backgrounds.
+**Action:** Use 'WaitForSecondsOrSkip' for dialogue pauses and always apply text outlines to mission-critical UI elements for better accessibility and polish.
+
 ## 2026-03-24 - [Scaling Rhythmic Typewriter and Progression Cues]
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
+
+## 2026-04-17 - [Advanced Rhythmic Typewriter & Context-Aware Pauses]
+**Learning:** Typewriter effects can be further refined by distinguishing between sentence-ending punctuation and mid-word periods (e.g., abbreviations or technical names like 'Sky.ix') using look-ahead whitespace checks. Additionally, specific handling for ellipses (...) with reduced multipliers prevents the dialogue from feeling stagnant, while color-coding the completion cue to match the speaker's theme provides a subtle but effective visual anchor for the player.
+**Action:** Implement look-ahead logic for punctuation and context-specific multipliers (15x for ends, 8x for clauses, 5x for ellipses) in dialogue systems to ensure natural pacing.
