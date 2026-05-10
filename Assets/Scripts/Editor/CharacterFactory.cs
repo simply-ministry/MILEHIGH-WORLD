@@ -33,6 +33,11 @@ namespace Milehigh.Editor
             {
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
@@ -117,6 +122,9 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
@@ -142,6 +150,7 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                // Ensure no directory separators or traversal sequences remain
 
                 // Ensure no directory traversal sequences remain and replace spaces
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
@@ -163,6 +172,7 @@ namespace Milehigh.Editor
             // Strip leading dots/underscores to prevent hidden files or traversal.
             sanitized = sanitized.TrimStart('.', '_');
 
+                // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
                 // Ensure no directory traversal sequences remain and normalize spacing

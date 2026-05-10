@@ -17,6 +17,7 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            // 🛡️ Sentinel: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
@@ -242,6 +243,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid number of scenarios.");
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");

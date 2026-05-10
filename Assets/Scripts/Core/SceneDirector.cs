@@ -65,6 +65,19 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                if (obj == null)
+                {
+                    _objectCache.Remove(objectName);
+                }
+                else
             // 🛡️ Sentinel: Denial of Service (DoS) protection.
             // Limit object name length to prevent expensive string operations or malicious traversal.
             if (objectName.Length > 128)
@@ -140,6 +153,22 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
+
+            // BOLT: Optimized prefab lookup using dictionary cache (O(1))
+            if (_prefabLookupCache.TryGetValue(profileName, out GameObject? prefab))
+            {
+                return prefab;
+            }
+
+            // Fallback to partial match if exact match fails (legacy support)
+            if (characterPrefabs != null)
+            {
+                prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+                _prefabLookupCache[profileName] = prefab;
+                return prefab;
+            }
+
+            return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search happens only once per profile name
@@ -226,12 +255,14 @@ namespace Milehigh.Core
 
         private void Start()
         {
+            // BOLT: Pre-populate prefab cache to ensure O(1) lookups
             if (characterPrefabs != null)
             {
                 foreach (var prefab in characterPrefabs)
                 {
                     if (prefab != null && !string.IsNullOrEmpty(prefab.name))
                     {
+                        _prefabLookupCache[prefab.name] = prefab;
                         _prefabCache[prefab.name] = prefab;
                     }
                 }
@@ -259,6 +290,10 @@ namespace Milehigh.Core
             {
                 foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
                 {
+                    if (charProfile != null)
+                    {
+                        SpawnOrUpdateCharacter(charProfile);
+                    }
                     SpawnOrUpdateCharacter(charProfile);
             // BOLT: Optimization - Pre-populate the cache with a single scene traversal.
             // This avoids multiple O(N) GameObject.Find calls later.
@@ -332,6 +367,10 @@ namespace Milehigh.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
+                    if (interaction != null)
+                    {
+                        ApplyInteraction(interaction);
+                    }
                     if (interaction != null) ApplyInteraction(interaction);
                 }
             }
@@ -345,6 +384,7 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: O(1) prefab lookup instead of O(M) list search
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab) || prefab == null)
                 {
@@ -426,6 +466,8 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
+
             GameObject? target = GetCachedObject(interaction.objectId);
 
             if (target != null)
@@ -443,6 +485,10 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // BOLT: Clear caches to release references
+            _objectCache.Clear();
+            _controllerCache.Clear();
+            _prefabLookupCache.Clear();
             // BOLT: Clear caches to allow Unity to garbage collect native objects
             _objectCache.Clear();
             _prefabLookupCache.Clear();
