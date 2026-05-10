@@ -128,6 +128,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             wait = new WaitForSeconds(time);
             _waitForSecondsCache[timeMs] = wait;
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeMs] = wait;
         int timeKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
         {
