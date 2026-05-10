@@ -187,6 +187,8 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private string _currentCompletionCue = null!;
+    private string _currentSpeakerHex = null!;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // BOLT: Use int (milliseconds) instead of float for dictionary key to avoid floating-point tolerance cache misses
@@ -203,6 +205,7 @@ namespace Milehigh.Cinematics
 
     void Update()
     {
+        if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
         // ⚡ Bolt: Precise skip detection for refined UX.
@@ -297,6 +300,13 @@ namespace Milehigh.Cinematics
     private IEnumerator TypeDialogue(string message)
     {
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        // We pre-calculate it once here to avoid string allocations and hex conversion in the loop or final update.
+        _currentCompletionCue = $" <color=#{_currentSpeakerHex}>▽</color>";
+        DialogueText.text = message + _currentCompletionCue;
+
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
@@ -327,6 +337,24 @@ namespace Milehigh.Cinematics
             // UX Enhancement: Rhythmic punctuation pauses for natural reading.
             // Note: Delay occurs *after* character reveal for natural rhythm.
             char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Note: Delay occurs *after* character reveal for natural rhythm.
+                delay += 0.4f;
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay += 0.2f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        skipRequested = false;
             float extraDelay = 0f;
 
             if (c == '.' || c == '!' || c == '?')
@@ -474,7 +502,10 @@ namespace Milehigh.Cinematics
         // Ensure all characters (including completion cue) are visible
         DialogueText.maxVisibleCharacters = textInfo.characterCount;
 
-        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
+        // Ensure the visual cue is shown at the end by updating the text one last time with the cached cue.
+        DialogueText.text = message + _currentCompletionCue;
+        DialogueText.maxVisibleCharacters = totalCharacters + 2;
+
         typingCoroutine = null;
         yield break;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
