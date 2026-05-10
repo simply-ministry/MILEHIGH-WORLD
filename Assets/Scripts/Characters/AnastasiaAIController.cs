@@ -9,7 +9,6 @@ namespace Milehigh.Characters
 
         public override void ExecuteBehavior()
         {
-            // ProcessDreamscape("stable", 0);
         }
 
         public void ProcessDreamscape(string geometryState, int parityFails)
@@ -25,17 +24,17 @@ namespace Milehigh.Characters
             CommandReverie("toggle_form");
         }
 
-        private void SnapMemoryFragments()
+        protected virtual void SnapMemoryFragments()
         {
             Debug.Log("Anastasia: Snapping memory fragments...");
         }
 
-        private void TriggerEnvironmentCrash()
+        protected virtual void TriggerEnvironmentCrash()
         {
             Debug.Log("Anastasia: Triggering environment crash!");
         }
 
-        private void CommandReverie(string command)
+        protected virtual void CommandReverie(string command)
         {
             Debug.Log($"Anastasia: Commanding Reverie with {command}.");
         }
