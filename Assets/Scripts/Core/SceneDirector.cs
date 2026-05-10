@@ -283,6 +283,8 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
 
+        // 🛡️ Sentinel: Regex for validating object names to prevent DoS via malicious GameObject.Find queries.
+        private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\_\.\\[\]\/]+$", RegexOptions.Compiled);
         private void Start()
         private void EnsurePrefabCache()
         {
@@ -683,6 +685,14 @@ namespace Milehigh.Core
                 _objectCache.Remove(objectName);
             }
 
+            // 🛡️ Sentinel: Input validation to prevent DoS attacks using extremely long or malformed strings in GameObject.Find.
+            if (objectName.Length > 128 || !SafeNameRegex.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
+                return null;
+            }
+
+            // BOLT: Perform an O(1) dictionary lookup first.
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
@@ -868,6 +878,8 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                if (obj != null) return obj;
                 // If it's a Unity null (native object destroyed), we should try to find it again
                 if (obj == null)
                 {
@@ -1142,6 +1154,10 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(profileName)) return null;
 
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) search happens only once per profile name if not pre-populated.
+
             // BOLT: Perform O(1) dictionary lookup
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
             {
@@ -1166,6 +1182,7 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private CharacterControllerBase? GetCharacterController(GameObject characterObj)
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
         private void OnDestroy()
         {
@@ -1320,6 +1337,8 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
+            {
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Length > 0)
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
@@ -1470,6 +1489,8 @@ namespace Milehigh.Core
             {
                 foreach (var charProfile in campaignData.characters)
                 {
+                    if (charProfile != null)
+                        SpawnOrUpdateCharacter(charProfile);
                     if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
                     if (charProfile != null)
                     {
@@ -1482,6 +1503,8 @@ namespace Milehigh.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
+                    if (interaction != null)
+                        ApplyInteraction(interaction);
                     if (interaction != null) ApplyInteraction(interaction);
                     if (interaction != null)
                     {
@@ -1861,6 +1884,7 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // BOLT: Clear caches on destroy to release Unity object references
             // BOLT: Clear all caches to release Unity engine object references
             // BOLT: Clear caches to release references and prevent memory leaks.
             _objectCache.Clear();

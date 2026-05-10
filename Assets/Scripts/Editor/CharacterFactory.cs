@@ -176,6 +176,11 @@ namespace Milehigh.Editor
 
                 string safeFileName = baseName;
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
+                string safeFileName = charProfile.name ?? "unnamed_character";
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    safeFileName = safeFileName.Replace(c, '_');
                 // Use a strict whitelist-based approach to ensure generated paths remain within the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 foreach (char c in Path.GetInvalidFileNameChars())
