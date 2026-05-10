@@ -76,6 +76,9 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-26 - [Consolidated Input and Rhythmic Typewriter]
+**Learning:** Large Unity scripts like 'Cinematic_IntoTheVoid.cs' can often accumulate redundant input handlers (multiple 'Update' methods) and fragmented dialogue logic. Consolidating these into a single, clean input flag system ('skipRequested') and a unified 'TypeDialogue' loop significantly improves maintainability and responsiveness. Furthermore, using 'textInfo.characterCount' after 'ForceMeshUpdate' is the only reliable way to reveal text containing rich-text tags (like colored completion cues) without causing character-count mismatches.
+**Action:** Always audit for redundant 'Update' methods during refactors and use 'TMP_TextInfo' for all character-by-character UI reveals.
 ## 2025-05-22 - [Smart Punctuation and Smooth Transitions in Cinematics]
 **Learning:** Cinematic readability is significantly enhanced by rhythmic typewriter pacing that handles mid-word periods (e.g., 'Sky.ix') without pausing, while providing longer pauses for actual sentence endings and ellipses. Combining this with smooth alpha transitions via `CanvasGroup` for the dialogue box provides a premium feel that instant toggles lack.
 **Action:** Implement smart look-ahead/look-behind logic in typewriter reveal loops and use `CanvasGroup` for UI panel transitions.
