@@ -6,7 +6,7 @@ namespace Milehigh.Core
 {
     public class CampaignManager : MonoBehaviour
     {
-        private static CampaignManager _instance;
+        private static CampaignManager? _instance;
         public static CampaignManager Instance
         {
             get
@@ -20,11 +20,11 @@ namespace Milehigh.Core
                         _instance = go.AddComponent<CampaignManager>();
                     }
                 }
-                return _instance;
+                return _instance!;
             }
         }
 
-        public HorizonGameData currentCampaignData;
+        public HorizonGameData? currentCampaignData;
         public float currentVoidSaturationLevel;
 
         private void Awake()
@@ -68,6 +68,7 @@ namespace Milehigh.Core
                     else
                     {
                         // 🛡️ Sentinel: Failed validation means we cannot trust the campaign data.
+                        // SECURITY: Log the validation failure without exposing internal paths
                         Debug.LogError($"Campaign data from {fileName} failed security validation or is malformed.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }

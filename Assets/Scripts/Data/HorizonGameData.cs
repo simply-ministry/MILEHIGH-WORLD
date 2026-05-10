@@ -11,11 +11,11 @@ namespace Milehigh.Data
         Dynamic
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Metadata
     {
         public LightingState lighting;
-        public string environment;
+        public string environment = null!;
         public int systemParity;
         public float voidSaturationLevel;
 
@@ -35,20 +35,20 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class CharacterProfile
     {
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class ObjectInteraction
     {
-        public string objectId;
-        public string action;
+        public string objectId = null!;
+        public string action = null!;
 
         public bool isVector;
         public float floatValue;
@@ -62,30 +62,30 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Dialogue
     {
-        public string speaker;
-        public string text;
-        public string trigger;
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class SceneScenario
     {
-        public string scenarioId;
-        public string description;
-        public List<ObjectInteraction> interactiveObjects;
-        public List<Dialogue> dialogue;
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class HorizonGameData
     {
-        public string sceneId;
-        public Metadata metadata;
-        public List<CharacterProfile> characters;
-        public List<SceneScenario> scenarios;
+        public string sceneId = null!;
+        public Metadata metadata = null!;
+        public List<CharacterProfile> characters = null!;
+        public List<SceneScenario> scenarios = null!;
 
         /// <summary>
         /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
@@ -113,6 +113,9 @@ namespace Milehigh.Data
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
                 return false;
             }
 
