@@ -19,6 +19,8 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
+        public bool IsValid()
+        {
         /// <summary>
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and safety bounds.
         /// </summary>
@@ -88,9 +90,6 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters = null!;
         public List<SceneScenario> scenarios = null!;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
-        /// </summary>
         public bool IsValid()
         {
             if (metadata == null)

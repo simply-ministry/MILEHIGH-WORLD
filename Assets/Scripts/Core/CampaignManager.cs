@@ -7,7 +7,7 @@ namespace Milehigh.Core
 {
     public class CampaignManager : MonoBehaviour
     {
-        private static CampaignManager _instance;
+        private static CampaignManager? _instance;
         public static CampaignManager Instance
         {
             get
@@ -21,10 +21,11 @@ namespace Milehigh.Core
                         _instance = go.AddComponent<CampaignManager>();
                     }
                 }
-                return _instance;
+                return _instance!;
             }
         }
 
+        public HorizonGameData? currentCampaignData;
         public HorizonGameData currentCampaignData = null!;
         public float currentVoidSaturationLevel;
 
@@ -58,8 +59,6 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
-                    // 🛡️ Sentinel: Security validation of deserialized data.
-                    // SECURITY: Perform validation after deserialization to ensure data integrity
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
@@ -69,6 +68,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
@@ -86,6 +86,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                     // Log only the file name, not the absolute path, to prevent information disclosure
                     Debug.LogError($"Error loading campaign data from {Path.GetFileName(filePath)}: {ex.Message}");

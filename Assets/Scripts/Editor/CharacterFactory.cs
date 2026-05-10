@@ -18,8 +18,11 @@ namespace Milehigh.Editor
             }
 
             string json = File.ReadAllText(path);
-            HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
+            if (data == null || !data.IsValid())
+            {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization to ensure data integrity
             if (data == null || !data.IsValid())
@@ -105,9 +108,6 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
-                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
-                // Malicious JSON could use "../" to write assets outside the intended directory.
-                // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
                 // Malicious JSON could use "../" to write assets outside the intended directory
@@ -138,7 +138,6 @@ namespace Milehigh.Editor
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
-                // SECURITY: Log relative asset path to avoid absolute path disclosure
                 Debug.Log($"Created character asset: {assetPath}");
             }
 

@@ -52,6 +52,9 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+## 2025-05-14 - Optimized Prefab Lookup and Instantiation
+**Learning:** Linear searches in a List<GameObject> (O(P)) inside a spawning loop (O(C)) creates an O(C*P) bottleneck that scales poorly with character and prefab counts. Additionally, synchronous instantiation of multiple complex characters causes frame drops.
+**Action:** Always use a Dictionary for prefab lookups and implement Coroutines to spread heavy instantiation across frames.
 
 ## 2024-05-26 - Float Key Cache Misses in Dictionary
 **Learning:** Using float as a key in Dictionary<float, WaitForSeconds> leads to cache misses due to floating-point tolerance variations, resulting in redundant GC allocations.
