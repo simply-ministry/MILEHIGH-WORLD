@@ -55,6 +55,12 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+## 2024-05-25 - Unity WaitForSeconds GC Allocation in Loops Cache Key
+**Learning:** When caching `WaitForSeconds` in a `Dictionary` to prevent GC allocations in Unity Coroutines, using a `float` key is unreliable due to floating-point precision differences causing cache misses.
+**Action:** Always use an `int` key representing milliseconds (e.g., via `Mathf.RoundToInt(time * 1000f)`) rather than `float` when caching temporal objects like `WaitForSeconds` to ensure consistent and reliable O(1) dictionary lookups.
+## 2025-02-23 - Avoid float keys in Dictionary caches for Unity
+**Learning:** Using `float` keys in a `Dictionary` cache (e.g., for `WaitForSeconds`) can cause frequent cache misses due to floating-point tolerance variations. Even when requesting the same float value (like 0.5f), minor precision differences might lead to a different hash, breaking the cache mechanism.
+**Action:** Always convert floats to a stable integer representation (like milliseconds via `Mathf.RoundToInt(time * 1000f)`) when using them as cache keys.
 
 ## 2024-05-15 - Optimizing List.Find with Partial String Matching
 **Learning:** In Unity, an O(N) list search with string comparisons (e.g., `List.Find(p => p.name.Contains(searchString))`) inside a loop is expensive. When replacing this with a `Dictionary<string, GameObject>` cache, we can't naively pre-cache using `prefab.name` if partial matching is required. The solution is lazy evaluation: perform the O(N) `.Find()` on a cache miss, and store the result mapped to the `searchString` key for subsequent O(1) lookups. Additionally, storing `null` for missing items (negative caching) prevents the expensive fallback search from executing repeatedly for non-existent assets.
@@ -146,9 +152,15 @@
 **Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
 **Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
 
+## 2024-05-28 - Unity WaitForSeconds float key imprecision
+**Learning:** Caching `WaitForSeconds` in a Dictionary using a `float` as the key leads to cache misses due to floating-point imprecision. This defeats the purpose of the cache and causes unexpected GC allocations when yielding delays.
+**Action:** Use an integer key representing milliseconds (e.g., `Mathf.RoundToInt(time * 1000f)`) to guarantee stable lookups and prevent unnecessary object allocations in performance-critical loops.
 ## 2026-05-06 - Float Keys in WaitForSeconds Cache
 **Learning:** Using floats as keys in a Dictionary for caching WaitForSeconds causes cache misses due to floating-point imprecision, leading to unnecessary GC allocations and defeating the purpose of the cache.
 **Action:** Use an integer key representing milliseconds (via `Mathf.RoundToInt(time * 1000f)`) to ensure cache hits.
 ## 2024-05-26 - WaitForSeconds Float Dictionary Cache Misses
 **Learning:** Caching `WaitForSeconds` using a `float` as the dictionary key can lead to cache misses due to floating-point imprecision, causing unintended `WaitForSeconds` instantiations and unnecessary GC allocations.
 **Action:** Always use an integer key (e.g., representing milliseconds via `Mathf.RoundToInt(time * 1000f)`) instead of a `float` when caching `WaitForSeconds` instances in a dictionary.
+## 2026-05-10 - [Unified Caching & Code Rot Consolidation]
+**Learning:** SceneDirector.cs was severely bloated with over a dozen redundant dictionary declarations and duplicate helper methods. This "code rot" increased memory overhead and created a risk of cache inconsistency during scene setups.
+**Action:** Consolidated all redundant caching logic into a single, unified triple-cache system (GameObjects, Prefabs, and Controllers). Removed all duplicate declarations and helper methods, standardizing on O(1) lookups and robust Unity-native null handling to ensure performance and reliability.
