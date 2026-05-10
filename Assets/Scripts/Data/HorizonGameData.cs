@@ -16,6 +16,10 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
         public bool IsValid()
         {
@@ -45,6 +49,20 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name;
+        public string role;
+        public string[] traits;
+        public string behaviorScript;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for individual character data.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Implement resource exhaustion protection (DoS prevention)
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (string.IsNullOrEmpty(role) || role.Length > 128) return false;
+            if (behaviorScript != null && behaviorScript.Length > 128) return false;
         public string name = null!;
         public string role = null!;
         public string[] traits = null!;
@@ -122,6 +140,19 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId;
+        public string description;
+        public List<ObjectInteraction> interactiveObjects;
+        public List<Dialogue> dialogue;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for individual scenarios.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            return true;
+        }
         public string scenarioId = null!;
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
