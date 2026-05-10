@@ -51,8 +51,15 @@ namespace Milehigh.Editor
                     return;
                 }
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
+                // 🛡️ Sentinel: Fail securely and mask stack traces to avoid info disclosure
+                Debug.LogError($"Failed to load or parse campaign data: {ex.GetType().Name}");
+                return;
+            }
+
+            // 🛡️ Sentinel: Post-deserialization validation
+            if (!data.IsValid())
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
                 return;
@@ -99,6 +106,12 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Robust Path Traversal prevention using strict whitelist.
+                // Strips all characters except alphanumeric, underscore, and hyphen.
+                // Also strips leading dots/underscores to prevent hidden files/traversal.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = Regex.Replace(baseName, @"[^a-zA-Z0-9_\-]", "_");
+                safeFileName = safeFileName.TrimStart('.', '_');
                 // 🛡️ Sentinel: Path Traversal prevention
                 string safeFileName = GetSafeFileName(charProfile.name);
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
@@ -259,6 +272,8 @@ namespace Milehigh.Editor
             string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
             sanitized = sanitized.TrimStart('.', '_'); // Strip leading dots/underscores
 
+                // SECURITY: Log relative asset path to avoid absolute path disclosure.
+                Debug.Log($"Created character asset: {assetPath}");
             // Ensure no directory traversal remains
             string safeName = Path.GetFileName(sanitized);
 
