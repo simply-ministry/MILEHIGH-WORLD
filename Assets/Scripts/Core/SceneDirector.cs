@@ -7,114 +7,95 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
-        public List<GameObject> characterPrefabs; // Assign in Inspector
+        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform characterSpawnRoot = null!;
 
-        public Transform characterSpawnRoot;
-
-        // ⚡ Bolt: Cache game objects to prevent expensive O(N) GameObject.Find() calls on every interaction.
+        // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+1        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
 
-        // BOLT: Cache for GameObject.Find to prevent redundant scene graph searches
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
+        private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
 
-        private GameObject GetCachedGameObject(string name)
+        private GameObject? GetCachedObject(string objectName)
         {
-            if (string.IsNullOrEmpty(name)) return null;
+            if (string.IsNullOrEmpty(objectName)) return null;
 
-            if (_objectCache.TryGetValue(name, out GameObject cachedObj))
+            // BOLT: Perform an O(1) dictionary lookup first.
+1            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
-                if (cachedObj != null) return cachedObj;
-                _objectCache.Remove(name); // Clean up destroyed objects
-        // Cache for faster GameObject lookups by name
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-        // Performance Optimization: Cache found objects to avoid O(n) GameObject.Find calls
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-
-        private Dictionary<string, GameObject> _cachedObjects = new Dictionary<string, GameObject>();
-        // ⚡ Bolt: Cache for GameObject lookups to prevent expensive O(N) hierarchy traversals
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-
-        private GameObject FindCachedObject(string objectName)
-        {
-            if (_objectCache.TryGetValue(objectName, out GameObject cachedObj) && cachedObj != null)
-            {
-                return cachedObj;
-            }
-
-            GameObject foundObj = GameObject.Find(objectName);
-            if (foundObj != null)
-            {
-                _objectCache[objectName] = foundObj;
-            }
-
-            return foundObj;
-        // ⚡ Bolt: Cache GameObjects to avoid expensive GameObject.Find() calls in loops
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-
-        // ⚡ Bolt Optimization: Cache GameObject.Find results to prevent O(N*M) lookups during scene setup
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-
-        private GameObject FindObjectCached(string objectName)
-        {
+                // BOLT: Check if the cached reference is a destroyed Unity object (fake null)
+                // vs a legitimate negative cache entry (real null).
+                if (obj == null && !ReferenceEquals(obj, null))
+                {
+                    _objectCache.Remove(objectName);
+                }
+                else
+                {
+                    return obj;
+                }
+            // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                // or just return the Unity null which behaves like null.
+                if (obj == null) return null;
+
                 return obj;
             }
 
+            // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
-            if (obj != null)
-            {
-                _objectCache[objectName] = obj;
-        // Cache to prevent expensive GameObject.Find calls in loops
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-        // Cache for GameObject references to prevent expensive GameObject.Find calls
-        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-        // Cache to avoid O(N) GameObject.Find calls in loops
-        private Dictionary<string, GameObject> objectCache = new Dictionary<string, GameObject>();
-
-        private GameObject GetCachedGameObject(string name)
-        {
-            if (objectCache.TryGetValue(name, out GameObject obj))
-            {
-                // Check if obj is null (Unity handles destroyed objects evaluating to null)
-                if (obj != null) return obj;
-                objectCache.Remove(name);
-            }
-
-            GameObject foundObj = GameObject.Find(name);
-            if (foundObj != null)
-            {
-                _objectCache[name] = foundObj;
-            }
-            return foundObj;
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals
+            _objectCache[objectName] = obj;
+            return obj;
         }
 
-                objectCache[name] = foundObj;
-            }
-            return foundObj;
-        // Cache to prevent expensive GameObject.Find calls in loops
-        private Dictionary<string, GameObject> _gameObjectCache = new Dictionary<string, GameObject>();
-
-        private GameObject GetCachedGameObject(string name)
+        private GameObject GetPrefab(string profileName)
         {
-            if (_gameObjectCache.TryGetValue(name, out GameObject cachedObj) && cachedObj != null)
-            {
-                return cachedObj;
-            }
+            if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
-            GameObject obj = GameObject.Find(name);
-            if (obj != null)
-            {
-                _gameObjectCache[name] = obj;
-            }
-            return obj;
+            // BOLT: O(P) search and delegate allocation happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p.name.Contains(profileName));
+            _prefabCache[profileName] = prefab;
+            return prefab;
+        }
+
+        private CharacterControllerBase GetCharacterController(GameObject characterObj)
+        {
+            if (characterObj == null) return null;
+            int objId = characterObj.GetInstanceID();
+
+            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
+
+            controller = characterObj.GetComponent<CharacterControllerBase>();
+            _controllerCache[objId] = controller;
+            return controller;
         }
 
         private void Start()
         {
+            // BOLT: Pre-populate prefab cache to ensure O(1) lookups during any scene setup
+            if (characterPrefabs != null)
+            {
+                foreach (var prefab in characterPrefabs)
+                {
+                    if (prefab != null) _prefabCache[prefab.name] = prefab;
+                }
+            }
+
             if (CampaignManager.Instance.currentCampaignData != null)
             {
-                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                SetupScene(campaignData.scenarios[0]);
             }
         }
 
@@ -122,138 +103,69 @@ namespace Milehigh.Core
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
-            // Clear cache at start of setup to avoid stale references across scenes
-            objectCache.Clear();
+            // BOLT: Clear dynamic caches at start of setup to avoid stale references across scenes
+            _objectCache.Clear();
+            _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
-            foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+            if (CampaignManager.Instance?.currentCampaignData != null)
             {
-                SpawnOrUpdateCharacter(charProfile);
+                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
+                }
             }
 
             // Execute interactive objects logic
-            foreach (var interaction in scenario.interactiveObjects)
+            if (scenario.interactiveObjects != null)
             {
-                ApplyInteraction(interaction);
+                foreach (var interaction in scenario.interactiveObjects)
+                {
+                    ApplyInteraction(interaction);
+                }
             }
-        }
-
-        // ⚡ Bolt: Helper to retrieve or cache GameObjects, avoiding repeated hierarchy traversal.
-        private GameObject FindCachedObject(string objectName)
-        {
-            if (_objectCache.TryGetValue(objectName, out GameObject cachedObj) && cachedObj != null)
-            {
-                return cachedObj;
-            }
-
-        private GameObject FindCachedObject(string objectName)
-        {
-            // Unity's GameObject.Find is an expensive O(N) operation over all active objects.
-            // Caching it avoids redundant full scene graph traversals.
-            if (_cachedObjects.TryGetValue(objectName, out GameObject obj) && obj != null)
-        private GameObject FindCachedObject(string objName)
-        {
-            if (_objectCache.TryGetValue(objName, out GameObject obj) && obj != null)
-        private GameObject GetCachedObject(string objectName)
-        {
-            if (string.IsNullOrEmpty(objectName)) return null;
-
-            // Check cache first; safely handle natively destroyed objects via Unity's overloaded == operator
-            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
-            {
-                return obj;
-            }
-
-            obj = GameObject.Find(objectName);
-            if (obj != null)
-            {
-                _cachedObjects[objectName] = obj;
-            }
-            return obj;
-            obj = GameObject.Find(objName);
-            if (obj != null)
-            {
-                _objectCache[objName] = obj;
-            }
-            return obj;
-            // Fallback to Find and cache the result
-            GameObject foundObj = GameObject.Find(objectName);
-            if (foundObj != null)
-            {
-                _objectCache[objectName] = foundObj;
-            }
-
-            return foundObj;
         }
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            GameObject characterObj = FindCachedObject(profile.name);
-            GameObject characterObj = null;
+            GameObject? characterObj = GetCachedObject(profile.name);
 
-            // Check cache first (O(1) lookup instead of O(n) scene traversal)
-            if (_objectCache.TryGetValue(profile.name, out GameObject cachedObj) && cachedObj != null)
-            {
-                characterObj = cachedObj;
-            }
-            else
-            GameObject characterObj = FindCachedObject(profile.name);
-            GameObject characterObj = null;
-            if (_objectCache.ContainsKey(profile.name))
-            {
-                characterObj = _objectCache[profile.name];
-            }
-
-            GameObject characterObj = FindObjectCached(profile.name);
-            GameObject characterObj = FindCachedObject(profile.name);
-            GameObject characterObj = GetCachedObject(profile.name);
-            GameObject characterObj = GetCachedGameObject(profile.name);
             if (characterObj == null)
             {
-                characterObj = GameObject.Find(profile.name);
+                // BOLT: Use O(1) prefab cache helper
+                GameObject prefab = GetPrefab(profile.name);
+                // BOLT: Optimized prefab lookup using dictionary cache (O(1))
+                // instead of characterPrefabs.Find (O(P))
+                GameObject? prefab = null;
 
-                if (characterObj == null)
+                // Try exact match first
+                if (!_prefabLookupCache.TryGetValue(profile.name, out prefab))
                 {
-                    // Try to find prefab
-                    GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
-                    if (prefab != null)
+                    // Fallback to partial match if exact match fails (legacy support)
+                    foreach (var kvp in _prefabLookupCache)
                     {
-                        characterObj = Instantiate(prefab, characterSpawnRoot);
-                        characterObj.name = profile.name;
+                        if (kvp.Key != null && kvp.Key.Contains(profile.name))
+                        {
+                            prefab = kvp.Value;
+                            break;
+                        }
                     }
                 }
 
-                // Cache the found or instantiated object for future lookups
-                if (characterObj != null)
+                if (prefab != null)
                 {
-                    _objectCache[profile.name] = characterObj;
-                if (characterObj != null)
-                {
-                    _objectCache[profile.name] = characterObj;
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
 
-                    // ⚡ Bolt: Cache newly spawned characters immediately
+                    // BOLT: Immediately cache the newly instantiated object
                     _objectCache[profile.name] = characterObj;
-                    _objectCache[profile.name] = characterObj; // BOLT: Cache newly spawned object
-                    _objectCache[profile.name] = characterObj; // Cache the new object
-                    _cachedObjects[profile.name] = characterObj;
-                    _objectCache[profile.name] = characterObj; // ⚡ Bolt: add instantiated object to cache
-                    _objectCache[profile.name] = characterObj; // Cache the newly instantiated object
-                    _objectCache[profile.name] = characterObj; // Cache new instance
-
-                    // Add newly instantiated character to cache
-                    _objectCache[profile.name] = characterObj;
-                    objectCache[profile.name] = characterObj; // Cache newly created object
-                    // Cache the newly instantiated object
-                    _gameObjectCache[profile.name] = characterObj;
                 }
             }
 
             if (characterObj != null)
             {
-                // Assign data to controllers
-                var controller = characterObj.GetComponent<CharacterControllerBase>();
+                // BOLT: Use O(1) controller cache to avoid redundant GetComponent
+                var controller = GetCharacterController(characterObj);
                 if (controller != null)
                 {
                     // Create a dummy CharacterData for runtime initialization
@@ -270,35 +182,8 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            GameObject target = FindCachedObject(interaction.objectId);
-            GameObject target = null;
+            GameObject? target = GetCachedObject(interaction.objectId);
 
-            // Check cache first
-            if (_objectCache.TryGetValue(interaction.objectId, out GameObject cachedTarget) && cachedTarget != null)
-            {
-                target = cachedTarget;
-            }
-            else
-            GameObject target = FindCachedObject(interaction.objectId);
-            GameObject target = null;
-            if (_objectCache.ContainsKey(interaction.objectId))
-            {
-                target = _objectCache[interaction.objectId];
-            }
-
-            if (target == null)
-            {
-                target = GameObject.Find(interaction.objectId);
-                if (target != null)
-                {
-                    _objectCache[interaction.objectId] = target;
-                }
-            }
-
-            GameObject target = FindObjectCached(interaction.objectId);
-            GameObject target = FindCachedObject(interaction.objectId);
-            GameObject target = GetCachedObject(interaction.objectId);
-            GameObject target = GetCachedGameObject(interaction.objectId);
             if (target != null)
             {
                 Debug.Log($"Applying {interaction.action} to {interaction.objectId}");
