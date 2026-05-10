@@ -130,6 +130,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private string currentSpeakerHex;
 
     // BOLT: Cache for WaitForSeconds using int (milliseconds) to eliminate GC allocations during coroutine execution.
     // Using int keys instead of float prevents cache misses caused by floating-point precision errors.
@@ -407,6 +408,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 SpeakerNameText.color = Color.white;
                 break;
         }
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
 
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         // Capture hex for color-coded UI cues
@@ -417,6 +419,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        // UX Enhancement: Set the full text (including themed completion cue) at the start to prevent layout shifts.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         // BOLT: Optimization - Pre-concatenate cue and set text once to avoid redundant layout rebuilds and extra allocations.
         DialogueText.text = message + " ▽";
         DialogueText.maxVisibleCharacters = 0;
@@ -545,6 +549,26 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (c == '!' || c == '?')
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        delay = currentTypingSpeed * 15f;
+
+                        if (i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            // Look-ahead: handle ellipsis (...) with shorter rhythmic delays between dots
+                            if (c == '.' && nextChar == '.')
+                            {
+                                delay = currentTypingSpeed * 5f;
+                            }
+                            // Look-ahead: avoid long delays for mid-word periods (e.g., Sky.ix)
+                            else if (char.IsLetterOrDigit(nextChar))
+                            {
+                                delay = currentTypingSpeed;
+                            }
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                     bool isEllipsis = i > 1 && c == '.' && DialogueText.textInfo.characterInfo[i - 2].character == '.';
 
                     if (isEllipsis)
@@ -567,6 +591,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             }
         }
 
+        skipRequested = false;
         // UX Enhancement: Final pause after punctuation before showing the completion cue.
         if (!skipRequested && totalVisibleCharacters > 0)
         {
