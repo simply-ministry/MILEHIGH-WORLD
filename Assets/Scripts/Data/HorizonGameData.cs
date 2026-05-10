@@ -180,6 +180,8 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
+        public string objectId = "";
+        public string action = "";
         public string objectId = null!;
         public string action = null!;
         public string objectId = string.Empty;
@@ -257,6 +259,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = "";
+        public string description = "";
+        public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
+        public List<Dialogue> dialogue = new List<Dialogue>();
         public string scenarioId = null!;
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
@@ -266,6 +272,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class HorizonGameData
     {
+        public string sceneId = "";
+        public Metadata? metadata;
+        public List<CharacterProfile> characters = new List<CharacterProfile>();
+        public List<SceneScenario> scenarios = new List<SceneScenario>();
         public string sceneId = null!;
         public Metadata metadata = null!;
         public List<CharacterProfile> characters = null!;

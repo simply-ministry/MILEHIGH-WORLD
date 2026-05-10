@@ -11,6 +11,15 @@ namespace Milehigh.Core
     public class SceneDirector : MonoBehaviour
     {
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform characterSpawnRoot = null!;
+
+        // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+
+        // BOLT: Cache for character prefabs to turn O(N) searches into O(1) lookups
+        private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
+
+        private GameObject? GetCachedObject(string objectName)
         public Transform? characterSpawnRoot;
         public Transform characterSpawnRoot = null!;
 
@@ -969,6 +978,7 @@ namespace Milehigh.Core
 
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             if (_objectCache.TryGetValue(objectName, out obj))
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
@@ -1087,6 +1097,15 @@ namespace Milehigh.Core
             // BOLT: Clean up controller cache to avoid memory leaks of destroyed objects
             _controllerCache.Clear();
 
+            // BOLT: Removed redundant .Clear() to allow lazy-loading caches to persist across scenario updates.
+            // Unity's null check (obj != null) safely handles destroyed objects from previous scenes.
+
+            // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
+            {
+                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
             InitializePrefabCache();
 
             // BOLT: Optimization - Pre-populate the cache with a single scene traversal.
@@ -1317,6 +1336,19 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            GameObject? characterObj = GetCachedObject(profile.name);
+
+            if (characterObj == null)
+            {
+                // BOLT: O(1) prefab lookup after initial O(N) search
+                if (!_prefabLookupCache.TryGetValue(profile.name, out GameObject? prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p != null && p.name != null && p.name.Contains(profile.name));
+                    if (prefab != null)
+                    {
+                        _prefabLookupCache[profile.name] = prefab;
+                    }
+                }
             if (profile == null || string.IsNullOrEmpty(profile.name)) return;
 
             if (profile == null) return;
@@ -1558,6 +1590,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            GameObject? target = GetCachedObject(interaction.objectId);
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
             {

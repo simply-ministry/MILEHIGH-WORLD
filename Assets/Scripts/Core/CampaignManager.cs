@@ -24,8 +24,6 @@ namespace Milehigh.Core
                         _instance = go.AddComponent<CampaignManager>();
                     }
                 }
-                return _instance;
-                if (_instance == null) InitializeInstance();
                 return _instance!;
             }
         }
@@ -74,6 +72,14 @@ namespace Milehigh.Core
                     var data = JsonUtility.FromJson<HorizonGameData>(json);
 
                     // 🛡️ Sentinel: Security validation of deserialized data.
+                    if (currentCampaignData != null && currentCampaignData.IsValid())
+                    {
+                        currentVoidSaturationLevel = currentCampaignData.metadata!.voidSaturationLevel;
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                     // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
                     var data = currentCampaignData;
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
@@ -135,6 +141,7 @@ namespace Milehigh.Core
                 catch (Exception ex)
                 catch (System.Exception)
                 {
+                    Debug.LogError($"Failed to load or parse campaign data from {fileName}.");
                     // SECURITY: Catch exceptions to fail securely and avoid leaking internal stack traces or paths.
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");
                     // SECURITY: Fail securely and avoid leaking internal stack traces or absolute paths.
