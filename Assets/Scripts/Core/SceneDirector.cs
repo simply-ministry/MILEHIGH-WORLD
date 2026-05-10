@@ -1123,6 +1123,11 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Security validation to prevent IDOR-like tampering of critical system objects
+            if (interaction.objectId == "CampaignManager" ||
+                interaction.objectId == "SceneDirector" ||
+                interaction.objectId == "CameraManager")
+            {
             // 🛡️ Sentinel: Apply IDOR validation blocklist at the application boundary where external JSON is processed.
             if (string.IsNullOrEmpty(interaction.objectId) || ProtectedManagers.Contains(interaction.objectId))
             {
