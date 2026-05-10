@@ -124,6 +124,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
+    private Coroutine? typingCoroutine;
     private Coroutine typingCoroutine;
     private Coroutine popCoroutine;
     private Vector3 originalSpeakerNameScale;
@@ -3410,7 +3411,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueBox.SetActive(false);
 
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
-        // Example: PlayerInput.Instance.EnableControls();
+        // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
