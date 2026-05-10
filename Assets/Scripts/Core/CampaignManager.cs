@@ -129,21 +129,6 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
-                    currentCampaignData = null; // Ensure we don't use partially loaded or invalid data
-                    else
-                    {
-                        // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths in logs.
-                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
-                        currentCampaignData = null;
-                        // SECURITY: Fail securely and don't use invalid data.
-                        Debug.LogError($"Failed to validate campaign data from {fileName}. Ensure it conforms to security standards.");
-                        currentCampaignData = null;
-                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
-                        currentCampaignData = null; // Ensure we don't use invalid data
-                    }
-                }
-                catch (System.Exception ex)
-                {
                     // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
                     Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
                     currentCampaignData = null;
