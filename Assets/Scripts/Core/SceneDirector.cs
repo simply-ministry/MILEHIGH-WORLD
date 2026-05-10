@@ -1840,6 +1840,14 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Security validation to prevent IDOR via external JSON mapping to core managers.
+            string[] protectedManagers = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
+            if (System.Array.Exists(protectedManagers, m => m == interaction.objectId))
+            {
+                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt with protected manager: {interaction.objectId}");
+                return;
+            }
+
             // SECURITY: Prevent IDOR (Insecure Direct Object Reference) tampering with core systems.
             // Block direct interactions with architectural singletons.
             if (interaction.objectId == "CampaignManager" ||
