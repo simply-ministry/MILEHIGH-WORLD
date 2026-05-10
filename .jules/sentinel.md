@@ -98,6 +98,10 @@
 **Learning:** Incomplete or improperly merged security fixes can be as dangerous as the original vulnerabilities, as they may lead to compilation failures or bypassed security checks. Centralizing validation logic and ensuring clean path sanitization is critical.
 **Prevention:** Always perform a full code review and basic sanity check (even if just manual brace counting) after applying security fixes to ensure no regressions or syntax errors are introduced.
 
+## 2024-05-25 - IDOR in Scene Interaction Logic
+**Vulnerability:** External JSON data could directly address and manipulate critical architectural singletons (e.g., CampaignManager, SceneDirector) using unsanitized object IDs via GameObject.Find, creating an Insecure Direct Object Reference (IDOR) vulnerability.
+**Learning:** Applying blocklists or validation in low-level lookup utility methods causes functional regressions. The check must be implemented at the application boundary where the untrusted external input is first processed.
+**Prevention:** Always validate and sanitize untrusted external input against an explicit blocklist or allowlist before passing it to scene traversal or object retrieval logic like GameObject.Find.
 ## 2024-05-24 - IDOR Vulnerability via Unsanitized JSON Data in Scene Interactions
 **Vulnerability:** Insecure Direct Object Reference (IDOR) in `SceneDirector.cs` where untrusted external data (JSON `interaction.objectId`) was used to locate and manipulate arbitrary GameObjects via `GameObject.Find`, potentially allowing tampering with critical system managers.
 **Learning:** In data-driven Unity architectures, using unsanitized strings directly from external sources to look up GameObjects creates severe vulnerabilities if critical components lack protection boundaries.
