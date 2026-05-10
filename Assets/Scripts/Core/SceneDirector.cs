@@ -366,6 +366,7 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)

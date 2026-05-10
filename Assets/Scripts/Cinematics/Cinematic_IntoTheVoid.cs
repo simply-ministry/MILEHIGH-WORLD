@@ -579,6 +579,7 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        // Poll for skip input to ensure responsiveness (anyKeyDown covers mouse/keyboard/gamepad)
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
             Debug.LogError("Missing UI components required for cinematic.");
@@ -1601,13 +1602,16 @@ namespace Milehigh.Cinematics
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
+        DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
 
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalCharacters = textInfo.characterCount;
+        int messageCharacters = totalCharacters - 1; // Exclude completion cue from reveal loop
 
+        for (int i = 0; i < messageCharacters; i++)
         for (int i = 0; i <= totalCharacters; i++)
         {
             if (skipRequested)
@@ -1616,6 +1620,45 @@ namespace Milehigh.Cinematics
                 break;
             if (skipRequested) break;
 
+            DialogueText.maxVisibleCharacters = i + 1;
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // We pause AFTER the character has been revealed.
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Smart Punctuation: Look ahead to avoid pauses in mid-word (like Sky.ix).
+                // We also treat the end of the message (before the cue) as an end of sentence.
+                bool isEndOfSentence = true;
+                if (i + 1 < messageCharacters)
+                {
+                    char nextChar = textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i + 1 < messageCharacters && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                    }
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        // Final reveal including the completion cue
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        skipRequested = false; // Reset skip intent after the line is fully revealed
         int totalCharacters = DialogueText.textInfo.characterCount;
         // The cue ▽ is usually the last character
         int textOnlyCount = totalCharacters - 1;
