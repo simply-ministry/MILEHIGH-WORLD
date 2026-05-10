@@ -66,6 +66,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     [Header("UI Components")]
     public GameObject DialogueBox = null!;
+    public CanvasGroup DialogueCanvasGroup = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
     public TextMeshProUGUI? SkipHintText;
@@ -294,6 +295,29 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
     }
 
+    /// <summary>
+    /// Smoothly fades the dialogue box in or out.
+    /// </summary>
+    private IEnumerator FadeDialogue(float targetAlpha, float duration)
+    {
+        if (DialogueCanvasGroup == null) yield break;
+
+        float startAlpha = DialogueCanvasGroup.alpha;
+        float elapsed = 0;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
+            yield return null;
+        }
+
+        DialogueCanvasGroup.alpha = targetAlpha;
+    }
+
+    /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -430,6 +454,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             if (skipRequested) break;
 
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
+
+        for (int i = 0; i < totalVisibleCharacters; i++)
             DialogueText.maxVisibleCharacters = i;
 
             if (i < messageCharsCount)
@@ -456,6 +487,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            // Don't delay after the last character (the cue)
+            if (i < totalVisibleCharacters - 1)
             // Palette: Show skip hint if player is idle for 2 seconds
             if (!playerInteracted && !hintShown && Time.time - startTime > 2f)
             {
@@ -526,6 +559,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 float delay = currentTypingSpeed;
                 char c = textInfo.characterInfo[i].character;
 
+                // Rhythmic Punctuation Pacing
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (i < totalVisibleCharacters - 1)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
                 // UX Enhancement: Rhythmic punctuation pauses
                 if (c == '.' || c == '!' || c == '?')
                 {
@@ -654,6 +696,16 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
                     if (isEndOfSentence)
                     {
+                        // Refined ellipsis detection
+                        bool isEllipsis = false;
+                        if (c == '.')
+                        {
+                            if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                            if (i < totalVisibleCharacters - 2 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                        }
+
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                    {
                         // Check for ellipsis (multiple dots)
                         bool isEllipsis = (c == '.' && ((i > 1 && textInfo.characterInfo[i - 2].character == '.') || (i < messageChars && textInfo.characterInfo[i].character == '.')));
                         delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
@@ -691,6 +743,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         }
 
         DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        // UX: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped with the same input.
+        typingCoroutine = null;
+    }
+
         DialogueText.maxVisibleCharacters = totalCharacters;
         // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
                         delay = currentTypingSpeed * 8f;
@@ -3729,6 +3785,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         DialogueBox.SetActive(true);
+        if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
+        yield return FadeDialogue(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
@@ -3837,6 +3895,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
+        yield return FadeDialogue(0f, 0.5f);
+
         if (popCoroutine != null) StopCoroutine(popCoroutine);
         SpeakerNameText.text = "";
         DialogueText.text = "";

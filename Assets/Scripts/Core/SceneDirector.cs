@@ -1366,6 +1366,15 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (ReferenceEquals(obj, null)) return null;
 
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // BOLT: Check if the cached reference is a destroyed Unity object (fake null)
+                // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
                 // If the native object was destroyed, remove from cache and fall back
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
@@ -1552,6 +1561,7 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private CharacterControllerBase? GetCharacterController(GameObject? characterObj)
         private CharacterControllerBase? GetCharacterController(GameObject characterObj)
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
         private void OnDestroy()
@@ -1643,6 +1653,7 @@ namespace Milehigh.Core
             return obj;
         }
 
+            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios.Count > 0)
             var data = CampaignManager.Instance.currentCampaignData;
@@ -1693,6 +1704,7 @@ namespace Milehigh.Core
             var campaignData = CampaignManager.Instance.currentCampaignData;
 
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
             if (campaignData != null)
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null)

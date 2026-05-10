@@ -30,6 +30,14 @@ namespace Milehigh.Editor
                     Debug.LogError("Failed to parse campaign data.");
                     return;
                 }
+
+                // 🛡️ Sentinel: Security validation of deserialized data.
+                // SECURITY: Always validate data after deserialization to ensure integrity
+                if (!data.IsValid())
+                {
+                    Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
+                    return;
+                }
             }
             catch (System.Exception ex)
             {
