@@ -79,6 +79,13 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                if (obj == null)
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
                 // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj == null)
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
@@ -441,6 +448,8 @@ namespace Milehigh.Core
             // BOLT: O(P) search only happens once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            if (prefab != null) _prefabCache[profileName] = prefab;
             prefab = characterPrefabs.Find(p => p.name.Contains(profileName));
             _prefabCache[profileName] = prefab;
         private void InitializePrefabCache()
@@ -597,6 +606,16 @@ namespace Milehigh.Core
                 SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
                 foreach (var prefab in characterPrefabs)
                 {
+                    if (prefab != null)
+                    {
+                         _prefabCache[prefab.name] = prefab;
+                         _prefabLookupCache[prefab.name] = prefab;
+                    }
+                }
+            }
+
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
                     if (prefab != null && !_prefabLookupCache.ContainsKey(prefab.name))
                     {
                         _prefabLookupCache[prefab.name] = prefab;
@@ -671,7 +690,6 @@ namespace Milehigh.Core
             if (characterObj == null)
             {
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
-                // instead of characterPrefabs.Find (O(P))
                 GameObject? prefab = null;
                 GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: Use O(1) prefab cache helper

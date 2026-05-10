@@ -3,6 +3,7 @@ using UnityEditor;
 using System.IO;
 using System.Text.RegularExpressions;
 using Milehigh.Data;
+using System.Text.RegularExpressions;
 
 namespace Milehigh.Editor
 {
@@ -177,6 +178,19 @@ namespace Milehigh.Editor
             sanitized = sanitized.TrimStart('.', '_');
 
             if (string.IsNullOrEmpty(sanitized)) sanitized = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            return sanitized;
+        }
+
+        private static string GetSafeFileName(string? name)
+        {
+            if (string.IsNullOrEmpty(name)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // 🛡️ Sentinel: Path Sanitization Standard
+            // Use a strict whitelist-based regex and strip leading dots/underscores.
+            string sanitized = Regex.Replace(name, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             return sanitized;
         }
     }

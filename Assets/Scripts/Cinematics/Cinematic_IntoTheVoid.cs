@@ -15,6 +15,7 @@ using TMPro;
 using Milehigh.Core;
 
 /// <summary>
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
 /// Controls the cinematic sequence for "Deep within the anti-reality of ŤĤÊ VØĪĐ".
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'--a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
 /// </summary>
@@ -29,11 +30,18 @@ namespace Milehigh.Cinematics
     public GameObject Delilah_Character = null!;
     public AudioSource Delilah_VoiceSource = null!;
     // ====================================================================
-    //
     // CHARACTER ASSET & VOICE REFERENCE BLOCK
-    //
     // ====================================================================
 
+    [Header("Character References")]
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
+
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
     // Protagonist: Sky.ix the The Bionic Goddess
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
@@ -109,6 +117,7 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // ⚡ Bolt: Using int keys (milliseconds) prevents float precision cache misses and redundant GC allocations.
     // ⚡ Bolt: Cache for WaitForSeconds using integer keys (milliseconds) to eliminate GC allocations and floating-point cache misses
@@ -229,8 +238,36 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    void Awake()
+    {
+        // Automated component lookup for CanvasGroup if not assigned
+        if (DialogueCanvasGroup == null && DialogueBox != null)
+        {
+            DialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
+        }
+    }
+
+    void Start()
+    {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            return;
+        }
+
+        // Initialize UI state
+        if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
+        DialogueBox.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
     void Update()
     {
+        // Poll for skip input to ensure responsiveness
+        // 🎨 Palette: Prefer specific keys for skip to avoid accidental triggers
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return))
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
     private IEnumerator WaitForSecondsOrSkip(float time)
     {
@@ -244,6 +281,8 @@ namespace Milehigh.Cinematics
             idleTimer = 0;
             if (SkipHint != null) SkipHint.gameObject.SetActive(false);
         }
+    }
+
         else
         {
             idleTimer += Time.deltaTime;
@@ -282,6 +321,28 @@ namespace Milehigh.Cinematics
         skipRequested = false;
     }
 
+    private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
+    {
+        if (DialogueCanvasGroup == null)
+        {
+            DialogueBox.SetActive(targetAlpha > 0);
+            yield break;
+        }
+
+        if (targetAlpha > 0) DialogueBox.SetActive(true);
+
+        float startAlpha = DialogueCanvasGroup.alpha;
+        float elapsed = 0;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
+            yield return null;
+        }
+
+        DialogueCanvasGroup.alpha = targetAlpha;
+        if (targetAlpha <= 0) DialogueBox.SetActive(false);
     private IEnumerator PopScale(Transform target)
     {
         Vector3 originalScale = target.localScale;
@@ -411,6 +472,10 @@ namespace Milehigh.Cinematics
         if (SpeakerNameText.text != speaker) StartCoroutine(PopScale(SpeakerNameText.transform));
         SpeakerNameText.text = speaker;
 
+        // Apply speaker-specific speed multipliers and colors
+        float multiplier = 1.0f;
+        Color speakerColor = Color.white;
+
         // Reset idle timer and hint state for each new dialogue line
         idleTimer = 0;
         playerInteracted = false;
@@ -467,6 +532,12 @@ namespace Milehigh.Cinematics
         public void ShowDialogue(string speaker, string message)
         {
             case "Sky.ix":
+                multiplier = skyixSpeedMultiplier;
+                speakerColor = Color.cyan;
+                break;
+            case "Kai":
+                multiplier = kaiSpeedMultiplier;
+                speakerColor = new Color(1f, 0.84f, 0f); // Gold
                 SpeakerNameText.color = Color.cyan;
                 currentSpeakerHex = "#00FFFF";
                 break;
@@ -487,6 +558,18 @@ namespace Milehigh.Cinematics
             if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.color = speakerColor;
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message, speakerColor));
+    }
+
+    private IEnumerator TypeDialogue(string message, Color themeColor)
+    {
+        DialogueText.text = message;
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         typingCoroutine = StartCoroutine(TypeDialogue(message));
             SpeakerNameText.text = speaker;
@@ -594,6 +677,11 @@ namespace Milehigh.Cinematics
                 float delay = currentTypingSpeed;
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                // Note: Delay occurs AFTER character reveal for natural rhythm.
+                if (i > 0)
+                {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEndOfSentence = true;
@@ -734,6 +822,7 @@ namespace Milehigh.Cinematics
 
                     if (c == '.' || c == '!' || c == '?')
                     {
+                        // Handle ellipsis or end of sentence
                         delay = currentTypingSpeed * 15f;
 
                         // Refined ellipsis and mid-word detection
@@ -786,6 +875,12 @@ namespace Milehigh.Cinematics
                         }
 
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                         else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
                         {
                             delay = currentTypingSpeed; // Mid-word (e.g. Sky.ix)
@@ -885,6 +980,12 @@ namespace Milehigh.Cinematics
             yield return UnityUtils.GetWait(delay);
         }
 
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        string hexColor = ColorUtility.ToHtmlStringRGB(themeColor);
+        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 1;
+
+        skipRequested = false;
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
         typingCoroutine = null;
@@ -968,6 +1069,11 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
+        yield return FadeDialogueBox(1f, 0.5f);
+        yield return WaitForSecondsOrSkip(1.0f);
+
+        // --- Dialogue Line 1: Delilah ---
+        yield return WaitForSecondsOrSkip(1.5f);
         yield return FadeDialogueBox(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
@@ -1019,6 +1125,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
+        yield return WaitForSecondsOrSkip(0.5f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
         yield return GetWait(0.5f);
@@ -1026,6 +1133,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(6.0f);
 
         // --- Dialogue Line 3: Kai ---
+        yield return WaitForSecondsOrSkip(0.7f);
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
         yield return GetWait(0.7f);
@@ -1033,6 +1141,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
+        yield return WaitForSecondsOrSkip(1.2f);
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
         yield return GetWait(1.2f);
@@ -1040,6 +1149,15 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
+        yield return WaitForSecondsOrSkip(0.8f);
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        yield return WaitForSecondsOrSkip(4.5f);
+
+        // ACTION: Sky.ix dashes towards the conduit
+        yield return WaitForSecondsOrSkip(2.0f);
+
+        // --- Dialogue Line 6: Kai ---
+        yield return WaitForSecondsOrSkip(0.5f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
         yield return GetWait(0.8f);
@@ -1070,6 +1188,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(3.5f);
 
         // --- Dialogue Line 7: Delilah ---
+        yield return WaitForSecondsOrSkip(1.5f);
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
         yield return GetWait(1.5f);
@@ -1077,6 +1196,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(5.5f);
 
         // --- Dialogue Line 8: Sky.ix ---
+        yield return WaitForSecondsOrSkip(1.0f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
         yield return GetWait(1.0f);
@@ -1084,6 +1204,9 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(7.5f);
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        yield return FadeDialogueBox(0f, 0.5f);
+
+        Debug.Log("Cinematic Sequence Complete.");
         SpeakerNameText.text = "";
         DialogueText.text = "";
         yield return FadeDialogueBox(0.0f, 0.5f);
