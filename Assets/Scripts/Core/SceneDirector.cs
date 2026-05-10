@@ -67,6 +67,14 @@ namespace Milehigh.Core
             if (data != null && data.scenarios.Count > 0)
         // BOLT: Consolidated caches to prevent expensive O(N) scene traversals and O(P) list searches.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear caches to release Unity object references and prevent memory leaks.
+            _objectCache.Clear();
+            _prefabCache.Clear();
+        }
         // BOLT: Prefab cache to avoid O(M) linear searches through the characterPrefabs list
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
@@ -827,6 +835,9 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use a prefab cache to avoid O(P) linear searches through the prefab list.
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
                 // BOLT: O(1) exact match lookup from prefab cache.
                 GameObject prefab = null;
                 if (!_prefabCache.TryGetValue(profile.name, out prefab))
