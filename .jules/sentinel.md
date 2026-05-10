@@ -1,3 +1,7 @@
+## 2024-03-26 - Path Traversal Vulnerability during Asset Generation
+**Vulnerability:** A path traversal vulnerability was present when dynamically creating Unity scriptable objects from JSON input (`charProfile.name`). A malicious actor could provide a JSON payload containing `../` sequences in character names, leading to arbitrary file write outside of the intended `Assets/Data/Characters` directory.
+**Learning:** The previous path sanitization attempt was flawed. It correctly used `Path.GetInvalidFileNameChars()` to replace invalid characters, but then used `Path.GetFileName()` on a new `sanitizedName` variable that didn't have the invalid chars removed, or otherwise applied `Path.GetFileName()` incorrectly, leaving it vulnerable or broken.
+**Prevention:** When dynamically creating files based on unstrusted input, always use `Path.GetFileName()` to extract only the final file component, and then optionally sanitize the remaining string against invalid filename characters. Never use `Path.Combine` or format strings for file paths with unverified input before stripping directory traversal sequences.
 ## 2024-05-24 - Path Traversal in Editor Extension Scripts
 **Vulnerability:** Found a Path Traversal vulnerability in an Editor window script (`CharacterFactory.cs`). The script trusted the `name` field from a parsed JSON file (`campaign_master.json`) to construct the file path for creating new `.asset` files (`string assetPath = $"{folderPath}/{charProfile.name...}.asset";`).
 **Learning:** Even though the JSON is a "local" file used by a developer in the Editor, trusting external data to construct file paths without sanitization is a security risk. If a malicious JSON file is imported, it could contain names like `../../Scripts/Core/ImportantScript` which would overwrite arbitrary files in the project.
@@ -31,6 +35,23 @@
 **Vulnerability:** Untrusted external data (JSON) was being used directly by the application without validation, potentially leading to out-of-bounds values or corrupted application state.
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
+
+## 2025-05-24 - [Sentinel Standard] Resource Exhaustion Protection in Data Validation
+**Vulnerability:** Lack of constraints on string lengths and collection sizes in deserialized JSON data could lead to Denial of Service (DoS) through memory exhaustion.
+**Learning:** Input validation must include not just range and format checks, but also quantity and size limits for all externally sourced data.
+**Prevention:** Enforce strict limits on all deserialized strings (e.g., 64-1024 chars) and collections (e.g., 10-100 items) within hierarchical `IsValid()` methods. Ensure high-level data models recursively validate all nested objects.
+## 2024-05-24 - File I/O and JSON Deserialization Exception Handling
+**Vulnerability:** Unhandled exceptions during file reading (`File.ReadAllText`) and JSON deserialization (`JsonUtility.FromJson`) in Editor scripts like `CharacterFactory.cs` could crash the editor or leak internal system paths and stack traces to logs.
+**Learning:** Unity's built-in file reading and JSON utilities do not fail gracefully on malformed data or missing files. Uncaught exceptions propagate up, potentially exposing sensitive environment structure in the stack trace, which is a risk if logs are aggregated or shared.
+**Prevention:** Always wrap file I/O operations and JSON deserialization in `try-catch` blocks. Fail securely by logging generic, safe error messages that do not expose absolute file paths or internal call stacks.
+## 2025-05-15 - Resource Exhaustion (DoS) Protection in Data Deserialization
+**Vulnerability:** The application was vulnerable to Denial of Service (DoS) attacks via resource exhaustion. Maliciously crafted JSON files with extremely long strings or massive collection sizes could lead to excessive memory consumption or processing time.
+**Learning:** Input validation must go beyond just checking for nulls or range bounds; it must also enforce strict limits on the scale of the data being ingested to prevent "billion laughs" style or OOM attacks.
+**Prevention:** Enforce maximum lengths for all strings and maximum counts for all collections (Lists/Arrays) in the `IsValid()` method of deserialized data models. For example: `environment` (128 chars), `dialogue` (50 items), `characters` (50 items).
+## 2024-05-24 - Untrusted Input Path Traversal
+**Vulnerability:** A path traversal vulnerability during dynamic Unity asset creation in `CharacterFactory.cs` due to using untrusted JSON data directly in file paths.
+**Learning:** Even internal tool scripts like `CharacterFactory` are vulnerable when accepting unverified external inputs such as JSON. When resolving a merge conflict, the sanitization logic `Path.GetInvalidFileNameChars()` was bypassed because a subsequent `Path.GetFileName(sanitizedName)` declaration accidentally reverted to the original unsanitized string.
+**Prevention:** Always ensure that file name sanitization logic accurately processes and transforms the input completely. Validate input strings and use `Path.GetFileName` along with stripping directory traversal operators before embedding them into asset creation paths.
 ## 2025-05-24 - Syntax Regressions from Mangled Security Patches
 **Vulnerability:** Redundant, overlapping, and syntactically invalid security checks (duplicate 'else' blocks and 'IsValid' methods) were found in core managers and data models.
 **Learning:** Rapid, repeated application of targeted search-and-replace tools on similar code blocks can lead to "syntax soup" where security logic is present but broken or duplicated, potentially masking actual vulnerabilities or causing build failures.
