@@ -157,6 +157,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     /// </summary>
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
+        // Poll for skip input to ensure responsiveness across keyboard and mouse
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
         float start = Time.time;
         while (Time.time < start + duration && !skipRequested)
         {
@@ -172,6 +174,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             target.localScale = initialScale + new Vector3(curve, curve, curve);
             yield return null;
         }
+    }
+
         target.localScale = initialScale;
     }
 
@@ -243,8 +247,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Start()
     {
-        // 🛡️ Sentinel: Security enhancement - Defensive programming
-        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
+        // Defensive check to ensure UI components are assigned
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
             Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
@@ -317,6 +320,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+
         // Apply character-specific colors for better speaker identification
         switch (speaker)
         {
@@ -333,6 +337,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 SpeakerNameText.color = Color.white;
                 break;
         }
+        SpeakerNameText.color = speakerColor;
 
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
@@ -359,12 +364,50 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        // UX Enhancement: Color-coded completion cue ('▽') that matches the current speaker.
+        // We append it immediately to ensure the full layout is calculated upfront, preventing layout shifts.
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
+
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+        // The cue character is at the end. We reveal it only after the main message is typed.
+        int mainMessageLength = totalVisibleCharacters - 1;
+
+        for (int i = 0; i < mainMessageLength; i++)
+        {
+            if (skipRequested) break;
+
+            DialogueText.maxVisibleCharacters = i + 1;
+
+            char c = DialogueText.textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // Rhythmic punctuation pauses to mimic natural speech cadence
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Look ahead to distinguish sentence endings from mid-word periods (e.g., Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < mainMessageLength)
+                {
+                    char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    // Refined ellipsis detection
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i + 1 < mainMessageLength && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                    }
+
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalVisibleCharacters = textInfo.characterCount;
         DialogueText.text = message;
@@ -503,9 +546,18 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                         delay = currentTypingSpeed * 8f;
                     }
                 }
-
-                yield return GetWait(delay);
             }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        // Finalize reveal
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        skipRequested = false;
 
             // Visual progression cue indicating text reveal is complete.
             string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);

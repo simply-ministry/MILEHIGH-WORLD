@@ -50,6 +50,9 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-27 - [Unified Typewriter and Skip Logic Consolidation]
+**Learning:** Overlapping and redundant implementation of typewriter effects and input polling leads to unpredictable UI behavior and syntax errors. Consolidating these into a single, clean 'TypeDialogue' coroutine and a unified 'Update' handler significantly improves reliability and maintainability.
+**Action:** Always perform a structural audit of cinematic scripts to eliminate duplicate members and logic blocks before layering micro-UX improvements.
 ## 2025-05-21 - [Discoverable Skip Mechanics with Idle Hints]
 **Learning:** For cinematic sequences, a "Skip" hint that only appears after a period of user inactivity (e.g., 2 seconds) provides a clean UI for experienced players while ensuring accessibility and discoverability for new ones. Using 'Input.anyKeyDown' for skip interactions ensures the mechanic is responsive to any deliberate user input (keyboard or mouse), making the interface feel more intuitive.
 **Action:** Implement idle-timer-based UX hints for non-obvious interactions and prefer 'anyKeyDown' for global sequence skips.
