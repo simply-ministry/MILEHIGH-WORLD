@@ -35,6 +35,7 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         // BOLT: Consolidated caches for GameObjects, prefabs, and controllers to prevent expensive searches and GetComponent calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefab lookups to avoid O(N) list searches
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 1        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
@@ -567,6 +568,8 @@ namespace Milehigh.Core
                     }
                 }
                 // Try to find prefab if not in scene
+                GameObject prefab = null;
+                // BOLT: Lazy evaluation of prefab caching. Includes negative caching (caching nulls).
                 // BOLT: O(1) cache lookup with lazy fallback to O(N) search (including negative caching)
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 GameObject prefab = null;
