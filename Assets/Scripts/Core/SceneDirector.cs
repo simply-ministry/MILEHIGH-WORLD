@@ -160,6 +160,9 @@ namespace Milehigh.Core
             }
         }
 
+        // BOLT: Cache for prefabs to prevent expensive O(N) List.Find string matching inside loops
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
@@ -450,6 +453,7 @@ namespace Milehigh.Core
             EnsurePrefabCache();
             // Clear object and controller caches at start of setup to avoid stale references across scenes
             _objectCache.Clear();
+            _prefabCache.Clear();
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
