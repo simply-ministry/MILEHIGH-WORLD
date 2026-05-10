@@ -33,6 +33,9 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure data integrity
+            if (data == null || !data.IsValid())
+            {
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent resource exhaustion
             if (data == null || !data.IsValid())
             {
@@ -149,6 +152,14 @@ namespace Milehigh.Editor
                 string safeFileName = baseName;
                 string baseName = charProfile.name ?? "unnamed_character";
 
+                // SECURITY: Remove invalid filename characters
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    baseName = baseName.Replace(c, '_');
+                }
+
+                // SECURITY: Ensure no directory traversal sequences remain and normalize whitespace
+                string safeFileName = Path.GetFileName(baseName).Replace(" ", "_");
                 // 1. Replace invalid filename characters with underscores
                 string safeFileName = baseName;
                 // Ensure no directory traversal sequences remain
