@@ -17,6 +17,9 @@ namespace Milehigh.Core
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         private readonly Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
@@ -183,6 +186,11 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
                 // If it's a Unity null (native object destroyed), we should try to find it again
             // BOLT: Perform an O(1) dictionary lookup.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
@@ -335,7 +343,7 @@ namespace Milehigh.Core
                 // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj == null)
                 {
-                    _objectCache.Remove(objectName);
+                     _objectCache.Remove(objectName);
                 }
                 else
             // 🛡️ Sentinel: Denial of Service (DoS) protection.
@@ -433,6 +441,7 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (_prefabCache.TryGetValue(profileName, out GameObject cachedPrefab)) return cachedPrefab;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;

@@ -242,6 +242,7 @@ namespace Milehigh.Cinematics
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine? typingCoroutine;
+    private Coroutine? popScaleCoroutine;
     private Coroutine? scalingCoroutine;
     private Coroutine? speakerPopCoroutine;
     private Coroutine typingCoroutine;
@@ -253,6 +254,7 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private Vector3 originalScale;
     private Vector3 originalSpeakerScale;
     private string cachedHexColor = "FFFFFF";
     private string currentSpeakerHex;
@@ -293,6 +295,8 @@ namespace Milehigh.Cinematics
 
     private IEnumerator PopEffect(RectTransform rect)
     {
+        // Poll for skip input to ensure responsiveness across all input types
+        if (Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across keyboard and mouse
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
         if (rect == null) yield break;
@@ -349,6 +353,11 @@ namespace Milehigh.Cinematics
             target.localScale = Vector3.one * scale;
             yield return null;
         }
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion to ensure it doesn't bleed into the next reveal.
         target.localScale = Vector3.one;
     }
 
@@ -400,6 +409,9 @@ namespace Milehigh.Cinematics
             Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
             return;
         }
+
+        // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
+        originalScale = SpeakerNameText.transform.localScale;
 
         originalSpeakerScale = SpeakerNameText.transform.localScale;
 
@@ -556,6 +568,13 @@ namespace Milehigh.Cinematics
             StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 0.15f));
         }
 
+        // UX Enhancement: Trigger a subtle "Pop" animation when the speaker changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (popScaleCoroutine != null) StopCoroutine(popScaleCoroutine);
+            popScaleCoroutine = StartCoroutine(PopScaleEffect());
+        }
+
         bool speakerChanged = SpeakerNameText.text != speaker;
         SpeakerNameText.text = speaker;
         speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
@@ -660,11 +679,34 @@ namespace Milehigh.Cinematics
         scalingCoroutine = null;
     }
 
+    private IEnumerator PopScaleEffect()
+    {
+        float elapsed = 0f;
+        float duration = 0.2f;
+        float targetScale = 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            // Simple ease-out curve using Sin
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            SpeakerNameText.transform.localScale = originalScale * (1f + (targetScale - 1f) * curve);
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalScale;
+        popScaleCoroutine = null;
+    }
+
     private IEnumerator TypeDialogue(string message)
     {
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
 
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -680,6 +722,31 @@ namespace Milehigh.Cinematics
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
+        // The message length excluding the cue (▽ is 1 char)
+        int messageChars = totalCharacters - 1;
+
+        for (int i = 0; i <= messageChars; i++)
+        {
+            // UX Enhancement: Robust skip logic using persistent flag
+            if (skipRequested) break;
+
+            DialogueText.maxVisibleCharacters = i;
+
+            if (i < messageChars)
+            {
+                char c = textInfo.characterInfo[i].character;
+                float delay = currentTypingSpeed;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Delay occurs after character reveal for natural rhythm.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i < messageChars - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         DialogueText.text = $"{message} <color=#{cachedHexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
@@ -964,6 +1031,9 @@ namespace Milehigh.Cinematics
                     else if (c == '.' && i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') delay = currentTypingSpeed * 5f;
                     bool isEllipsis = i > 1 && c == '.' && DialogueText.textInfo.characterInfo[i - 2].character == '.';
 
+                    if (isEllipsis)
+                    {
+                        delay = currentTypingSpeed * 5f;
                     if (isEndOfSentence)
                     {
                         bool isEllipsis = (i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.') ||
@@ -1001,8 +1071,22 @@ namespace Milehigh.Cinematics
                         bool isEndOfSentence = (i >= totalVisibleCharacters) || Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                         if (isEndOfSentence) delay = currentTypingSpeed * 15f;
                     }
-                    else if (c == ',' || c == ';' || c == ':')
+                    else
                     {
+                        // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                        bool isEndOfSentence = true;
+                        if (i < messageChars - 1)
+                        {
+                            char nextChar = textInfo.characterInfo[i + 1].character;
+                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                         delay = currentTypingSpeed * 8f;
                     }
                     if (c == '.' || c == '!' || c == '?')
@@ -1139,6 +1223,7 @@ namespace Milehigh.Cinematics
 
                         bool isMidWord = (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character));
 
+                // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
                         else if (isMidWord) delay = currentTypingSpeed; // No pause for mid-word abbreviations
                         else delay = currentTypingSpeed * 15f;
@@ -1165,6 +1250,8 @@ namespace Milehigh.Cinematics
             }
         }
 
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         skipRequested = false;
         // UX Enhancement: Visual progression cue color-coded to the speaker's theme.
