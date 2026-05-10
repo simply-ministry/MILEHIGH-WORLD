@@ -26,6 +26,9 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
             if (string.IsNullOrEmpty(environment) || environment.Length > 128)
             {
                 Debug.LogError("[Security] Metadata validation failed: environment name is missing or too long (max 128).");
@@ -64,6 +67,21 @@ namespace Milehigh.Data
         public string[] traits;
         public string behaviorScript;
 
+        /// <summary>
+        /// 🛡️ Sentinel: Perform input validation on character data.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 64)
+            {
+                Debug.LogError("[Security] Character validation failed: Name is missing or exceeds 64 characters.");
+                return false;
+            }
+            if (role != null && role.Length > 128)
+            {
+                Debug.LogError("[Security] Character validation failed: Role exceeds 128 characters.");
+                return false;
+            }
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
@@ -168,6 +186,23 @@ namespace Milehigh.Data
                 return false;
             }
 
+            // SECURITY: Prevent resource exhaustion attacks by limiting the number of characters and scenarios.
+            if (characters == null || characters.Count == 0 || characters.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid character profile count (must be between 1 and 100).");
+                return false;
+            }
+
+            foreach (var character in characters)
+            {
+                if (!character.IsValid()) return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid scenario count (must be between 1 and 50).");
+                return false;
+            }
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
