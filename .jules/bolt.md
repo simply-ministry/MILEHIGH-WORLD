@@ -53,6 +53,13 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2024-05-25 - Risky Negative Caching in Dynamic Scenes
+**Learning:** Storing 'null' in a dictionary cache for a failed 'GameObject.Find' result (negative caching) is risky in dynamic Unity scenes. It can lead to stale references if the requested object is instantiated after the initial cache-miss, preventing the application from finding the newly created object.
+**Action:** Revert to safe caching that only stores valid, non-null GameObject references unless the object lifecycle is strictly static or the cache is explicitly updated upon instantiation.
+
+## 2024-05-25 - Memory Management in Unity MonoBehaviour Caches
+**Learning:** Dictionaries storing Unity object references in a persistent MonoBehaviour can prevent the underlying native objects from being fully cleaned up or lead to stale references if not cleared.
+**Action:** Always implement the 'OnDestroy' lifecycle method to explicitly clear internal 'Dictionary' caches, ensuring that Unity engine object references are released and allowing for proper memory reclamation.
 ## 2024-05-26 - Float Keys in Dictionary Cache Misses
 **Learning:** Using `float` as a dictionary key for caching `WaitForSeconds` can lead to cache misses due to floating-point precision issues, causing unintended GC allocations.
 **Action:** Use `int` keys representing milliseconds (e.g., via `Mathf.RoundToInt(time * 1000f)`) to ensure robust caching of `WaitForSeconds`.

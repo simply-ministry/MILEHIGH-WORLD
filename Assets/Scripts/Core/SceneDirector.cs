@@ -7,6 +7,13 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
+        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform characterSpawnRoot = null!;
+
+        // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Prefab cache to avoid O(N) list searching during character spawning
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         public List<GameObject>? characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
@@ -1503,12 +1510,20 @@ namespace Milehigh.Core
             }
         }
 
+        private void OnDestroy()
+        {
+            // BOLT: Clear caches to ensure Unity object references are released
+            _objectCache?.Clear();
+            _prefabCache?.Clear();
+        }
+
         public void SetupScene(SceneScenario scenario)
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
             // Clear cache at start of setup to avoid stale references across scenes
             _objectCache.Clear();
+            _prefabCache.Clear();
 
             // Instantiate characters if not already in scene
             foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
@@ -1529,6 +1544,13 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use O(1) prefab cache instead of O(N) Find
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null) _prefabCache[profile.name] = prefab;
+                }
+
                 // BOLT: Use a prefab cache to avoid O(P) linear searches through the prefab list.
                 if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 {
