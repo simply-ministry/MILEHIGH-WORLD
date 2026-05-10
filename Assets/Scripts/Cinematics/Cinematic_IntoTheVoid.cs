@@ -3176,6 +3176,11 @@ namespace Milehigh.Cinematics
 
     private WaitForSeconds GetWait(float time)
     {
+        int ms = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[ms] = wait;
         int key = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
