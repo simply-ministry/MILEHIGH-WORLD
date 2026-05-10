@@ -436,6 +436,8 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private Vector3 speakerNameOriginalScale;
+    private Coroutine popCoroutine;
     private string _currentCompletionCue = null!;
     private string _currentSpeakerHex = null!;
     private CanvasGroup? dialogueCanvasGroup;
@@ -522,6 +524,31 @@ namespace Milehigh.Cinematics
         // Add an Action Delegate at the top of the class
         public event Action? OnCinematicComplete;
 
+    private IEnumerator PopSpeakerName()
+    {
+        float duration = 0.25f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float percent = elapsed / duration;
+            float scaleMod = 1f + Mathf.Sin(percent * Mathf.PI) * 0.15f;
+            SpeakerNameText.transform.localScale = speakerNameOriginalScale * scaleMod;
+            yield return null;
+        }
+        SpeakerNameText.transform.localScale = speakerNameOriginalScale;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.unscaledTime;
+        while (Time.unscaledTime - start < duration && !skipRequested)
+        {
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
     void Start()
     {
         // 🛡️ Sentinel: Security enhancement - Defensive programming
@@ -532,6 +559,7 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        speakerNameOriginalScale = SpeakerNameText.transform.localScale;
         if (DialogueCanvasGroup == null)
         {
             Debug.LogWarning("DialogueCanvasGroup not assigned. Fading effects will be disabled.");
@@ -554,6 +582,13 @@ namespace Milehigh.Cinematics
     /// Yields for the specified duration but returns immediately if a skip is requested.
     /// Resets the skip flag upon completion.
     /// </summary>
+    public void ShowDialogue(string speaker, string message)
+    {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
+
+        SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopSpeakerName());
     private IEnumerator WaitForSecondsOrSkip(float duration)
         // ====================================================================
         // CHARACTER ASSET & VOICE REFERENCE BLOCK
@@ -740,7 +775,6 @@ namespace Milehigh.Cinematics
         DialogueText.text = message + $" <color=#{currentSpeakerHex}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
-        skipRequested = false;
         typingCoroutine = null;
     }
 
@@ -756,6 +790,29 @@ namespace Milehigh.Cinematics
         float startAlpha = DialogueCanvasGroup.alpha;
         float time = 0;
 
+        // --- Dialogue Line 1: Delilah ---
+        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
+        // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
+        yield return WaitForSecondsOrSkip(1.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        // Delilah_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        // --- Dialogue Line 2: Sky.ix ---
+        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
+        // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
+        yield return WaitForSecondsOrSkip(0.5f);
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        // --- Dialogue Line 3: Kai ---
+        // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
+        // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
+        yield return WaitForSecondsOrSkip(0.7f);
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        // Kai_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(8.0f);
         while (time < duration)
         {
             time += Time.deltaTime;
@@ -2991,6 +3048,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(4.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(4.5f));
         yield return WaitForSecondsOrSkip(4.5f);
         yield return WaitForSecondsOrSkip(4.5f);
@@ -3056,6 +3114,10 @@ namespace Milehigh.Cinematics
 
         // --- Dialogue Line 6: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
+        // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
+        yield return WaitForSecondsOrSkip(0.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        // Kai_VoiceSource.Play();
         // [CAMERA: Cut to Kai, holographic energy spike warning.]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
@@ -3071,7 +3133,6 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
-        yield return StartCoroutine(WaitForSecondsOrSkip(5.5f));
         yield return WaitForSecondsOrSkip(5.5f);
 
         // --- Dialogue Line 8: Sky.ix ---
