@@ -20,12 +20,37 @@ namespace Milehigh.Data
         public float voidSaturationLevel;
 
         /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized metadata meets business constraints and safety bounds.
+        /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
         /// </summary>
         public bool IsValid()
         {
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
-            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+            if (string.IsNullOrEmpty(environment))
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment is missing.");
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range to prevent out-of-bounds visual artifacts or logic errors.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            // SECURITY: Input validation for environment string length (DoS mitigation)
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
+                return false;
+            }
+
+            // Void saturation must be within a safe 0.0 to 1.0 range.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
@@ -87,7 +112,7 @@ namespace Milehigh.Data
         public List<SceneScenario> scenarios = null!;
 
         /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset after deserialization.
         /// </summary>
         public bool IsValid()
         {
@@ -108,9 +133,21 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
             if (scenarios == null)
             {
-                Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");
+                return false;
+            }
+            foreach (var character in characters)
+            {
+                if (!character.IsValid()) return false;
+            }
+
+            if (scenarios == null)
+            {
                 return false;
             }
 
