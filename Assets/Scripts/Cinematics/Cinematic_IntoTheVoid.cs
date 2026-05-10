@@ -108,8 +108,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine? typingCoroutine;
+    private Coroutine? scalingCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
+    private Vector3 originalSpeakerScale;
     private Coroutine? popCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
@@ -249,12 +251,20 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        originalSpeakerScale = SpeakerNameText.transform.localScale;
+
+        // 🎨 Palette: Accessibility - Text outline for better contrast in dark scenes
+        SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
     void Update()
     {
-        if (Input.anyKeyDown) skipRequested = true;
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
     }
 
     /// <summary>
@@ -274,6 +284,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             if (namePopCoroutine != null) StopCoroutine(namePopCoroutine);
             namePopCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
+        }
+
+        // 🎨 Palette: PopScale animation for speaker name changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (scalingCoroutine != null) StopCoroutine(scalingCoroutine);
+            scalingCoroutine = StartCoroutine(PopScaleSpeaker());
         }
 
         // UI Juice: Apply a pop animation to the speaker name when it changes
@@ -320,8 +337,36 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
 
+    private IEnumerator PopScaleSpeaker()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        float targetScale = 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            // Simple bounce-out curve
+            float s = 1f + Mathf.Sin(t * Mathf.PI) * (targetScale - 1f);
+            SpeakerNameText.transform.localScale = originalSpeakerScale * s;
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalSpeakerScale;
+        scalingCoroutine = null;
+    }
+
     private IEnumerator TypeDialogue(string message)
     {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -333,7 +378,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
-            // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
             {
                 DialogueText.maxVisibleCharacters = totalVisibleCharacters;
@@ -345,8 +389,28 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             if (i < totalVisibleCharacters)
             {
                 float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence)
+                    {
+                        bool isEllipsis = (i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.') ||
+                                         (i > 0 && textInfo.characterInfo[i - 1].character == '.');
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 // We check the previous character (i-1) to pause *after* it has been revealed.
                 if (i > 0)
                 {
@@ -475,6 +539,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 yield return GetWait(currentTypingSpeed * 10f);
         }
 
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // Color-code the cue to match the speaker's name color for visual cohesion.
         string hexColor = UnityEngine.ColorUtility.ToHtmlStringRGBA(SpeakerNameText.color);
