@@ -116,6 +116,7 @@ namespace Milehigh.Core
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Prefab cache to avoid O(M) linear searches through the characterPrefabs list
         // BOLT: Cache for prefab lookups to avoid O(P) list searches during spawning
         private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
 
@@ -409,6 +410,7 @@ namespace Milehigh.Core
 
         private void Awake()
         {
+            // BOLT: Pre-populate prefab cache for O(1) lookups during spawning
             InitializePrefabCache();
         }
 
@@ -419,6 +421,7 @@ namespace Milehigh.Core
             {
                 foreach (var prefab in characterPrefabs)
                 {
+                    if (prefab != null)
                     if (prefab != null && !string.IsNullOrEmpty(prefab.name))
                     {
                         _prefabCache[prefab.name] = prefab;
@@ -1195,6 +1198,10 @@ namespace Milehigh.Core
 
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
+
+            // BOLT: Cache the result, including null (Negative Caching), to prevent repeated Find calls.
+            _objectCache[objectName] = obj;
+
             if (obj != null)
             {
                 _objectCache[objectName] = foundObj;
@@ -1606,6 +1613,14 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Try O(1) prefab cache lookup first
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    // Fallback to O(M) linear search if not in dictionary (e.g. partial name match)
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null) _prefabCache[profile.name] = prefab; // Cache the match
+                }
+
                 // BOLT: Use prefab lookup cache to avoid expensive O(P) list searches
                 if (!_prefabLookupCache.TryGetValue(profile.name, out GameObject prefab) || prefab == null)
                 // BOLT: Use dictionary for O(1) prefab lookup instead of O(P) linear search
