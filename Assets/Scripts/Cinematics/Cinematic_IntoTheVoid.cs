@@ -1,6 +1,30 @@
 // --- UNITY SCENE SETUP --- //
 //
 // 1. Create an empty GameObject in your scene and name it "SceneController".
+//
+// 2. Attach this script (`Cinematic_IntoTheVoid.cs`)
+//    to the "SceneController" GameObject.
+//
+// 3. Create or place the character prefabs/GameObjects for "Sky.ix", "Kai", and "Delilah" into the scene.
+//
+// 4. Ensure each character GameObject has the following components attached:
+//    - An Animator component with a configured Animation Controller.
+//    - An AudioSource component to be used for their voice lines.
+//    - Their respective ability script (e.g., Sky.ix needs `Ability_Skyix.cs`, Kai needs `Ability_Kai.cs`, etc.)
+//
+// 5. Create the UI for the dialogue system:
+//    - Right-click in the Hierarchy -> UI -> Canvas.
+//    - Inside the Canvas, create a UI -> Panel. Rename it "DialogueBox". This will be the background.
+//    - Inside the "DialogueBox", create two UI -> Text - TextMeshPro objects.
+//    - Name the first one "SpeakerNameText" and position it where the speaker's name should appear.
+//    - Name the second one "DialogueText" and position it for the main dialogue content.
+//    - Create a third TMP object named "SkipHint", set its text to "[Space] Skip", and place it in a corner.
+//    - Initially, set the "DialogueBox" GameObject to be inactive.
+//
+// 6. Select the "SceneController" GameObject. In the Inspector, drag and drop the corresponding scene objects
+//    into the public fields of this script.
+//
+// 7. Ensure your project has TextMeshPro imported.
 // 2. Attach this script (Cinematic_IntoTheVoid.cs) to it.
 // 3. Configure character prefabs (Sky.ix, Kai, Delilah) with Animators and AudioSources.
 // 4. Setup UI: Canvas -> DialogueBox (Panel) -> SpeakerNameText (TMP), DialogueText (TMP), SkipHint (TMP).
@@ -126,6 +150,7 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    // Cache for WaitForSeconds to eliminate GC allocations
     // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations
     private void Update()
     {
@@ -351,8 +376,41 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    void Start()
+    {
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting.");
+            return;
+        }
+
+        // Palette: Ensure skip hint is hidden by default
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
     void Update()
     {
+        // Poll for any input to set skip flag and reset idle timer
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            idleTimer = 0;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+            // Palette: Show skip hint if player is idle during dialogue
+            if (idleTimer >= idleHintThreshold && !playerInteracted && DialogueBox.activeInHierarchy && SkipHint != null)
+            {
+                SkipHint.gameObject.SetActive(true);
+            }
+        }
+    }
+
         if (Input.anyKeyDown) skipRequested = true;
     }
 
@@ -574,6 +632,11 @@ namespace Milehigh.Cinematics
 
             if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
+        // Reset interaction/idle state for new dialogue line
+        idleTimer = 0;
+        playerInteracted = false;
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
             // Palette UX: Improve text contrast in the dark "Void" environment via outlines.
             DialogueText.fontMaterial.EnableKeyword("OUTLINE_ON");
             DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
@@ -673,6 +736,13 @@ namespace Milehigh.Cinematics
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        Color speakerColor = speaker switch
+        {
+            "Sky.ix" => Color.cyan,
+            "Kai" => new Color(1f, 0.84f, 0f),
+            "Delilah" => new Color(0.6f, 0.1f, 0.9f),
+            _ => Color.white
+        };
         SpeakerNameText.color = speakerColor;
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
@@ -728,6 +798,11 @@ namespace Milehigh.Cinematics
 
     private IEnumerator TypeDialogue(string message, Color color)
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
         // BOLT: Efficient typewriter reveal using maxVisibleCharacters
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
@@ -792,6 +867,7 @@ namespace Milehigh.Cinematics
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
+            if (skipRequested)
             // Poll for skip input to ensure responsiveness across multiple accessible inputs
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
             {
@@ -818,6 +894,24 @@ namespace Milehigh.Cinematics
             {
                 char c = textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i].character;
+
+                // Rhythmic punctuation pauses
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEllipsis = (i > 0 && DialogueText.textInfo.characterInfo[i-1].character == '.') ||
+                                     (i < totalVisibleCharacters - 1 && DialogueText.textInfo.characterInfo[i+1].character == '.');
+
+                    bool isEndOfSentence = (i == totalVisibleCharacters - 1) ||
+                                          (i < totalVisibleCharacters - 1 && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i+1].character));
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    // Mid-word periods (Sky.ix) stay at base speed
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 char c = textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
@@ -1197,7 +1291,7 @@ namespace Milehigh.Cinematics
             {
                 elapsed += Time.unscaledDeltaTime;
                 float progress = elapsed / duration;
-                float scaleFactor = 1f + Mathf.Sin(progress * Mathf.PI) * (multiplier - 1f);
+        m7        float scaleFactor = 1f + Mathf.Sin(progress * Mathf.PI) * (multiplier - 1f);
                 target.localScale = initialScale * scaleFactor;
                 yield return null;
             }
@@ -1252,6 +1346,18 @@ namespace Milehigh.Cinematics
         yield return StartCoroutine(FadeDialogueBox(1f, 0.5f));
         yield return FadeDialogueBox(1f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
+
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        yield return WaitForSecondsOrSkip(8.0f);
+
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 1: Delilah ---
         yield return WaitForSecondsOrSkip(1.5f);
@@ -1347,6 +1453,13 @@ namespace Milehigh.Cinematics
 
         yield return WaitForSecondsOrSkip(2.0f);
 
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return WaitForSecondsOrSkip(5.5f);
+
+
         // --- Dialogue Line 6: Kai ---
 
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
@@ -1397,7 +1510,9 @@ namespace Milehigh.Cinematics
         Debug.Log("Cinematic Sequence Complete.");
         SpeakerNameText.text = "";
         DialogueText.text = "";
-        DialogueBox.SetActive(false);
+        DialogueBox.SetActive(false);        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        Debug.Log("Cinematic Sequence Complete.");
         yield return FadeDialogueBox(0.0f, 0.5f);
 
         Debug.Log("Cinematic Sequence Complete.");
