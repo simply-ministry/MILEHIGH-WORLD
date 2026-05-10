@@ -468,6 +468,8 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Use int keys (milliseconds) instead of floats to prevent cache misses due to floating-point precision
     private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
     // Cache for WaitForSeconds to eliminate GC allocations
     // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations
@@ -484,6 +486,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
         int timeMs = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
         {
