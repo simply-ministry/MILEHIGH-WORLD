@@ -54,6 +54,14 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        // We use nullable types to support negative caching (storing a true null for missing objects)
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+
+        // BOLT: Prefab cache to avoid O(P) linear searches and delegate allocations
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> _prefabLookupCache = null;
 
@@ -275,6 +283,12 @@ namespace Milehigh.Core
             GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching using ReferenceEquals.
+                // We distinguish between a 'true' null (cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again.
             if (_objectCache.TryGetValue(objectName, out obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -1464,6 +1478,17 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) linear search as fallback if not pre-cached
+            GameObject? foundPrefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            _prefabCache[profileName] = foundPrefab;
+
+            return foundPrefab;
+        }
+
+        private CharacterControllerBase? GetCharacterController(GameObject characterObj)
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
 
@@ -1607,6 +1632,10 @@ namespace Milehigh.Core
                 return null;
             }
 
+            CharacterControllerBase? foundController = characterObj.GetComponent<CharacterControllerBase>();
+            _controllerCache[objId] = foundController;
+
+            return foundController;
             controller = characterObj.GetComponent<CharacterControllerBase>();
             if (controller != null) _controllerCache[objId] = controller;
             return controller;
@@ -1663,6 +1692,9 @@ namespace Milehigh.Core
             return obj;
         }
 
+            // Use NRT flow analysis pattern: capture singleton property in local variable
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
             var campaignData = CampaignManager.Instance.currentCampaignData;
@@ -1917,6 +1949,7 @@ namespace Milehigh.Core
                 GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 if (prefab != null)
                 {
+                    // Use generic Instantiate<T> for better type safety and flow analysis
                     characterObj = Instantiate<GameObject>(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
 

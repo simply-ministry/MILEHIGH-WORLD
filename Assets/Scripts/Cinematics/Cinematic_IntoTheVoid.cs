@@ -59,11 +59,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
-
     // Protagonist: Kai the The Child of Prophecy
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
-
 
     // Antagonist: Delilah the The Desolate
     public GameObject Delilah_Character = null!;
@@ -95,6 +93,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private float idleTimer;
     private bool playerInteracted;
 
+    // BOLT: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // BOLT: Use int (milliseconds) for dictionary key instead of float to prevent cache misses from floating-point inaccuracies
     // ⚡ Bolt: Using int key (milliseconds) to prevent float imprecision cache misses
@@ -131,6 +130,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         return wait;
     }
 
+    void Start()
+    {
     void Start()
     {
         // 🛡️ Sentinel: Defensive programming - Ensure UI components are assigned
@@ -304,6 +305,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Update()
     {
+        // Poll for skip input to ensure responsiveness across keyboard and mouse
         if (Input.anyKeyDown)
         {
             skipRequested = true;
@@ -318,6 +320,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             yield return null;
         }
         skipRequested = false;
+    }
+
         // Poll for skip input and reset idle timer on any interaction
         if (Input.anyKeyDown)
         {
@@ -416,6 +420,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
+        Color speakerColor;
+        switch (speaker)
+        {
+            case "Sky.ix": speakerColor = Color.cyan; break;
+            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break; // Gold
+            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
+            default: speakerColor = Color.white; break;
         Color speakerColor = speaker switch
         {
             "Sky.ix" => Color.cyan,
@@ -486,6 +497,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        // ⚡ Bolt: Cache hex color tag outside the loop to avoid redundant string allocations
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+
+        // UX Enhancement: Pre-calculate layout with completion cue to avoid "jumping"
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         // BOLT: Cache hex color and cue to avoid per-frame allocations
@@ -544,6 +560,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             DialogueText.maxVisibleCharacters = i + 1;
 
             float delay = currentTypingSpeed;
+            char c = textInfo.characterInfo[i].character;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading
+            if (c == '.' || c == '!' || c == '?')
+            {
+                bool isEllipsis = (i > 0 && textInfo.characterInfo[i - 1].character == '.') ||
+                                 (i < totalCharacters - 1 && textInfo.characterInfo[i + 1].character == '.');
+
+                bool isEndOfSentence = (i == totalCharacters - 1) || char.IsWhiteSpace(textInfo.characterInfo[i + 1].character);
             char c = textInfo.characterInfo[i].character;
 
             // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
@@ -3759,8 +3784,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             {
                 yield return GetWait(extraDelay);
             }
-        }
 
+            // ⚡ Bolt: Use cached WaitForSeconds to eliminate GC pressure
+            yield return GetWait(delay);
+        }
             if (i > 0 && i < totalCharacters)
             {
                 char c = DialogueText.textInfo.characterInfo[i - 1].character;
@@ -3830,6 +3857,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // Ensure all characters (including completion cue) are visible
         DialogueText.maxVisibleCharacters = textInfo.characterCount;
 
+        DialogueText.maxVisibleCharacters = totalCharacters;
         // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
         typingCoroutine = null;
         yield break;
@@ -3891,6 +3919,22 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
         yield return FadeDialogue(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
+
+        yield return WaitForSecondsOrSkip(1.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        yield return WaitForSecondsOrSkip(0.5f);
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        yield return WaitForSecondsOrSkip(0.7f);
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        yield return WaitForSecondsOrSkip(8.0f);
+
+        yield return WaitForSecondsOrSkip(1.2f);
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        yield return WaitForSecondsOrSkip(7.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
         yield return WaitForSecondsOrSkip(7.5f);
@@ -3960,6 +4004,19 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         yield return WaitForSecondsOrSkip(5.5f);
 
+        yield return WaitForSecondsOrSkip(2.0f);
+
+        yield return WaitForSecondsOrSkip(0.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
+        yield return WaitForSecondsOrSkip(1.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return WaitForSecondsOrSkip(5.5f);
+
+        yield return WaitForSecondsOrSkip(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        yield return WaitForSecondsOrSkip(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         yield return WaitForSecondsOrSkip(7.5f);
         // --- ACTION: Sky.ix dashes towards the conduit ---
