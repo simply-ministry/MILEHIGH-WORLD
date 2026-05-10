@@ -72,6 +72,10 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (data == null || !data.IsValid() || data.characters == null)
                 return;
             }
 
@@ -148,6 +152,10 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name ?? "unnamed_character";
+                foreach (char c in Path.GetInvalidFileNameChars())
+                {
+                    safeFileName = safeFileName.Replace(c, '_');
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 string safeFileName = charProfile.name;
