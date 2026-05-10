@@ -15,6 +15,7 @@ namespace Milehigh.Data
     public class Metadata
     {
         public LightingState lighting;
+        public string environment = null!;
         public string environment = string.Empty;
         public string environment = "";
         public int systemParity;
@@ -210,6 +211,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker = string.Empty;
         public string text = string.Empty;
         public string trigger = string.Empty;
@@ -330,6 +334,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
             if (scenarios == null)
             {
             if (scenarios == null || scenarios.Count == 0)

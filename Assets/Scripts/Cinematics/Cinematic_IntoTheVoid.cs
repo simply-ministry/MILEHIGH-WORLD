@@ -362,6 +362,7 @@ namespace Milehigh.Cinematics
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
+
     // Protagonist: Kai the The Child of Prophecy
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
@@ -383,6 +384,7 @@ namespace Milehigh.Cinematics
     */
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
+
 
     // Antagonist: Delilah the The Desolate
     public GameObject Delilah_Character = null!;
@@ -430,6 +432,7 @@ namespace Milehigh.Cinematics
 
     private Coroutine? typingCoroutine;
     private Coroutine typingCoroutine;
+    private Coroutine popCoroutine;
     private Coroutine? typingCoroutine;
     private CanvasGroup? dialogueCanvasGroup;
     private Coroutine typingCoroutine;
@@ -572,6 +575,47 @@ namespace Milehigh.Cinematics
         skipRequested = false;
     }
 
+    /// <summary>
+    /// UX Enhancement: A skippable wait that allows users to 'fast-forward' through dialogue beats.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    /// <summary>
+    /// UX Enhancement: A subtle 'pop' animation for UI elements to draw focus during state changes.
+    /// </summary>
+    private IEnumerator PopScale(Transform target, float duration = 0.2f, float scaleFactor = 1.15f)
+    {
+        Vector3 initialScale = target.localScale;
+        Vector3 targetScale = initialScale * scaleFactor;
+
+        float elapsed = 0f;
+        while (elapsed < duration / 2f)
+        {
+            target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        elapsed = 0f;
+        while (elapsed < duration / 2f)
+        {
+            target.localScale = Vector3.Lerp(targetScale, initialScale, elapsed / (duration / 2f));
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        target.localScale = initialScale;
+        popCoroutine = null;
+    }
+
     void Start()
     {
         // 🛡️ Sentinel: Security enhancement - Defensive programming
@@ -611,6 +655,7 @@ namespace Milehigh.Cinematics
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
         popCoroutine = StartCoroutine(PopSpeakerName());
     private IEnumerator WaitForSecondsOrSkip(float duration)
         // ====================================================================
