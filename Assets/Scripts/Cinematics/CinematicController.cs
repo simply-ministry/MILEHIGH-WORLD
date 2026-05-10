@@ -4,9 +4,9 @@ namespace Milehigh.Cinematics
 {
     public class CinematicController : MonoBehaviour
     {
-        public void PlayCinematic(string cinematicId)
+        public void PlayCinematic()
         {
-            Debug.Log($"Playing cinematic: {cinematicId}");
+            Debug.Log("Playing cinematic.");
         }
     }
 }

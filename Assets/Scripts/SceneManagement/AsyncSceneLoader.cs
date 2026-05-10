@@ -12,6 +12,12 @@ namespace Milehigh.SceneManagement
         }
 
         private IEnumerator LoadSceneCoroutine(string sceneName)
+        public void LoadScene(string sceneName)
+        {
+            StartCoroutine(LoadAsync(sceneName));
+        }
+
+        private IEnumerator LoadAsync(string sceneName)
         {
             AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(sceneName);
             while (!asyncLoad.isDone)

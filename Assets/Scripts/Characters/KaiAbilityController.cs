@@ -8,6 +8,14 @@ namespace Milehigh.Characters
         public override void ActivateAbility()
         {
             Debug.Log("Kai: Activating Breach-Hack!");
+
+namespace Milehigh.Characters
+{
+    public class KaiAbilityController : MonoBehaviour
+    {
+        public void ActivateAbility()
+        {
+            Debug.Log("Kai activating ability!");
         }
     }
 }

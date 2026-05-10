@@ -28,6 +28,17 @@ namespace Milehigh.Core
         {
             collectivePower = Mathf.Max(0, collectivePower - amount);
             Debug.Log($"Collective Power: {collectivePower}");
+        private static AlliancePowerManager _instance;
+        public static AlliancePowerManager Instance => _instance;
+
+        private void Awake()
+        {
+            _instance = this;
+        }
+
+        public void SetPowerLevel(float level)
+        {
+            Debug.Log($"Power level set to {level}");
         }
     }
 }
