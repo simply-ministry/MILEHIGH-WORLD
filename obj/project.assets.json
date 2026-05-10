@@ -18,6 +18,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
+      "projectUniqueName": "/app/BuildAll.csproj",
+      "projectName": "BuildAll",
+      "projectPath": "/app/BuildAll.csproj",
       "projectUniqueName": "/app/GlobalBuildCheck.csproj",
       "projectName": "GlobalBuildCheck",
       "projectPath": "/app/GlobalBuildCheck.csproj",

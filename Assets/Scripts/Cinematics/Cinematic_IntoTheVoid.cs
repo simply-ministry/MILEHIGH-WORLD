@@ -122,6 +122,8 @@ namespace Milehigh.Cinematics
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine typingCoroutine;
+    private Coroutine namePopCoroutine;
+    private string lastSpeaker;
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
@@ -307,6 +309,14 @@ namespace Milehigh.Cinematics
             DialogueText.outlineWidth = 0.2f;
             DialogueText.outlineColor = Color.black;
 
+        // UX Enhancement: Pop animation when the speaker changes
+        if (speaker != lastSpeaker)
+        {
+            if (namePopCoroutine != null) StopCoroutine(namePopCoroutine);
+            namePopCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.15f, 1.2f));
+            lastSpeaker = speaker;
+        }
+
         // PALETTE: Trigger "Pop" scale effect when speaker changes for visual delight
         if (speaker != _lastSpeaker)
         {
@@ -390,6 +400,25 @@ namespace Milehigh.Cinematics
             yield return null;
         }
         target.localScale = baseScale;
+    }
+
+    private IEnumerator PopScale(Transform target, float duration, float multiplier)
+    {
+        Vector3 initialScale = target.localScale;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = elapsed / duration;
+            // Use a sine wave for a smooth 'pop' effect (scaling up and back down)
+            float scaleFactor = 1f + Mathf.Sin(progress * Mathf.PI) * (multiplier - 1f);
+            target.localScale = initialScale * scaleFactor;
+            yield return null;
+        }
+
+        target.localScale = initialScale;
+        namePopCoroutine = null;
     }
 
     private IEnumerator TypeDialogue(string message)

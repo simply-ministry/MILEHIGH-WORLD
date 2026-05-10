@@ -637,6 +637,10 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                return false;
+            }
             if (characters == null || characters.Count == 0 || characters.Count > 20)
             {
                 Debug.LogError("[Security] Game data validation failed: Invalid character profile count.");

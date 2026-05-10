@@ -48,6 +48,7 @@ namespace Milehigh.Characters
             // BOLT: Instantiate if pool is empty or contained destroyed objects
             if (clone == null)
             {
+                UnityEngine.Object.Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, UnityEngine.Quaternion.identity);
                 clone = Instantiate(shadowClonePrefab, transform.position + Random.insideUnitSphere * 5f, Quaternion.identity);
             }
 
