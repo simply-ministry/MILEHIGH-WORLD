@@ -436,6 +436,8 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private string _currentCompletionCue = null!;
+    private string _currentSpeakerHex = null!;
     private CanvasGroup? dialogueCanvasGroup;
     private Vector3 _originalSpeakerScale;
     private Coroutine popCoroutine;
@@ -520,6 +522,16 @@ namespace Milehigh.Cinematics
         // Add an Action Delegate at the top of the class
         public event Action? OnCinematicComplete;
 
+    void Update()
+    {
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
         // ====================================================================
         // CHARACTER ASSET & VOICE REFERENCE BLOCK
         // ====================================================================
@@ -678,6 +690,10 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+    /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
+    public void ShowDialogue(string speaker, string message)
     void Update()
     void Start()
     {
@@ -2495,6 +2511,30 @@ namespace Milehigh.Cinematics
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         yield return WaitForSecondsOrSkip(6.0f);
 
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+
+        // Apply character-specific colors for better speaker identification and cache hex
+        Color speakerColor;
+        switch (speaker)
+        {
+            case "Sky.ix":
+                speakerColor = Color.cyan;
+                _currentSpeakerHex = "00FFFF";
+                break;
+            case "Kai":
+                speakerColor = new Color(1f, 0.84f, 0f); // Gold
+                _currentSpeakerHex = "FFD700";
+                break;
+            case "Delilah":
+                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                _currentSpeakerHex = "991AE6";
+                break;
+            default:
+                speakerColor = Color.white;
+                _currentSpeakerHex = "FFFFFF";
+                break;
+        }
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
 
@@ -2509,6 +2549,13 @@ namespace Milehigh.Cinematics
     private IEnumerator TypeDialogue(string message)
     {
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        // We pre-calculate it once here to avoid string allocations and hex conversion in the loop or final update.
+        _currentCompletionCue = $" <color=#{_currentSpeakerHex}>▽</color>";
+        DialogueText.text = message + _currentCompletionCue;
+
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
@@ -2553,6 +2600,13 @@ namespace Milehigh.Cinematics
             // UX Enhancement: Rhythmic punctuation pauses for natural reading
             if (c == '.' || c == '!' || c == '?')
             {
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Note: Delay occurs *after* character reveal for natural rhythm.
+                delay += 0.4f;
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay += 0.2f;
                 // Smart Punctuation: Check for ellipsis or mid-word periods (e.g., Sky.ix)
                 bool isEndOfSentence = true;
                 if (i + 1 < totalVisibleCharacters)
@@ -2606,6 +2660,16 @@ namespace Milehigh.Cinematics
 
             yield return GetWait(delay);
         }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        skipRequested = false;
+
+        // Ensure the visual cue is shown at the end by updating the text one last time with the cached cue.
+        DialogueText.text = message + _currentCompletionCue;
+        DialogueText.maxVisibleCharacters = totalCharacters + 2;
+
+        typingCoroutine = null;
+    }
 
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
