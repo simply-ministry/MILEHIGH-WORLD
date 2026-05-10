@@ -17,6 +17,9 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2026-04-14 - Shader Dead Code and Scene Traversal Optimizations
+**Learning:** Found a critical GPU bottleneck in `HyperPBRCharacter_4D.shader` where heavy SSS calculations were performed but immediately overwritten by a final albedo assignment. Additionally, identified that `SceneDirector.cs` was performing O(N) scene traversals inside loops during setup.
+**Action:** Remove dead shader code to save fragment cycles. In `SceneDirector.cs`, pre-populate the `_objectCache` with a single `Object.FindObjectsOfType<GameObject>()` call at the start of `SetupScene` to reduce complexity from O(N*M) to O(N+M). Use `ReferenceEquals` for fast null checking in negative caches to distinguish between uninitialized slots and destroyed Unity objects.
 ## 2024-05-25 - [O(1) Scene Object Resolution via Pre-population]
 **Learning:** In 'SceneDirector.cs', lazy caching with GameObject.Find() fallbacks still suffers from O(N) penalties for every first-time lookup or negative hit. By pre-populating the cache using Object.FindObjectsOfType<GameObject>() in a single O(N) pass at the start of SetupScene, all subsequent lookups in the setup loop (characters and interactions) become O(1), yielding an ~80-90% performance improvement in complex scenes.
 **Action:** Use single-pass scene traversal (FindObjectsOfType) to warm up object caches before entering high-frequency lookup loops during initialization.

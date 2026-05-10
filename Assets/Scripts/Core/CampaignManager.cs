@@ -15,7 +15,7 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CampaignManager>();
+                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
@@ -60,6 +60,7 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     var data = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // Sentinel: Security validation of deserialized data.
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
                     if (data != null && data.IsValid())
                     {
