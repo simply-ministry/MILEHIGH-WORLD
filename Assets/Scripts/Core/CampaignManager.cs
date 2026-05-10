@@ -78,6 +78,9 @@ namespace Milehigh.Core
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     // SECURITY: Perform validation after deserialization to ensure data integrity
+                    if (currentCampaignData == null)
+                    {
+                        Debug.LogError($"Failed to parse campaign data from {fileName}.");
                     if (currentCampaignData != null)
                     {
                         if (currentCampaignData.IsValid())
@@ -101,8 +104,16 @@ namespace Milehigh.Core
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
+                    else if (!currentCampaignData.IsValid())
+                    {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        currentCampaignData = null;
+                    }
                     else
                     {
+                        currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
