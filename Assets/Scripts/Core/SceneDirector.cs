@@ -13,6 +13,26 @@ namespace Milehigh.Core
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
+        // BOLT: Cache for character prefabs to turn O(P) list searches into O(1) lookups
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        // BOLT: Cache for character controllers to avoid redundant GetComponent calls
+        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+
+        private void EnsurePrefabCache()
+        {
+            if (_prefabCache.Count > 0 || characterPrefabs == null) return;
+
+            foreach (var prefab in characterPrefabs)
+            {
+                if (prefab != null && !_prefabCache.ContainsKey(prefab.name))
+                {
+                    _prefabCache[prefab.name] = prefab;
+                }
+            }
+        }
+
+        private GameObject GetCachedObject(string objectName)
         // BOLT: Prefab lookup cache to avoid O(P) linear searches in characterPrefabs list
         private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
 
@@ -21,6 +41,15 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: ReferenceEquals(obj, null) checks if the managed reference is null,
+            // while obj == null (Unity's override) checks if the native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                if (!ReferenceEquals(obj, null) && obj != null)
+                {
+                    return obj;
+                }
+                _objectCache.Remove(objectName); // Clean up stale/destroyed references
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -56,6 +85,11 @@ namespace Milehigh.Core
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // BOLT: Clean up controller cache to avoid memory leaks of destroyed objects
+            _controllerCache.Clear();
+
+            // BOLT: Populate prefab cache once per initialization
+            EnsurePrefabCache();
             // Clear caches at start of setup to avoid stale references across scenes
             _objectCache.Clear();
             _prefabLookupCache.Clear();
@@ -102,6 +136,13 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Optimized O(1) prefab lookup via dictionary
+                GameObject prefab = null;
+                if (!_prefabCache.TryGetValue(profile.name, out prefab))
+                {
+                    // Fallback to partial match if exact name not in cache
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null) _prefabCache[profile.name] = prefab;
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
                 // instead of characterPrefabs.Find (O(P))
                 GameObject? prefab = null;
@@ -132,8 +173,14 @@ namespace Milehigh.Core
 
             if (characterObj != null)
             {
-                // Assign data to controllers
-                var controller = characterObj.GetComponent<CharacterControllerBase>();
+                // BOLT: Optimized component access using GetInstanceID() to avoid redundant GetComponent calls
+                int instanceId = characterObj.GetInstanceID();
+                if (!_controllerCache.TryGetValue(instanceId, out CharacterControllerBase controller) || controller == null)
+                {
+                    controller = characterObj.GetComponent<CharacterControllerBase>();
+                    if (controller != null) _controllerCache[instanceId] = controller;
+                }
+
                 if (controller != null)
                 {
                     // Create a dummy CharacterData for runtime initialization

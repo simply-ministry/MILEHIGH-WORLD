@@ -67,6 +67,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // 🛡️ Sentinel: Failed validation means we cannot trust the campaign data.
                         // SECURITY: Log the validation failure without exposing internal paths
                         Debug.LogError($"Campaign data from {fileName} failed security validation or is malformed.");
                         currentCampaignData = null; // Ensure we don't use invalid data
