@@ -383,6 +383,8 @@ namespace Milehigh.Cinematics
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
             SpeakerNameText.text = speaker;
             popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
 
@@ -561,6 +563,30 @@ namespace Milehigh.Cinematics
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Palette UX: Look ahead/back to distinguish sentence-end, ellipsis, or mid-word periods (e.g., Sky.ix).
+                        bool isEllipsis = false;
+                        if (c == '.' && i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+
+                        if (isEllipsis)
+                        {
+                            delay = currentTypingSpeed * 5f; // Faster cadence for ellipsis
+                        }
+                        else
+                        {
+                            bool isMidWord = false;
+                            if (c == '.' && i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character)) isMidWord = true;
+
+                            if (!isMidWord) delay = currentTypingSpeed * 15f;
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                     if (c == '.' || c == '!' || c == '?')
                     {
                         delay = currentTypingSpeed * 15f;
@@ -670,6 +696,20 @@ namespace Milehigh.Cinematics
             {
                 delay *= 8f;
             }
+            else if (totalVisibleCharacters > 0)
+            {
+                // Palette UX: Final pause after last punctuation for natural pacing before completion symbol.
+                char lastC = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+                if (lastC == '.' || lastC == '!' || lastC == '?' || lastC == ',' || lastC == ';' || lastC == ':')
+                {
+                    yield return GetWait(currentTypingSpeed * 10f);
+                }
+            }
+        }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // Color-coded to the current speaker for a subtle touch of delight.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
 
             // ⚡ Bolt: Use centralized WaitForSeconds caching to eliminate GC allocations
             yield return UnityUtils.GetWait(delay);
