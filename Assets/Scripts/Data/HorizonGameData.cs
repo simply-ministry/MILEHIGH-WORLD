@@ -57,6 +57,26 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name;
+        public string role;
+        public string[] traits;
+        public string behaviorScript;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Resource exhaustion protection for character profiles.
+        /// </summary>
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (role != null && role.Length > 128) return false;
+            if (behaviorScript != null && behaviorScript.Length > 128) return false;
+
+            if (traits != null && traits.Length > 50) return false;
+            if (traits != null)
+            {
+                foreach (var trait in traits)
+                {
+                    if (trait != null && trait.Length > 64) return false;
         public string name = null!;
         public string role = null!;
         public string[] traits = null!;
@@ -246,6 +266,10 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // SECURITY: Resource exhaustion protection - Input length and collection limits
+            if (sceneId != null && sceneId.Length > 128) return false;
+
+            if (metadata == null)
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
             if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
             if (dialogue != null && dialogue.Count > 50) return false;
@@ -275,6 +299,22 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid character count.");
+                return false;
+            }
+
+            foreach (var character in characters)
+            {
+                if (character == null || !character.IsValid()) return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid scenario count.");
+                return false;
+            }
             foreach (var obj in interactiveObjects)
             {
                 if (obj == null || !obj.IsValid()) return false;
