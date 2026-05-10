@@ -24,6 +24,9 @@ namespace Milehigh.Data
         /// Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and prevents DoS.
         /// </summary>
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
+        /// Validates metadata integrity and safety bounds.
         public bool IsValid()
         {
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
@@ -170,6 +173,10 @@ namespace Milehigh.Data
         /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
         /// Validates the deserialized game data for security and integrity.
         /// </summary>
+        /// <summary>
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// Validates the deserialized game data for security and integrity.
+        /// </summary>
         public bool IsValid()
         {
             if (metadata == null || !metadata.IsValid())
@@ -193,6 +200,11 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");
+                return false;
+            }
             foreach (var character in characters)
             {
                 if (!character.IsValid()) return false;
