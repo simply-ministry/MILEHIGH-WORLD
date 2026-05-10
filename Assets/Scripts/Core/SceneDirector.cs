@@ -1041,6 +1041,17 @@ namespace Milehigh.Core
                 return null;
             }
 
+            // 🛡️ Sentinel: Prevent IDOR tampering with core architectural singletons
+            // SECURITY: Exact match blocklist prevents unauthorized data-driven manipulation
+            if (objectName == "CampaignManager" ||
+                objectName == "SceneDirector" ||
+                objectName == "CameraManager" ||
+                objectName == "AlliancePowerManager")
+            {
+                Debug.LogWarning($"[Security] Blocked unauthorized access attempt to critical system object: {objectName}");
+                return null;
+            }
+
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Use ReferenceEquals for the cache check to distinguish between a truly missing
             // entry and one that was cached as null (negative caching).
