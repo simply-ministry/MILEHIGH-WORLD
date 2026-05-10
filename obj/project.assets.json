@@ -1,6 +1,11 @@
 {
   "version": 3,
   "targets": {
+    "net8.0": {}
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {
+    "net8.0": []
     "net10.0": {}
   },
   "libraries": {},
@@ -13,6 +18,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
+      "projectUniqueName": "/app/GlobalBuildCheck.csproj",
+      "projectName": "GlobalBuildCheck",
+      "projectPath": "/app/GlobalBuildCheck.csproj",
       "projectUniqueName": "/app/Temp.csproj",
       "projectName": "Temp",
       "projectPath": "/app/Temp.csproj",
@@ -23,6 +31,7 @@
         "/home/jules/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
+        "net8.0"
         "net10.0"
       ],
       "sources": {
@@ -30,6 +39,8 @@
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {}
@@ -43,11 +54,14 @@
       "restoreAuditProperties": {
         "enableAudit": "true",
         "auditLevel": "low",
+        "auditMode": "direct"
         "auditMode": "all"
       },
       "SdkAnalysisLevel": "10.0.100"
     },
     "frameworks": {
+      "net8.0": {
+        "targetAlias": "net8.0",
       "net10.0": {
         "targetAlias": "net10.0",
         "imports": [
@@ -66,6 +80,7 @@
             "privateAssets": "all"
           }
         },
+        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.103/PortableRuntimeIdentifierGraph.json"
         "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.103/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",

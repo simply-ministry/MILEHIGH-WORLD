@@ -1,3 +1,10 @@
+## 2025-11-23 - Null Reference Protection in OmegaOneController
+
+**Vulnerability:** OmegaOneController.CheckStability would crash with a NullReferenceException if the passed 'nearestShard' was null, as it accessed 'shard.name' in a Debug.Log statement.
+
+**Learning:** Even simple logging statements can cause crashes if they dereference objects without null checks.
+
+**Prevention:** Implement explicit null checks for GameObjects before accessing their properties, especially in methods that might be called with dynamic scene references.
 ## 2024-03-26 - Path Traversal Vulnerability during Asset Generation
 **Vulnerability:** A path traversal vulnerability was present when dynamically creating Unity scriptable objects from JSON input (`charProfile.name`). A malicious actor could provide a JSON payload containing `../` sequences in character names, leading to arbitrary file write outside of the intended `Assets/Data/Characters` directory.
 **Learning:** The previous path sanitization attempt was flawed. It correctly used `Path.GetInvalidFileNameChars()` to replace invalid characters, but then used `Path.GetFileName()` on a new `sanitizedName` variable that didn't have the invalid chars removed, or otherwise applied `Path.GetFileName()` incorrectly, leaving it vulnerable or broken.
