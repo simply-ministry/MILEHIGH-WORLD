@@ -359,8 +359,8 @@ namespace Milehigh.Cinematics
      * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
      * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
     */
-    public GameObject Skyix_Character;
-    public AudioSource Skyix_VoiceSource;
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
 
     // Protagonist: Kai the The Child of Prophecy
     public GameObject Kai_Character = null!;
@@ -381,8 +381,8 @@ namespace Milehigh.Cinematics
      * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
      * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
     */
-    public GameObject Kai_Character;
-    public AudioSource Kai_VoiceSource;
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
 
     // Antagonist: Delilah the The Desolate
     public GameObject Delilah_Character = null!;
@@ -395,12 +395,14 @@ namespace Milehigh.Cinematics
     /* VOICE PROFILE:
      * Not available.
     */
-    public GameObject Delilah_Character;
-    public AudioSource Delilah_VoiceSource;
+    public GameObject Delilah_Character = null!;
+    public AudioSource Delilah_VoiceSource = null!;
 
 
     [Header("UI Components")]
     public GameObject DialogueBox = null!;
+    public TextMeshProUGUI SpeakerNameText = null!;
+    public TextMeshProUGUI DialogueText = null!;
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
@@ -426,6 +428,7 @@ namespace Milehigh.Cinematics
 
     public TextMeshProUGUI SkipHint = null!;
 
+    private Coroutine? typingCoroutine;
     private Coroutine typingCoroutine;
     private Coroutine? typingCoroutine;
     private CanvasGroup? dialogueCanvasGroup;
@@ -798,6 +801,50 @@ namespace Milehigh.Cinematics
         typingCoroutine = null;
     }
 
+    private IEnumerator PopScale(RectTransform target, float duration, float scaleFactor)
+    {
+        if (target == null) yield break;
+        Vector3 initialScale = target.localScale;
+        Vector3 targetScale = initialScale * scaleFactor;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            target.localScale = Vector3.Lerp(initialScale, targetScale, Mathf.Sin(t * Mathf.PI));
+            yield return null;
+        }
+
+        target.localScale = initialScale;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    /// <summary>
+    /// Executes a complete dialogue line sequence: reveal text, and wait for read time.
+    /// </summary>
+    private IEnumerator PlayDialogueLine(string speaker, string message, float postWait)
+    {
+        ShowDialogue(speaker, message);
+
+        // UX Enhancement: Pop effect on speaker name to draw attention
+        StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 1.15f));
+
+        while (typingCoroutine != null) yield return null;
+        yield return WaitForSecondsOrSkip(postWait);
+    }
+
+    private IEnumerator Cinematic_IntoTheVoid_Sequence()
     /// <summary>
     /// Smoothly fades the dialogue panel's alpha over time.
     /// </summary>
@@ -813,6 +860,9 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
+        yield return GetWait(1.5f);
+        yield return PlayDialogueLine("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.", 7.5f);
+        // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
@@ -821,6 +871,9 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 2: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
+        yield return GetWait(0.5f);
+        yield return PlayDialogueLine("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.", 6.0f);
+        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
@@ -829,6 +882,23 @@ namespace Milehigh.Cinematics
         // --- Dialogue Line 3: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
+        yield return GetWait(0.7f);
+        yield return PlayDialogueLine("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!", 8.0f);
+        // Kai_VoiceSource.Play();
+
+        // --- Dialogue Line 4: Delilah ---
+        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
+        // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
+        yield return GetWait(1.2f);
+        yield return PlayDialogueLine("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.", 7.0f);
+        // Delilah_VoiceSource.Play();
+
+        // --- Dialogue Line 5: Sky.ix ---
+        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
+        // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
+        yield return GetWait(0.8f);
+        yield return PlayDialogueLine("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!", 4.5f);
+        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
@@ -3150,6 +3220,9 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.5f);
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
+        yield return GetWait(1.5f);
+        yield return PlayDialogueLine("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.", 5.5f);
+        // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
@@ -3160,6 +3233,9 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.0f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
+        yield return GetWait(1.0f);
+        yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 7.5f);
+        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
