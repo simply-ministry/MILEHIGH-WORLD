@@ -40,6 +40,7 @@ namespace Milehigh.Data
             }
             if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
             {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 Debug.LogError("[Security] Metadata validation failed: environment string is too long.");
                 return false;
             }

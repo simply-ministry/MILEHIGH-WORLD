@@ -62,6 +62,25 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Denial of Service (DoS) protection.
+            // Limit object name length to prevent expensive string operations or malicious traversal.
+            if (objectName.Length > 128)
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked: objectName '{objectName.Substring(0, 10)}...' exceeds length limit.");
+                return null;
+            }
+
+            // 🛡️ Sentinel: Whitelist check to prevent DoS via complex GameObject.Find calls.
+            // Only allow alphanumeric, underscores, spaces, parentheses, hyphens, periods, and brackets.
+            foreach (char c in objectName)
+            {
+                if (!char.IsLetterOrDigit(c) && c != '_' && c != ' ' && c != '(' && c != ')' && c != '-' && c != '.' && c != '[' && c != ']')
+                {
+                    Debug.LogWarning($"[Security] GetCachedObject blocked: objectName '{objectName}' contains illegal character '{c}'.");
+                    return null;
+                }
+            }
+
             // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
             // Limit object name length and restrict to safe characters to prevent expensive Find operations.
             if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
