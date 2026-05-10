@@ -222,6 +222,11 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null)
+            {
+                return false;
+            }
+
             return true;
         }
     }

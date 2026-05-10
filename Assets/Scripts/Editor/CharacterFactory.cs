@@ -112,6 +112,8 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
