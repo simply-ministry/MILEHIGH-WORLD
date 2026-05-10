@@ -29,6 +29,12 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (data == null || !data.IsValid() || data.characters == null)
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
             }
@@ -66,6 +72,8 @@ namespace Milehigh.Editor
             var characters = data.characters;
             if (characters != null)
             {
+                if (charProfile == null) continue;
+
                 foreach (var charProfile in characters)
                 {
                     if (charProfile == null) continue;
@@ -108,6 +116,7 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");

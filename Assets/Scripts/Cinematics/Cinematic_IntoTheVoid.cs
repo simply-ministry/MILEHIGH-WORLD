@@ -203,6 +203,8 @@ namespace Milehigh.Cinematics
 
     void Update()
     {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown)
         // ⚡ Bolt: Precise skip detection for refined UX.
         // We focus on primary confirmation keys to prevent accidental skips from accidental key presses.
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
@@ -301,6 +303,12 @@ namespace Milehigh.Cinematics
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 1; i <= totalVisibleCharacters; i++)
+        {
+            if (skipRequested)
+
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalVisibleCharacters = textInfo.characterCount;
 
@@ -345,6 +353,46 @@ namespace Milehigh.Cinematics
                 extraDelay = currentTypingSpeed * 7f;
             }
 
+            DialogueText.maxVisibleCharacters = i;
+            float delay = currentTypingSpeed;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // We check the revealed character to pause after it appears.
+            char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Smart Punctuation: Detect ellipsis or end of sentence
+                bool isEndOfSentence = true;
+                if (i < totalVisibleCharacters)
+                {
+                    char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    // Check for ellipsis (neighboring dots)
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                    }
+
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2; // Show the completion cue
+        skipRequested = false;
             if (extraDelay > 0 && !skipRequested)
             {
                 yield return GetWait(extraDelay);

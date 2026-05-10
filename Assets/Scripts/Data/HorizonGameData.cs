@@ -53,10 +53,6 @@ namespace Milehigh.Data
         public string role = null!;
         public string[] traits = null!;
         public string behaviorScript = null!;
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
 
         /// <summary>
         /// 🛡️ Sentinel: Security validation for individual character data.
