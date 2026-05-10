@@ -789,6 +789,9 @@ namespace Milehigh.Cinematics
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
                     if (c == '.' || c == '!' || c == '?')
                     {
+                        // Detect ellipsis (reduced delay for consecutive dots)
+                        bool isEllipsis = i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.';
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                         // Rhythmic Look-ahead: Detect ellipses (multiple dots) and mid-word periods (like Sky.ix)
                         bool isEllipsis = (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') ||
                                           (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.');
@@ -859,6 +862,14 @@ namespace Milehigh.Cinematics
                 char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
                 if (lastChar == '.' || lastChar == '!' || lastChar == '?') yield return GetWait(currentTypingSpeed * 15f);
             }
+        }
+
+        // UX Enhancement: Post-reveal pause for final punctuation before the completion cue.
+        if (totalVisibleCharacters > 0)
+        {
+            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
+                yield return GetWait(currentTypingSpeed * 10f);
         }
 
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
