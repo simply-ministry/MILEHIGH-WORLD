@@ -193,6 +193,8 @@ namespace Milehigh.Core
 
             if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
@@ -251,6 +253,7 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we remove it to allow re-finding.
                 // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj == null)
                 {
@@ -274,6 +277,11 @@ namespace Milehigh.Core
                     Debug.LogWarning($"[Security] GetCachedObject blocked: objectName '{objectName}' contains illegal character '{c}'.");
                     return null;
                 }
+            }
+
+            // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
+            var foundObj = GameObject.Find(objectName);
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals
             }
 
             // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
@@ -341,6 +349,8 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
 
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
@@ -540,7 +550,18 @@ namespace Milehigh.Core
             // Clear cache at start of setup to avoid stale references across scenes
             _objectCache.Clear();
 
+            // BOLT: Pre-populate object cache with existing scene objects to avoid lazy O(N) lookups
+            // Note: FindObjectsOfType is legacy but highly compatible across Unity versions.
+            foreach (var go in FindObjectsOfType<GameObject>())
+            {
+                if (go != null && !string.IsNullOrEmpty(go.name) && !_objectCache.ContainsKey(go.name))
+                {
+                    _objectCache[go.name] = go;
+                }
+            }
+
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
             if (CampaignManager.Instance.currentCampaignData?.characters != null)
             {
                 foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
@@ -696,6 +717,8 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            if (profile == null || string.IsNullOrEmpty(profile.name)) return;
+
             GameObject? characterObj = GetCachedObject(profile.name);
 
             if (characterObj == null)

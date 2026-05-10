@@ -36,34 +36,10 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
-                return;
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
-            // SECURITY: Always validate data after deserialization
-            if (data == null || !data.IsValid())
-            {
-                Debug.LogError($"[Security] Failed to parse or validate campaign data from {fileName}.");
-            if (!data.IsValid())
-            // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
-            }
-
-            // 🛡️ Sentinel: Security validation of deserialized data.
-            // SECURITY: Always validate data after deserialization to ensure data integrity
-            if (data == null || !data.IsValid())
-            {
-                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             if (data == null || !data.IsValid() || data.characters == null)
-                Debug.LogError("Failed to load or parse campaign data.");
-                return;
-            }
-            // 🛡️ Sentinel: Security validation of deserialized data.
-            // SECURITY: Always validate data after deserialization
-            if (data == null || !data.IsValid())
-            {
-                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
-            if (data == null || data.characters == null || !data.IsValid())
-            if (data == null || !data.IsValid())
             {
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
             string json = File.ReadAllText(path);
@@ -131,6 +107,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 string rawName = charProfile.name ?? "unnamed_character";
 

@@ -192,20 +192,6 @@ namespace Milehigh.Cinematics
     */
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
-
-
-    // Protagonist: Kai the The Child of Prophecy
-    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
-    // Ability Script: Ability_Kai.cs
-    /* VOICE PROFILE:
-     * Pitch: Gender Neutral/Mid-Range
-     * Tempo: Slow and Paused (70-90 WPM)
-     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
-     * Projection: Soft, but Infinitely Resonant
-     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
-     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
-    */
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
 
@@ -303,6 +289,9 @@ namespace Milehigh.Cinematics
 
     private void Update()
     {
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
     private IEnumerator WaitForSecondsOrSkip(float duration)
@@ -342,6 +331,12 @@ namespace Milehigh.Cinematics
         float elapsed = 0f;
         while (elapsed < duration / 2f)
         {
+            Debug.LogError("Missing UI components required for cinematic.");
+            return;
+        }
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
             target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
             elapsed += Time.deltaTime;
             yield return null;
@@ -437,6 +432,12 @@ namespace Milehigh.Cinematics
         skipRequested = false;
 
         Color speakerColor = Color.white;
+        if (speaker == "Sky.ix") speakerColor = Color.cyan;
+        else if (speaker == "Kai") speakerColor = new Color(1f, 0.84f, 0f);
+        else if (speaker == "Delilah") speakerColor = new Color(0.6f, 0.1f, 0.9f);
+
+
+        Color speakerColor = Color.white;
         // Apply character-specific colors
         // Apply character-specific colors for better speaker identification
         Color speakerColor;
@@ -494,6 +495,55 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 1; i <= totalVisibleCharacters; i++)
+        {
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                break;
+            }
+
+            DialogueText.maxVisibleCharacters = i;
+            float delay = currentTypingSpeed;
+            char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+            if (c == '.' || c == '!' || c == '?')
+            {
+                bool isEndOfSentence = true;
+                if (i < totalVisibleCharacters)
+                {
+                    char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                    }
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        skipRequested = false;
         // UX Enhancement: Reveal with completion cue already appended to prevent layout shifts.
         // The cue is color-coded to match the speaker for a subtle touch of polish.
         DialogueText.text = $"{message} <color=#{speakerHexColor}>▽</color>";
@@ -990,6 +1040,9 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
+        DialogueBox.SetActive(true);
+        yield return WaitForSecondsOrSkip(1.0f);
+
         // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
@@ -1057,7 +1110,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
-        // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
@@ -1069,7 +1121,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
-        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(6.0f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         yield return WaitForSecondsOrSkip(6.0f);
@@ -1081,7 +1132,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
-        // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(8.0f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
@@ -1093,7 +1143,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
-        // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.0f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
@@ -1105,7 +1154,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
-        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(4.5f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         yield return WaitForSecondsOrSkip(4.5f);
@@ -1125,12 +1173,7 @@ namespace Milehigh.Cinematics
         // [SFX: Play sound of cybernetic dash and energy whoosh.]
         yield return WaitForSecondsOrSkip(2.0f);
 
-        // --- Dialogue Line 6: Kai ---
-        // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
-        // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
-        yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-        // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(3.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         yield return WaitForSecondsOrSkip(3.5f);
@@ -1142,7 +1185,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
-        // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(5.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         yield return WaitForSecondsOrSkip(5.5f);
@@ -1154,7 +1196,6 @@ namespace Milehigh.Cinematics
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
         yield return WaitForSecondsOrSkip(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
-        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         yield return WaitForSecondsOrSkip(7.5f);
