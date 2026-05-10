@@ -354,6 +354,8 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Standardized skip logic for both keyboard and mouse
     // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Using int (milliseconds) instead of float as dictionary key to prevent
+    // cache misses caused by floating-point imprecision, avoiding unnecessary GC allocations.
     // ⚡ Bolt: Use int key for milliseconds to prevent float imprecision dictionary misses
     private static readonly Dictionary<float, WaitForSeconds?> _waitForSecondsCache = new Dictionary<float, WaitForSeconds?>();
     // ⚡ Bolt: Using int keys (milliseconds) prevents float precision cache misses and redundant GC allocations.
