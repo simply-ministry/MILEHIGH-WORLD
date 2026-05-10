@@ -188,6 +188,11 @@ namespace Milehigh.Cinematics
 
     private WaitForSeconds GetWait(float time)
     {
+        int ms = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[ms] = wait;
         // ⚡ Bolt: Convert float to integer milliseconds to avoid floating-point dictionary key cache misses
         int timeMs = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
