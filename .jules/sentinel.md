@@ -98,6 +98,10 @@
 **Learning:** Incomplete or improperly merged security fixes can be as dangerous as the original vulnerabilities, as they may lead to compilation failures or bypassed security checks. Centralizing validation logic and ensuring clean path sanitization is critical.
 **Prevention:** Always perform a full code review and basic sanity check (even if just manual brace counting) after applying security fixes to ensure no regressions or syntax errors are introduced.
 
+## 2024-05-24 - Information Disclosure via Exception Messages in Logs
+**Vulnerability:** Found `Debug.LogError` statements in `CampaignManager.cs` outputting `ex.Message` directly in catch blocks. This can inadvertently leak absolute file paths or internal system details if the exception message contains them.
+**Learning:** Exception messages often contain platform-specific paths or environment details that should not be exposed in production logs.
+**Prevention:** Mask runtime exception details by logging generic error messages (e.g., "See logs for details") and ensure that any file-related logs only use relative names or identifiers rather than full paths.
 ## 2024-05-24 - IDOR Vulnerability in Unity Data-Driven Architecture
 **Vulnerability:** External JSON data could directly manipulate core singleton managers via GameObject lookups.
 **Learning:** Unsanitized string IDs used for scene object retrieval create an Insecure Direct Object Reference (IDOR) risk, granting unintended access to architectural singletons.

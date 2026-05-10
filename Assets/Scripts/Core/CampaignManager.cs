@@ -115,6 +115,7 @@ namespace Milehigh.Core
                     // Consolidate redundant comments and remove ex.Message to prevent path leakage.
                     Debug.LogError($"Error loading campaign data from {fileName}. Parsing failure.");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
+                    Debug.LogError($"Error loading campaign data from {fileName}. See logs for details.");
                     Debug.LogError($"Error loading campaign data from {fileName}.");
                     Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Do not log ex.Message to avoid leaking absolute file paths or system details.

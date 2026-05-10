@@ -83,6 +83,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
                 string baseName = charProfile.name ?? "unnamed_character";
@@ -346,6 +347,31 @@ namespace Milehigh.Editor
             sanitized = Path.GetFileName(sanitized);
 
             return sanitized;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Robust file name sanitization to prevent Path Traversal.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Remove invalid characters
+            string safeName = input;
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                safeName = safeName.Replace(c, '_');
+            }
+
+            // Strip directory traversal sequences and hidden file markers
+            safeName = Path.GetFileName(safeName).Replace("..", "").TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(safeName))
+            {
+                safeName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+
+            return safeName;
         }
     }
 }

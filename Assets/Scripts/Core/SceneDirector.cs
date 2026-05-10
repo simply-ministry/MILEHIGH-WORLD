@@ -102,6 +102,7 @@ namespace Milehigh.Core
 
             GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             if (_objectCache.TryGetValue(objectName, out obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -531,6 +532,10 @@ namespace Milehigh.Core
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            if (characterPrefabs != null)
+            {
+                prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+            }
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (string.IsNullOrEmpty(profileName)) return null;
 
@@ -742,6 +747,8 @@ namespace Milehigh.Core
                 }
             }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null)
@@ -822,6 +829,7 @@ namespace Milehigh.Core
             {
                 foreach (var charProfile in campaignData.characters)
                 {
+                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
                     if (charProfile != null)
                     {
                         SpawnOrUpdateCharacter(charProfile);
@@ -833,6 +841,7 @@ namespace Milehigh.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
+                    if (interaction != null) ApplyInteraction(interaction);
                     if (interaction != null)
                     {
                         ApplyInteraction(interaction);
