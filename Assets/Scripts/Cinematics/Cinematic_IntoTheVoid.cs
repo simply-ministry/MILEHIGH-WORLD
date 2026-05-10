@@ -262,6 +262,10 @@ namespace Milehigh.Cinematics
             ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
             yield return WaitForSecondsOrSkip(7.5f);
 
+namespace Milehigh.Cinematics
+{
+    /// <summary>
+    /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
             // --- Dialogue Line 2: Sky.ix ---
             ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
             yield return WaitForSecondsOrSkip(6.0f);
@@ -608,17 +612,64 @@ namespace Milehigh.Cinematics
     /// <summary>
     /// UX Enhancement: A skippable wait that allows users to 'fast-forward' through dialogue beats.
     /// </summary>
-    private IEnumerator WaitForSecondsOrSkip(float duration)
+    public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        [Header("Character References")]
+        public GameObject Skyix_Character = null!;
+        public AudioSource Skyix_VoiceSource = null!;
+        public GameObject Kai_Character = null!;
+        public AudioSource Kai_VoiceSource = null!;
+        public GameObject Delilah_Character = null!;
+        public AudioSource Delilah_VoiceSource = null!;
+
+        [Header("UI Components")]
+        public GameObject DialogueBox = null!;
+        public TextMeshProUGUI SpeakerNameText = null!;
+        public TextMeshProUGUI DialogueText = null!;
+
+        [Header("UX Settings")]
+        [FormerlySerializedAs("typingSpeed")]
+        public float baseTypingSpeed = 0.03f;
+        public float kaiSpeedMultiplier = 3.0f;
+        public float skyixSpeedMultiplier = 1.2f;
+
+        private Coroutine? typingCoroutine;
+        private float currentTypingSpeed;
+        private bool skipRequested;
+
+        // BOLT: Cache for WaitForSeconds to eliminate GC allocations.
+        private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
+
+        private WaitForSeconds GetWait(float time)
+        {
+            if (!_waitForSecondsCache.TryGetValue(time, out var wait))
+            {
+                wait = new WaitForSeconds(time);
+                _waitForSecondsCache[time] = wait;
+            }
+            return wait;
         float elapsed = 0f;
         while (elapsed < duration && !skipRequested)
         {
             elapsed += Time.deltaTime;
             yield return null;
         }
-        skipRequested = false;
-    }
 
+        private void Start()
+        {
+            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
+            if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+            {
+                Debug.LogError("[Security] Missing UI components required for cinematic. Aborting to prevent errors.");
+                return;
+            }
+
+            StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+        }
+
+        private void Update()
+        {
+            // UX: Support any key or mouse click to skip typewriter or pauses.
     /// <summary>
     /// UX Enhancement: A subtle 'pop' animation for UI elements to draw focus during state changes.
     /// </summary>
@@ -2898,6 +2949,29 @@ namespace Milehigh.Cinematics
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
 
+        private IEnumerator WaitForSecondsOrSkip(float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration && !skipRequested)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            skipRequested = false;
+        }
+
+        public void ShowDialogue(string speaker, string message)
+        {
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
+            SpeakerNameText.text = speaker;
+
+            float multiplier = 1.0f;
+            if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+            else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+
+            currentTypingSpeed = baseTypingSpeed * multiplier;
+            skipRequested = false;
         SpeakerNameText.color = speakerColor;
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
@@ -2992,7 +3066,16 @@ namespace Milehigh.Cinematics
                 delay = currentTypingSpeed * 8f;
             }
 
-            yield return GetWait(delay);
+            Color speakerColor = speaker switch
+            {
+                "Sky.ix" => Color.cyan,
+                "Kai" => new Color(1f, 0.84f, 0f),
+                "Delilah" => new Color(0.6f, 0.1f, 0.9f),
+                _ => Color.white
+            };
+
+            SpeakerNameText.color = speakerColor;
+            typingCoroutine = StartCoroutine(TypeDialogue(message));
         }
 
         DialogueText.maxVisibleCharacters = totalCharacters;

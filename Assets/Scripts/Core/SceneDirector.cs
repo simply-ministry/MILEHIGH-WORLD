@@ -13,6 +13,13 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
+        // BOLT: Consolidated caches to prevent expensive lookups and redundant GetComponent calls.
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+
+        // 🛡️ Sentinel: Regex for validating object names to prevent expensive GameObject.Find on malicious strings.
+        private static readonly Regex _nameValidator = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\_\.\/\[\]]+$", RegexOptions.Compiled);
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
@@ -127,7 +134,7 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Cache for prefab lookups to avoid O(N) list searches
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
-1        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Component cache to avoid redundant GetComponent calls
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
@@ -140,6 +147,20 @@ namespace Milehigh.Core
                 return null;
             }
 
+            // 🛡️ Sentinel: Validate input string length and content to mitigate DoS via expensive Find operations.
+            if (objectName.Length > 128 || !_nameValidator.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
+                return null;
+            }
+
+            // BOLT: O(1) dictionary lookup.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // Note: Unity overrides the == operator. If obj is a destroyed Unity object, it will evaluate to null.
+                // We use ReferenceEquals to check for 'true' null entries (negative caching).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+                if (obj == null)
             // 🛡️ Sentinel: DoS Mitigation - Enforce length limit and character whitelist on object names.
             if (objectName.Length > 128 || !_nameWhitelist.IsMatch(objectName))
             {
@@ -1048,6 +1069,11 @@ namespace Milehigh.Core
             }
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
+            // BOLT: Fallback to O(N) scene traversal only if not in cache.
+            obj = GameObject.Find(objectName);
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals.
+            _objectCache[objectName] = obj;
+            return obj;
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (prefab != null) _prefabCache[profileName] = prefab;
@@ -1056,6 +1082,16 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: Initial lookup in characterPrefabs list.
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
+            _prefabCache[profileName] = prefab;
+            return prefab;
+        }
+
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
         private void OnDestroy()
         {
@@ -1196,6 +1232,8 @@ namespace Milehigh.Core
                 }
             }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             if (CampaignManager.Instance.currentCampaignData != null &&
                 CampaignManager.Instance.currentCampaignData.scenarios != null &&
                 CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
@@ -1273,6 +1311,10 @@ namespace Milehigh.Core
         {
             if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
+
+            // BOLT: Clear dynamic caches at start of setup to avoid stale references.
+            _objectCache.Clear();
+            _controllerCache.Clear();
 
             _objectCache.Clear();
             _controllerCache.Clear();
@@ -1362,6 +1404,7 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            if (profile == null) return;
             GameObject? characterObj = GetCachedObject(profile.name);
 
             if (characterObj == null)
@@ -1530,6 +1573,7 @@ namespace Milehigh.Core
                     characterObj = Instantiate<GameObject>(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
 
+                    // BOLT: Immediately cache the newly instantiated object.
                     // BOLT: Immediately cache the newly instantiated object to prevent redundant scene searches
                     // BOLT: Immediately cache the newly instantiated object to resolve negative cache hits.
                     // BOLT: Immediately cache the newly instantiated object to prevent redundant searches
@@ -1619,6 +1663,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            if (interaction == null) return;
             GameObject? target = GetCachedObject(interaction.objectId);
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")

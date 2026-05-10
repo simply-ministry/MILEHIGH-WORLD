@@ -26,6 +26,7 @@ namespace Milehigh.Editor
                 return;
             }
 
+            HorizonGameData? data = null;
             string json = File.ReadAllText(path);
             HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
             HorizonGameData? data = null;
@@ -170,6 +171,7 @@ namespace Milehigh.Editor
 
                 string safeFileName = baseName;
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Use a strict whitelist-based approach to ensure generated paths remain within the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 foreach (char c in Path.GetInvalidFileNameChars())
                 {
@@ -592,6 +594,24 @@ namespace Milehigh.Editor
             if (string.IsNullOrEmpty(safeName)) return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
 
             return safeName;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Helper to generate a safe file name from a string.
+        /// Strips any characters not in the whitelist [a-zA-Z0-9_\-] and ensures no traversal sequences.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character";
+
+            // Whitelist-based regex to allow only alphanumeric, underscores, and hyphens.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Strip leading dots or underscores to prevent hidden files or traversal.
+            sanitized = sanitized.TrimStart('.', '_');
+
+            // Use Path.GetFileName as a final layer of defense.
+            return Path.GetFileName(sanitized);
         }
     }
 }

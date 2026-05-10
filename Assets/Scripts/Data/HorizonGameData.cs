@@ -68,10 +68,6 @@ namespace Milehigh.Data
         public string role = null!;
         public string[] traits = null!;
         public string behaviorScript = null!;
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
 
         /// <summary>
         /// 🛡️ Sentinel: Resource exhaustion protection for character profiles.
@@ -267,6 +263,30 @@ namespace Milehigh.Data
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
+            if (dialogue != null && dialogue.Count > 50) return false;
+
+            if (interactiveObjects != null)
+            {
+                foreach (var interaction in interactiveObjects)
+                {
+                    if (interaction == null || !interaction.IsValid()) return false;
+                }
+            }
+
+            if (dialogue != null)
+            {
+                foreach (var d in dialogue)
+                {
+                    if (d == null || !d.IsValid()) return false;
+                }
+            }
+            return true;
+        }
     }
 
     [System.Serializable]
@@ -336,6 +356,20 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid number of scenarios.");
+                return false;
+            }
+
+            foreach (var charProfile in characters)
+            {
+                if (charProfile == null || !charProfile.IsValid())
+                {
+                    Debug.LogError("[Security] Game data validation failed: Invalid character profile detected.");
+                    return false;
+                }
+            }
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
