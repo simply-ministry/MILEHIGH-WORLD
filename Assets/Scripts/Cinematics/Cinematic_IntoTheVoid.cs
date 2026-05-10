@@ -2425,6 +2425,16 @@ namespace Milehigh.Cinematics
             // --- ACTION: Sky.ix dashes towards the conduit ---
             yield return WaitForSecondsOrSkip(2.0f);
 
+    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
+
+    private WaitForSeconds GetWait(float time)
+    {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
             // --- Dialogue Line 6: Kai ---
             yield return WaitForSecondsOrSkip(0.5f);
             ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
