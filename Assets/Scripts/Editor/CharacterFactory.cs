@@ -160,8 +160,6 @@ namespace Milehigh.Editor
                 // 🛡️ Sentinel: Secure path generation to prevent Path Traversal vulnerabilities.
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
-                // Malicious JSON could use "../" to write assets outside the intended directory.
-                // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = Path.GetFileName(baseName);
 
