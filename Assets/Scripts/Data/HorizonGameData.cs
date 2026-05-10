@@ -92,6 +92,12 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment string exceeds 128 characters.");
+                return false;
+            }
+
             // Environment string length limit (128 chars)
             if (environment != null && environment.Length > 128)
             {
@@ -184,6 +190,7 @@ namespace Milehigh.Data
         {
             if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
             if (role != null && role.Length > 128) return false;
+            if (behaviorScript != null && behaviorScript.Length > 128) return false;
             if (traits != null && traits.Length > 10) return false;
             if (behaviorScript != null && behaviorScript.Length > 256) return false;
         public bool IsValid()
@@ -345,6 +352,11 @@ namespace Milehigh.Data
         public string text;
         public string trigger;
 
+        public bool IsValid()
+        {
+            if (speaker != null && speaker.Length > 128) return false;
+            // Text can be longer, maybe 2048
+            if (text != null && text.Length > 2048) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates dialogue data.
         /// </summary>
@@ -445,6 +457,10 @@ namespace Milehigh.Data
 
             if (interactiveObjects != null)
             {
+                if (interactiveObjects.Count > 100) return false;
+                foreach (var interaction in interactiveObjects)
+                {
+                    if (interaction == null || !interaction.IsValid()) return false;
                 if (interactiveObjects.Count > 50) return false;
                 foreach (var obj in interactiveObjects) if (!obj.IsValid()) return false;
                 if (interactiveObjects.Count > 100) return false;
@@ -571,6 +587,14 @@ namespace Milehigh.Data
 
             if (metadata == null || !metadata.IsValid())
             {
+                Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid sceneId.");
+                return false;
+            }
+
+            if (metadata == null || !metadata.IsValid())
+            {
             {
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
             {
@@ -605,6 +629,12 @@ namespace Milehigh.Data
             foreach (var character in characters)
             {
                 if (character != null && !character.IsValid()) return false;
+            }
+
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Character count out of bounds (1-50).");
+                return false;
             }
 
             if (characters == null || characters.Count == 0 || characters.Count > 20)
@@ -766,6 +796,22 @@ namespace Milehigh.Data
             {
                 if (character == null || !character.IsValid())
                 {
+                    Debug.LogError("[Security] Game data validation failed: Invalid or null character profile.");
+                    return false;
+                }
+            }
+
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenario count out of bounds (1-100).");
+                return false;
+            }
+
+            foreach (var scenario in scenarios)
+            {
+                if (scenario == null || !scenario.IsValid())
+                {
+                    Debug.LogError("[Security] Game data validation failed: Invalid or null scenario.");
                     Debug.LogError("[Security] Game data validation failed: Invalid character profile.");
                     return false;
                 }

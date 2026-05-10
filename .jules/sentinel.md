@@ -47,6 +47,10 @@
 **Vulnerability:** Untrusted external data (JSON) was being used directly by the application without validation, potentially leading to out-of-bounds values or corrupted application state.
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
+## 2025-01-24 - Ambiguity in Serializable Attribute and CI/Static Analysis Failures
+**Vulnerability:** Static analysis (CodeQL) and standalone C# compilation checks can fail if `[Serializable]` is used while both `System` and `UnityEngine` namespaces are imported, as both define a `SerializableAttribute`.
+**Learning:** While Unity's internal compiler handles this, standard .NET compilers and static analysis runners used in CI (like CodeQL) will flag it as a CS0104 ambiguity error. This can block security scans and CI pipelines.
+**Prevention:** Always use the fully qualified `[System.Serializable]` attribute in Unity data models that might be processed by external tools or analyzed in CI to ensure consistent and reliable builds/scans.
 ## 2026-04-06 - Restoration of Hierarchical Security Validation and Resource Exhaustion Protection
 **Vulnerability:** Found , , and  in a broken state due to poor merge edits, with duplicate  methods and broken logic. This disabled critical security checks for imported campaign data.
 **Learning:** Security frameworks are fragile if not properly maintained. A broken  check is equivalent to no check at all, potentially allowing malformed or malicious data to compromise application state.
