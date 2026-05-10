@@ -417,6 +417,39 @@ namespace Milehigh.Cinematics
         return wait;
     }
 
+    /// <summary>
+    /// Wait for a specified duration, but allow the user to skip the wait by pressing any key.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float timer = 0f;
+        while (timer < duration && !skipRequested)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    /// <summary>
+    /// Adds a "pop" scale animation to a UI element for visual juice.
+    /// </summary>
+    private IEnumerator PopScale(RectTransform target, float duration, float scaleFactor)
+    {
+        if (target == null) yield break;
+
+        target.localScale = Vector3.one;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            // Use a sine wave for a smooth pop out and back in
+            float scale = 1f + Mathf.Sin(percent * Mathf.PI) * scaleFactor;
+            target.localScale = new Vector3(scale, scale, 1f);
+            yield return null;
+        }
+        target.localScale = Vector3.one;
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
         float elapsed = 0f;
@@ -490,6 +523,12 @@ namespace Milehigh.Cinematics
         {
             if (namePopCoroutine != null) StopCoroutine(namePopCoroutine);
             namePopCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
+        }
+
+        // UI Juice: Apply a pop animation to the speaker name when it changes
+        if (SpeakerNameText.text != speaker)
+        {
+            StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 0.15f));
         }
 
         if (SpeakerNameText.text != speaker)
@@ -855,6 +894,10 @@ namespace Milehigh.Cinematics
             DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
             DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+        // We do NOT reset skipRequested here. We want the skip intent to carry
+        // over into the post-dialogue pause in Cinematic_IntoTheVoid_Sequence.
+        typingCoroutine = null;
+    }
             typingCoroutine = null;
         }
 
