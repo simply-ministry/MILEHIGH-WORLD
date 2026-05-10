@@ -55,6 +55,30 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+## 2024-05-25 - Unity WaitForSeconds GC Allocation in Loops Cache Key
+**Learning:** When caching `WaitForSeconds` in a `Dictionary` to prevent GC allocations in Unity Coroutines, using a `float` key is unreliable due to floating-point precision differences causing cache misses.
+**Action:** Always use an `int` key representing milliseconds (e.g., via `Mathf.RoundToInt(time * 1000f)`) rather than `float` when caching temporal objects like `WaitForSeconds` to ensure consistent and reliable O(1) dictionary lookups.
+## 2025-02-23 - Avoid float keys in Dictionary caches for Unity
+**Learning:** Using `float` keys in a `Dictionary` cache (e.g., for `WaitForSeconds`) can cause frequent cache misses due to floating-point tolerance variations. Even when requesting the same float value (like 0.5f), minor precision differences might lead to a different hash, breaking the cache mechanism.
+**Action:** Always convert floats to a stable integer representation (like milliseconds via `Mathf.RoundToInt(time * 1000f)`) when using them as cache keys.
+
+## 2024-05-15 - Optimizing List.Find with Partial String Matching
+**Learning:** In Unity, an O(N) list search with string comparisons (e.g., `List.Find(p => p.name.Contains(searchString))`) inside a loop is expensive. When replacing this with a `Dictionary<string, GameObject>` cache, we can't naively pre-cache using `prefab.name` if partial matching is required. The solution is lazy evaluation: perform the O(N) `.Find()` on a cache miss, and store the result mapped to the `searchString` key for subsequent O(1) lookups. Additionally, storing `null` for missing items (negative caching) prevents the expensive fallback search from executing repeatedly for non-existent assets.
+**Action:** When migrating from `List.Find` to a dictionary cache where partial string matching is involved, implement a lazy evaluation approach with negative caching. Key the dictionary with the *search query*, not the resulting object's name.
+## 2024-05-24 - Unity List.Find Performance Bottleneck in Setup Loops
+**Learning:** Using `List.Find` with string comparisons (like `.Contains()`) inside a scene initialization loop creates an O(N*M) performance bottleneck, as it repeatedly scans the list with string matching operations for every entity being setup.
+**Action:** Always replace O(N) list searches for prefabs inside setup loops with a `Dictionary<string, GameObject>` cache. Use lazy evaluation to perform the O(N) lookup only on a cache miss, mapping the result to the search string for subsequent O(1) lookups.
+
+## 2024-05-26 - Robust Negative Caching in Unity
+**Learning:** Unity's '==' operator for GameObjects checks if the native C++ object has been destroyed, which can lead to "fake nulls" in a dictionary cache. Standard null checks might incorrectly return a destroyed object as a valid reference if the managed wrapper still exists.
+**Action:** Use 'ReferenceEquals(obj, null)' to identify "real nulls" (negative cache hits for objects that never existed) vs 'obj == null' for "fake nulls" (objects that were destroyed). This allows for efficient negative caching while still permitting cache invalidation and re-fetching of destroyed objects.
+## 2024-05-25 - Robust Negative Caching for Unity Lookups
+**Learning:** In Unity, simply caching the result of 'GameObject.Find' is insufficient if the object is missing. Without storing the 'null' result (Negative Caching), the system continues to perform O(N) scene traversals for every query of the missing object. Additionally, 'ReferenceEquals(obj, null)' is the only reliable way to check if a cached reference is a 'Real Null' (never existed) vs a 'Fake Null' (Unity object was destroyed).
+**Action:** Implement negative caching by storing 'null' results in lookups. Use 'ReferenceEquals' to distinguish cache hits for missing objects from invalidated references of destroyed objects.
+
+## 2024-05-25 - Fragment Shader Dead Work Elimination
+**Learning:** In HLSL fragment shaders, assigning to 'o.Albedo' at the end of a function overwrites all previous additive operations (like Subsurface Scattering) applied to that member. This creates "dead work" where expensive GPU calculations are performed but then discarded.
+**Action:** Always assign the base albedo at the start of the 'surf' function. This ensures subsequent additive or multiplicative effects are correctly layered on the final output and prevents cycles from being wasted on discarded results.
 ## 2024-05-27 - Caching O(N) list searches with lazy evaluation and negative caching
 **Learning:** In Unity setup scripts (e.g., `SceneDirector.cs`), using an O(N) list search with string comparisons (like `List.Find(p => p.name.Contains(searchString))`) inside initialization loops creates a significant performance bottleneck. Naively precaching the list using `prefab.name` won't work correctly if partial matching (e.g. `Contains`) is required by the logic.
 **Action:** Replace the loop-based list search with a dictionary cache (`Dictionary<string, GameObject>`). Use lazy evaluation: perform the expensive O(N) list search ONLY on a cache miss, and store the result mapped to the original `searchString` key. Importantly, also cache `null` results (negative caching) to prevent repeated expensive searches for assets that do not exist.
@@ -127,6 +151,10 @@
 ## 2026-03-26 - Unity Negative Caching Pitfalls
 **Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
 **Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
+
+## 2026-05-06 - Float Keys in WaitForSeconds Cache
+**Learning:** Using floats as keys in a Dictionary for caching WaitForSeconds causes cache misses due to floating-point imprecision, leading to unnecessary GC allocations and defeating the purpose of the cache.
+**Action:** Use an integer key representing milliseconds (via `Mathf.RoundToInt(time * 1000f)`) to ensure cache hits.
 ## 2024-05-26 - WaitForSeconds Float Dictionary Cache Misses
 **Learning:** Caching `WaitForSeconds` using a `float` as the dictionary key can lead to cache misses due to floating-point imprecision, causing unintended `WaitForSeconds` instantiations and unnecessary GC allocations.
 **Action:** Always use an integer key (e.g., representing milliseconds via `Mathf.RoundToInt(time * 1000f)`) instead of a `float` when caching `WaitForSeconds` instances in a dictionary.
