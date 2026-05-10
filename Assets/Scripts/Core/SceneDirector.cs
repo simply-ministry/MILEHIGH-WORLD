@@ -346,6 +346,18 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
+            {
+                return obj;
+            }
+
+            // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
+            obj = GameObject.Find(objectName);
+            if (obj != null)
+            {
+                _objectCache[objectName] = obj;
+            }
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
