@@ -45,7 +45,7 @@ namespace Milehigh.Core
             {
                 baseDamage += data.traits.Length * 5f;
             }
-            return baseDamage * GlobalResonanceManager.Instance.GetIntegrityMultiplier();
+            return baseDamage * GlobalResonanceManager.Instance.GetIntegrityMultiplier() * (data != null ? data.vanguardMultiplier : 1.0f);
         }
 
         public void FireLogicParity()
