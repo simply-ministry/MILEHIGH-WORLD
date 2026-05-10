@@ -104,6 +104,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
                         UnityEngine.Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }

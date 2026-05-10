@@ -370,6 +370,9 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (metadata == null) return false;
+            if (!metadata.IsValid()) return false;
+            if (characters == null || scenarios == null) return false;
             // SECURITY: Enforce global campaign limits to prevent resource exhaustion attacks
             if (sceneId != null && sceneId.Length > 128) return false;
             if (characters != null && characters.Count > 50) return false;
