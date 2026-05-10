@@ -3,6 +3,12 @@
   "dgSpecHash": "DpRrNitFHPM=",
   "success": true,
   "projectFilePath": "/app/BuildAll.csproj",
+  "dgSpecHash": "Bg4BmlPjgeo=",
+  "success": true,
+  "projectFilePath": "/app/GlobalBuildCheck.csproj",
+  "dgSpecHash": "PcGVEo3jiA8=",
+  "success": true,
+  "projectFilePath": "/app/Temp.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
