@@ -647,6 +647,7 @@ namespace Milehigh.Cinematics
 
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
 
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
         [Header("UI Components")]
@@ -698,10 +699,49 @@ namespace Milehigh.Cinematics
             dialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
             if (dialogueCanvasGroup == null)
             {
+                float delay = currentTypingSpeed;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // We check the previous character (i-1) to pause *after* it has been revealed.
+                if (i > 0)
+                {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        delay = currentTypingSpeed * 15f;
+
+                        if (c == '.')
+                        {
+                            // Ellipsis detection: Check if neighboring characters are also dots
+                            bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                             (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+
+                            if (isEllipsis)
+                            {
+                                delay = currentTypingSpeed * 5f;
+                            }
+                            // Mid-word dot detection (e.g., "Sky.ix"): No extra pause if not followed by whitespace
+                            else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                            {
+                                delay = currentTypingSpeed;
+                            }
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
+                }
+
+                yield return GetWait(delay);
                 dialogueCanvasGroup = DialogueBox.AddComponent<CanvasGroup>();
             }
             dialogueCanvasGroup.alpha = 0;
         }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.text = message + $" <color=#{currentSpeakerHex}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+
+        skipRequested = false;
+        typingCoroutine = null;
     }
 
     /// <summary>
