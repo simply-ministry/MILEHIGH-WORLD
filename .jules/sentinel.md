@@ -1,3 +1,15 @@
+
+## 2025-01-24 - Restoration of Data Integrity Framework and Unit Testing for Core Mechanics
+**Vulnerability:** Critical syntax errors and redundant logic were found in `HorizonGameData.cs` and `CampaignManager.cs`, breaking the security validation framework and CI/CD pipelines.
+**Learning:** Botched merges and inconsistent security updates can lead to "broken windows" in the codebase, where intended security features (like `IsValid()` checks) are bypassed or rendered inert by compilation errors. Unit testing core mechanics like `IncreaseVoidSaturation` is essential to ensure that even simple logic adheres to security-driven constraints (like clamping and range validation).
+**Prevention:** Always verify the codebase's compilability after applying security patches. Implement isolated unit tests for state-changing logic to guarantee that constraints are enforced consistently and that future refactoring doesn't break security-critical behavior.
+## 2025-11-23 - Null Reference Protection in OmegaOneController
+
+**Vulnerability:** OmegaOneController.CheckStability would crash with a NullReferenceException if the passed 'nearestShard' was null, as it accessed 'shard.name' in a Debug.Log statement.
+
+**Learning:** Even simple logging statements can cause crashes if they dereference objects without null checks.
+
+**Prevention:** Implement explicit null checks for GameObjects before accessing their properties, especially in methods that might be called with dynamic scene references.
 ## 2024-03-26 - Path Traversal Vulnerability during Asset Generation
 **Vulnerability:** A path traversal vulnerability was present when dynamically creating Unity scriptable objects from JSON input (`charProfile.name`). A malicious actor could provide a JSON payload containing `../` sequences in character names, leading to arbitrary file write outside of the intended `Assets/Data/Characters` directory.
 **Learning:** The previous path sanitization attempt was flawed. It correctly used `Path.GetInvalidFileNameChars()` to replace invalid characters, but then used `Path.GetFileName()` on a new `sanitizedName` variable that didn't have the invalid chars removed, or otherwise applied `Path.GetFileName()` incorrectly, leaving it vulnerable or broken.
@@ -36,6 +48,27 @@
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
 
+## 2024-04-07 - Insecure Direct Object Reference (IDOR) via JSON Manipulation
+**Vulnerability:** External JSON game data loaded via CampaignManager allowed applying scale and position modifications to any GameObject in the scene by supplying an exact name, including critical system objects like `CampaignManager`, `SceneDirector`, `CameraManager`, and `AlliancePowerManager`.
+**Learning:** Even singleplayer/offline games loading external configuration files can be susceptible to IDOR-like data tampering vulnerabilities. Objects acting dynamically on names are a massive risk if those names come from an untrusted source. We must avoid broad heuristic matches (e.g., `Contains("Manager")`) to prevent functional regressions, utilizing explicit allowlists or denylists.
+**Prevention:** Sanitize and validate object IDs originating from external sources before using them in dynamic systems. Maintain a strict denylist or allowlist to prevent manipulation of sensitive objects, and ensure specific tag matching rather than loose substring matching.
+## 2025-01-24 - Ambiguity in Serializable Attribute and CI/Static Analysis Failures
+**Vulnerability:** Static analysis (CodeQL) and standalone C# compilation checks can fail if `[Serializable]` is used while both `System` and `UnityEngine` namespaces are imported, as both define a `SerializableAttribute`.
+**Learning:** While Unity's internal compiler handles this, standard .NET compilers and static analysis runners used in CI (like CodeQL) will flag it as a CS0104 ambiguity error. This can block security scans and CI pipelines.
+**Prevention:** Always use the fully qualified `[System.Serializable]` attribute in Unity data models that might be processed by external tools or analyzed in CI to ensure consistent and reliable builds/scans.
+## 2026-04-06 - Restoration of Hierarchical Security Validation and Resource Exhaustion Protection
+**Vulnerability:** Found , , and  in a broken state due to poor merge edits, with duplicate  methods and broken logic. This disabled critical security checks for imported campaign data.
+**Learning:** Security frameworks are fragile if not properly maintained. A broken  check is equivalent to no check at all, potentially allowing malformed or malicious data to compromise application state.
+**Prevention:** Implement hierarchical  checks across all data models. Enforce resource limits (string lengths, collection sizes) at the point of deserialization to prevent DoS via resource exhaustion. Ensure each data class is responsible for its own validation.
+## 2026-04-06 - Restoration of Hierarchical Security Validation and Resource Exhaustion Protection
+**Vulnerability:** Found `HorizonGameData.cs`, `CampaignManager.cs`, and `CharacterFactory.cs` in a broken state due to poor merge edits, with duplicate `IsValid` methods and broken logic. This disabled critical security checks for imported campaign data.
+**Learning:** Security frameworks are fragile if not properly maintained. A broken `IsValid` check is equivalent to no check at all, potentially allowing malformed or malicious data to compromise application state.
+**Prevention:** Implement hierarchical `IsValid()` checks across all data models. Enforce resource limits (string lengths, collection sizes) at the point of deserialization to prevent DoS via resource exhaustion. Ensure each data class is responsible for its own validation.
+## 2025-05-24 - Broken Security Validation Framework and Lack of Resource Limits
+**Vulnerability:** The security validation framework was broken due to botched merge edits in `HorizonGameData.cs`, `CampaignManager.cs`, and `CharacterFactory.cs`, including duplicate `else` blocks and malformed methods. Additionally, the system lacked resource exhaustion protection for deserialized data.
+**Learning:** Incomplete or unverified security patches can leave the system in a vulnerable state by breaking intended validation logic. Centralized recursive validation must include explicit limits on collection sizes and string lengths to mitigate DoS risks from external data.
+**Prevention:** Maintain a single, robust `IsValid()` implementation per data class. Enforce string length and collection size limits in these methods. Always verify C# syntax and compilation (even via mocking) after applying security fixes to critical path components.
+
 ## 2025-01-30 - Resource Exhaustion Protection in Data Validation
 **Vulnerability:** The application was vulnerable to Denial of Service (DoS) attacks via maliciously crafted JSON campaign data containing extremely large strings or collections, which could exhaust system memory.
 **Learning:** Simple integrity checks (like range checks) are insufficient for security; resource limits must be explicitly enforced during deserialization validation.
@@ -64,3 +97,7 @@
 **Vulnerability:** The project had multiple broken "security fixes" that introduced syntax errors and redundant logic, specifically around deserialized data validation and character asset creation paths. The `IsValid()` pattern was partially implemented but broken, and path traversal mitigation was duplicated and syntactically incorrect.
 **Learning:** Incomplete or improperly merged security fixes can be as dangerous as the original vulnerabilities, as they may lead to compilation failures or bypassed security checks. Centralizing validation logic and ensuring clean path sanitization is critical.
 **Prevention:** Always perform a full code review and basic sanity check (even if just manual brace counting) after applying security fixes to ensure no regressions or syntax errors are introduced.
+## 2025-05-24 - Consolidated Security Validation and Resource Exhaustion Protection
+**Vulnerability:** Massive "code rot" with multiple redundant, conflicting, and syntactically invalid 'IsValid()' methods and 'try-catch' blocks across core data and management scripts. This led to unpredictable security postures, potential information disclosure (absolute paths in logs), and vulnerability to Resource Exhaustion (DoS) via unconstrained JSON payloads.
+**Learning:** Overlapping and improperly merged security patches can create "syntax soup" that disables the very protections they intend to provide. High-frequency edits with automated tools without manual consolidation can lead to multiple method signatures and mismatched braces.
+**Prevention:** Always consolidate security validation into a single, robust 'IsValid()' framework. Enforce strict 'Sentinel Standard' resource limits (string lengths, collection counts) and range checks at the point of ingestion. Consistently use the 'fail secure' pattern by nulling data on validation failure and masking internal system details in logs.
