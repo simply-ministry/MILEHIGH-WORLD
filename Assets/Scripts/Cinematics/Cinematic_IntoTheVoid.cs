@@ -117,11 +117,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private string currentSpeakerColorTag;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // BOLT: Changed float-keyed dictionary to int-keyed (milliseconds) to avoid floating-point precision issues
     // ⚡ Bolt: Use int key (milliseconds) to prevent float imprecision cache misses
     private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
     private WaitForSeconds GetWait(float time)
     {
+        int timeMs = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeMs] = wait;
         int timeKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
         {
@@ -481,6 +487,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         var commaWait = GetWait(currentTypingSpeed * 8f);
         var periodWait = GetWait(currentTypingSpeed * 15f);
 
+        // BOLT: Cache WaitForSeconds locally outside the high-frequency loop to avoid per-iteration dictionary lookups and GC allocations
+        var defaultWait = GetWait(currentTypingSpeed);
+        var longWait = GetWait(currentTypingSpeed * 15f);
+        var shortWait = GetWait(currentTypingSpeed * 8f);
+
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
             if (skipRequested)
@@ -493,6 +504,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             if (i < totalVisibleCharacters)
             {
+                var wait = defaultWait;
                 var currentWait = normalWait;
                 WaitForSeconds waitToYield = standardWait;
                 var waitToYield = normalWait;
@@ -563,6 +575,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') wait = longWait;
+                    else if (c == ',' || c == ';' || c == ':') wait = shortWait;
+                }
+
+                yield return wait;
                     bool isDot = c == '.';
 
                     if (isDot || c == '!' || c == '?')
