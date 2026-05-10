@@ -1337,6 +1337,23 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+        SpeakerNameText.text = speaker;
+        currentTypingSpeed = baseTypingSpeed * GetSpeedMultiplier(speaker);
+        skipRequested = false;
+        SpeakerNameText.color = GetSpeakerColor(speaker);
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
+
+    internal float GetSpeedMultiplier(string speaker)
+    {
+        if (speaker == "Kai") return kaiSpeedMultiplier;
+        if (speaker == "Sky.ix") return skyixSpeedMultiplier;
+        return 1.0f;
+    }
+
+    internal Color GetSpeakerColor(string speaker)
+    {
     /// <summary>
     /// Updates the speaker name and begins the typewriter effect for the dialogue message.
     /// </summary>
@@ -1527,6 +1544,23 @@ namespace Milehigh.Cinematics
             case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break;
             default: speakerColor = Color.white; break;
             case "Sky.ix":
+                return Color.cyan;
+            case "Kai":
+                return new Color(1f, 0.84f, 0f); // Gold
+            case "Delilah":
+                return new Color(0.6f, 0.1f, 0.9f); // Void Purple
+            default:
+                return Color.white;
+        }
+    }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+
                 multiplier = skyixSpeedMultiplier;
                 speakerColor = Color.cyan;
                 break;
@@ -1938,6 +1972,14 @@ namespace Milehigh.Cinematics
             }
             else if (i == 0) yield return GetWait(currentTypingSpeed);
 
+            DialogueText.maxVisibleCharacters = i + 1;
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            if (c == '.' || c == '!' || c == '?')
+                delay = currentTypingSpeed * 15f;
+            else if (c == ',')
+                delay = currentTypingSpeed * 8f;
             yield return UnityUtils.GetWait(delay);
         }
 
@@ -1956,6 +1998,10 @@ namespace Milehigh.Cinematics
         DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 1;
 
+        DialogueText.maxVisibleCharacters = totalCharacters + 2;
+        skipRequested = false;
+        typingCoroutine = null;
+    }
         skipRequested = false;
         DialogueText.maxVisibleCharacters = totalCharacters;
         skipRequested = false;
