@@ -53,6 +53,13 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2026-03-28 - Unity Component and Prefab Caching in SceneDirector
+**Learning:** Even with GameObject caching, O(N) operations like `GetComponent` and O(P) operations like `List.Find` (especially with string operations like `Contains`) inside character setup loops create measurable initialization spikes.
+**Action:** Use `Dictionary<int, T>` (using `GetInstanceID`) for component caching and `Dictionary<string, GameObject>` for prefab lookups to ensure all repetitive setup operations are O(1).
+
+## 2026-03-28 - Performance vs. Correctness in Shader Logic
+**Learning:** Fixing a "dead code" bug (e.g., an albedo overwrite that discarded an expensive SSS calculation) can unintentionally decrease performance by enabling high-cost GPU operations that were previously optimized out by the compiler.
+**Action:** When optimizing, verify if a "fix" actually enables expensive paths. If performance is the priority, consider removing the unused logic entirely instead of enabling it.
 ## 2024-05-25 - Unity WaitForSeconds float Dictionary Anti-Pattern
 **Learning:** While caching `WaitForSeconds` is necessary to avoid per-iteration Garbage Collection inside Unity coroutines, using a `Dictionary<float, WaitForSeconds>` is an anti-pattern. Floating-point precision inaccuracies make `float` unreliable as a dictionary key, potentially causing cache misses or unexpected behavior.
 **Action:** Instead of using a float-keyed dictionary, pre-calculate specific `WaitForSeconds` instances (e.g., normal delay, short pause, long pause) into local variables outside the coroutine loop, and yield those local variables directly inside the loop.
