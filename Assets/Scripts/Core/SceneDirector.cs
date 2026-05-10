@@ -2,20 +2,35 @@ using UnityEngine;
 using System.Collections.Generic;
 using Milehigh.Data;
 using Milehigh.Characters;
+using System.Text.RegularExpressions;
 
 namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
-        public List<GameObject> characterPrefabs; // Assign in Inspector
-        public Transform characterSpawnRoot;
+        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
 
-        private GameObject GetCachedObject(string objectName)
+        private GameObject? GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
+
+            // 🛡️ Sentinel: Mitigate Denial of Service (DoS) attacks via expensive GameObject.Find calls.
+            // We restrict object names to a 128-character limit and a whitelist of safe characters.
+            if (objectName.Length > 128)
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: objectName exceeds 128 character limit.");
+                return null;
+            }
+
+            if (!Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: objectName contains illegal characters.");
+                return null;
+            }
 
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
@@ -63,12 +78,12 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            GameObject characterObj = GetCachedObject(profile.name);
+            GameObject? characterObj = GetCachedObject(profile.name);
 
             if (characterObj == null)
             {
                 // Try to find prefab if not in scene
-                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 if (prefab != null)
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
@@ -99,7 +114,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            GameObject target = GetCachedObject(interaction.objectId);
+            GameObject? target = GetCachedObject(interaction.objectId);
 
             if (target != null)
             {
@@ -113,6 +128,12 @@ namespace Milehigh.Core
                     target.transform.localScale = Vector3.one * interaction.floatValue;
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            // Clear caches to release references
+            _objectCache.Clear();
         }
     }
 }
