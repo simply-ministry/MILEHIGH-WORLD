@@ -912,6 +912,10 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        // BOLT: Cache for character prefabs to avoid repeated O(M) searches in characterPrefabs list
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private GameObject GetCachedObject(string objectName)
             if (prefab != null) _prefabCache[profileName] = prefab;
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (prefab != null) _prefabCache[profileName] = prefab;
@@ -1083,6 +1087,9 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
+            // Clear caches at start of setup to avoid stale references across scenes
+            _objectCache.Clear();
+            _prefabCache.Clear();
             if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
             CharacterControllerBase? controller;
             if (_controllerCache.TryGetValue(objId, out controller)) return controller;
@@ -1377,6 +1384,9 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: O(1) prefab lookup instead of O(M) list search
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab) || prefab == null)
+                {
                 // BOLT: Optimized prefab lookup using O(1) dictionary instead of linear List.Find (O(M)).
                 _prefabCache.TryGetValue(profile.name, out GameObject prefab);
 
