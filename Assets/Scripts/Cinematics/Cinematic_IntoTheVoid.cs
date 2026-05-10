@@ -354,6 +354,7 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Standardized skip logic for both keyboard and mouse
     // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Use int key (milliseconds) to avoid floating-point imprecision cache misses
     // ⚡ Bolt: Using int (milliseconds) instead of float as dictionary key to prevent
     // cache misses caused by floating-point imprecision, avoiding unnecessary GC allocations.
     // ⚡ Bolt: Use int key for milliseconds to prevent float imprecision dictionary misses
@@ -386,6 +387,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
         // ⚡ Bolt: Use int key (milliseconds) to prevent dictionary cache misses from floating-point tolerance variations
         int timeKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
