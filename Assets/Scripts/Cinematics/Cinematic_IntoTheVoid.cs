@@ -128,6 +128,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private Coroutine popCoroutine;
     private Vector3 originalSpeakerNameScale;
     private float currentTypingSpeed;
+    private string speakerHexColor;
     private string currentSpeakerHex;
     private bool skipRequested;
     private string currentSpeakerHex;
@@ -383,6 +384,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
+        Color speakerColor = Color.white;
         Color speakerColor;
         switch (speaker)
         {
@@ -397,16 +399,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         switch (speaker)
         {
             case "Sky.ix":
-                SpeakerNameText.color = Color.cyan;
+                speakerColor = Color.cyan;
                 break;
             case "Kai":
-                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                speakerColor = new Color(1f, 0.84f, 0f); // Gold
                 break;
             case "Delilah":
-                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                break;
-            default:
-                SpeakerNameText.color = Color.white;
+                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
                 break;
         }
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
@@ -414,6 +413,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         // Capture hex for color-coded UI cues
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+
+        SpeakerNameText.color = speakerColor;
+        speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
 
         typingCoroutine = StartCoroutine(TypeDialogue(message));
     }
@@ -550,6 +552,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (c == '!' || c == '?')
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Advanced Rhythmic Pacing: Natural speech patterns via punctuation pauses.
                     if (c == '.' || c == '!' || c == '?')
                     {
                         delay = currentTypingSpeed * 15f;
@@ -593,41 +597,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         }
 
         skipRequested = false;
-        // UX Enhancement: Final pause after punctuation before showing the completion cue.
-        if (!skipRequested && totalVisibleCharacters > 0)
-        {
-            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
-            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
-            {
-                yield return GetWait(currentTypingSpeed * 15f);
-            }
-        }
-
-        // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        DialogueText.maxVisibleCharacters = totalWithCue;
-        // Color-coded to match the speaker's theme for better visual cohesion.
-        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
-        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
-        private void Update()
-        {
-            // UX: Support any key or mouse click to skip typewriter or pauses.
-    /// <summary>
-    /// UX Enhancement: A subtle 'pop' animation for UI elements to draw focus during state changes.
-    /// </summary>
-    private IEnumerator PopScale(Transform target, float duration = 0.2f, float scaleFactor = 1.15f)
-    {
-        Vector3 initialScale = target.localScale;
-        Vector3 targetScale = initialScale * scaleFactor;
-
-        float elapsed = 0f;
-        while (elapsed < duration / 2f)
-        {
-            target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        // Note: skipRequested is NOT reset here to allow 'fast skip' to carry over to the subsequent pause.
         typingCoroutine = null;
     }
 
