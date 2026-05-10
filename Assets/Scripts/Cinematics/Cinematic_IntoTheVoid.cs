@@ -18,19 +18,11 @@
 //    - Inside the "DialogueBox", create two UI -> Text - TextMeshPro objects.
 //    - Name the first one "SpeakerNameText" and position it where the speaker's name should appear.
 //    - Name the second one "DialogueText" and position it for the main dialogue content.
-//    - Initially, set the "DialogueBox" GameObject to be inactive (uncheck the box in the Inspector).
+//    - Create a third TMP object named "SkipHint" as a child of DialogueBox, set to "[Space] Skip".
+//    - Initially, set the "DialogueBox" GameObject to be inactive.
 //
 // 6. Select the "SceneController" GameObject. In the Inspector, drag and drop the corresponding scene objects
-//    into the public fields of this script:
-//    - Drag the "Sky.ix" GameObject into the `Skyix_Character` field.
-//    - Drag the AudioSource from "Sky.ix" into the `Skyix_VoiceSource` field.
-//    - Drag the "Kai" GameObject into the `Kai_Character` field.
-//    - Drag the AudioSource from "Kai" into the `Kai_VoiceSource` field.
-//    - Drag the "Delilah" GameObject into the `Delilah_Character` field.
-//    - Drag the AudioSource from "Delilah" into the `Delilah_VoiceSource` field.
-//    - Drag the "DialogueBox" panel into the `Dialogue Box` field.
-//    - Drag the "SpeakerNameText" TMP object into the `Speaker Name Text` field.
-//    - Drag the "DialogueText" TMP object into the `Dialogue Text` field.
+//    into the public fields of this script.
 //
 // 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
 
@@ -52,44 +44,16 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     // ====================================================================
 
     // Protagonist: Sky.ix the The Bionic Goddess
-    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void. She was a brilliant xenolinguist who, along with her family, was part of the research team at the Onalym Nexus.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
-    // Ability Script: Ability_Skyix.cs
-    /* VOICE PROFILE:
-     * Pitch: Mid-Range Mezzo-Shorano
-     * Tempo: Steady and Precise (130-140 WPM)
-     * Texture & Effects: Clean, Clear, and Articulated. Subtle Digital/Synthetic Filter (low chorus).
-     * Projection: Medium-High, Direct
-     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
-     * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
-    */
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
 
     // Protagonist: Kai the The Child of Prophecy
-    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
-    // Ability Script: Ability_Kai.cs
-    /* VOICE PROFILE:
-     * Pitch: Gender Neutral/Mid-Range
-     * Tempo: Slow and Paused (70-90 WPM)
-     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
-     * Projection: Soft, but Infinitely Resonant
-     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
-     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
-    */
     public GameObject Kai_Character = null!;
     public AudioSource Kai_VoiceSource = null!;
 
 
     // Antagonist: Delilah the The Desolate
-    // Description: A corrupted form of Ingris, wielding Voidfire.
-    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
-    // Ability Script: Ability_Delilah.cs
-    /* VOICE PROFILE:
-     * Not available.
-    */
     public GameObject Delilah_Character = null!;
     public AudioSource Delilah_VoiceSource = null!;
 
@@ -113,12 +77,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private Coroutine? scalingCoroutine;
     private float currentTypingSpeed;
     private bool skipRequested;
+    private float idleTimer;
     private bool playerInteracted;
-    private Vector3 originalSpeakerScale;
-    private Coroutine? popCoroutine;
-    private float currentTypingSpeed;
-    private bool skipRequested;
-    private Vector3 originalScale;
 
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // BOLT: Use int (milliseconds) for dictionary key instead of float to prevent cache misses from floating-point inaccuracies
@@ -156,6 +116,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         return wait;
     }
 
+    void Start()
+    {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
     /// <summary>
     /// Wait for a specified duration, but return immediately if a skip is requested.
     /// </summary>
@@ -265,6 +228,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // Programmatically locate SkipHint if not assigned
+        if (SkipHintText == null && DialogueBox != null)
+        {
+            SkipHintText = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
         // Palette: Find SkipHint programmatically if not assigned
         if (SkipHintText == null && DialogueBox != null)
         {
@@ -290,6 +260,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Update()
     {
+        // Poll for skip input and reset idle timer on any interaction
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            playerInteracted = true;
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
         {
             skipRequested = true;
@@ -1349,6 +1324,19 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
         }
 
+        // Display skip hint after 2 seconds of idleness during dialogue
+        if (DialogueBox != null && DialogueBox.activeSelf && !playerInteracted)
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2f && SkipHintText != null)
+            {
+                SkipHintText.gameObject.SetActive(true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
         // UX: Display skip hint if player is idle during dialogue
         if (typingCoroutine != null && !playerInteracted)
         {
@@ -3250,9 +3238,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         skipRequested = false;
 
         // Apply character-specific colors for better speaker identification
-        Color speakerColor;
-        switch (speaker)
+        Color speakerColor = speaker switch
         {
+            "Sky.ix" => Color.cyan,
+            "Kai" => new Color(1f, 0.84f, 0f), // Gold
+            "Delilah" => new Color(0.6f, 0.1f, 0.9f), // Void Purple
+            _ => Color.white
+        };
+
             case "Sky.ix": speakerColor = Color.cyan; break;
             case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break; // Gold
             case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
@@ -3318,6 +3311,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        idleTimer = 0f; // Reset idle timer when new dialogue starts
+
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
@@ -3435,6 +3430,26 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             }
             else if (c == ',' || c == ';' || c == ':')
             {
+                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Refined ellipsis detection
+                    bool isEllipsis = (c == '.' && ((i > 0 && textInfo.characterInfo[i - 1].character == '.') ||
+                                                  (i < totalVisibleCharacters - 1 && textInfo.characterInfo[i + 1].character == '.')));
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    // Special case: mid-word period (e.g., Sky.ix)
+                    else if (i < totalVisibleCharacters - 1 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
+                        delay = currentTypingSpeed;
+                    else
+                        delay = currentTypingSpeed * 15f;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 delay = currentTypingSpeed * 8f;
             }
 
@@ -3587,6 +3602,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             }
         }
 
+        skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // The cue matches the speaker's theme color for visual cohesion.
         // UX Enhancement: Visual progression cue themed to the speaker.
@@ -3656,16 +3672,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
-        // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
-        // Example: PlayerInput.Instance.DisableControls();
-        // Example: CinematicCamera.SetActive(true);
-
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
 
         // --- Dialogue Line 1: Delilah ---
-        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
-        // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
@@ -3673,8 +3683,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
-        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
-        // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
@@ -3682,8 +3690,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(6.0f);
 
         // --- Dialogue Line 3: Kai ---
-        // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
-        // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
@@ -3691,8 +3697,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
-        // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
-        // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
@@ -3700,17 +3704,30 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
-        // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
-        // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
-        // Skyix_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(4.5f);
         yield return GetWait(4.5f);
         yield return WaitForSecondsOrSkip(4.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(4.5f));
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
+        yield return WaitForSecondsOrSkip(2.0f);
+
+        // --- Dialogue Line 6: Kai ---
+        yield return WaitForSecondsOrSkip(0.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
+        // --- Dialogue Line 7: Delilah ---
+        yield return WaitForSecondsOrSkip(1.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return WaitForSecondsOrSkip(5.5f);
+
+        // --- Dialogue Line 8: Sky.ix ---
+        yield return WaitForSecondsOrSkip(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        yield return WaitForSecondsOrSkip(7.5f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Dash_Forward");]
         // [VFX: Play glitchy dash particle trail from Sky.ix's starting position to the conduit.]
         // [CAMERA: Fast dolly track, following Sky.ix's movement. Add motion blur.]
@@ -3747,10 +3764,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.text = "";
         DialogueBox.SetActive(false);
 
-        // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
-        // Example: PlayerInput.Instance.EnableControls();
-        // Example: CinematicCamera.SetActive(false);
-        // Example: BossFightController.StartFight();
-        Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
+        Debug.Log("Cinematic Sequence Complete.");
     }
 }
