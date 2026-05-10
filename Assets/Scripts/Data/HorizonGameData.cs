@@ -114,6 +114,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = "";
+        public string text = "";
+        public string trigger = "";
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
@@ -167,6 +170,8 @@ namespace Milehigh.Data
     {
         public string scenarioId = "";
         public string description = "";
+        public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
+        public List<Dialogue> dialogue = new List<Dialogue>();
         public List<ObjectInteraction> interactiveObjects = new();
         public List<Dialogue> dialogue = new();
         public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
@@ -195,6 +200,8 @@ namespace Milehigh.Data
     {
         public string sceneId = "";
         public Metadata metadata = null!;
+        public List<CharacterProfile> characters = new List<CharacterProfile>();
+        public List<SceneScenario> scenarios = new List<SceneScenario>();
         public List<CharacterProfile> characters = new();
         public List<SceneScenario> scenarios = new();
         public Metadata? metadata;

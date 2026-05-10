@@ -25,6 +25,14 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+
+## 2026-04-22 - Surgical Cache Optimization in SceneDirector
+**Learning:** In 'SceneDirector.cs', prefab lookups were O(P) linear searches inside an O(C) character spawning loop, creating an O(C*P) initialization bottleneck. Additionally, aggressive cache clearing during scenario updates forced redundant O(N) scene traversals for persistent objects.
+**Action:** Implemented a 'Dictionary<string, GameObject>' prefab lookup cache for O(1) retrieval and enabled persistent surgical lazy-loading by removing redundant 'Clear()' calls. Added 'OnDestroy' to release Unity object references and 'null!' initializers to satisfy strict CI compilation checks.
+
+## 2026-05-10 - SceneDirector Performance and CI Fixes
+**Learning:** Found a performance bottleneck in 'SceneDirector.cs' where character prefabs were searched linearly O(P) in an O(C) loop, and caches were cleared unnecessarily. Additionally, identified critical syntax errors in 'HorizonGameData.cs' and 'CampaignManager.cs' that were blocking CI.
+**Action:** Implemented a 'Dictionary<string, GameObject>' prefab lookup cache for O(1) retrieval and enabled persistent object caching. Fixed all syntax errors and added 'null!' initializers to satisfy strict CI Nullable Reference Type checks in affected files.
 ## 2025-05-14 - Optimized Prefab Lookup and Instantiation
 **Learning:** Linear searches in a List<GameObject> (O(P)) inside a spawning loop (O(C)) creates an O(C*P) bottleneck that scales poorly with character and prefab counts. Additionally, synchronous instantiation of multiple complex characters causes frame drops.
 **Action:** Always use a Dictionary for prefab lookups and implement Coroutines to spread heavy instantiation across frames.

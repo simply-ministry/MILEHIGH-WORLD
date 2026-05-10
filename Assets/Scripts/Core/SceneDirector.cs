@@ -447,6 +447,8 @@ namespace Milehigh.Core
             Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading cache
+            // to persist across multiple scenario updates for incremental performance.
             // BOLT: Initialize prefab lookup cache once per setup
             InitializePrefabCache();
 
@@ -595,6 +597,16 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use dictionary for O(1) prefab lookup instead of O(P) linear search
+                if (!_prefabLookupCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null)
+                    {
+                        _prefabLookupCache[profile.name] = prefab;
+                    }
+                }
+
                 // BOLT: Try to get from pool first
                 if (_characterPool.TryGetValue(profile.name, out Stack<GameObject>? pool) && pool != null && pool.Count > 0)
                 {
@@ -775,6 +787,9 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // BOLT: Explicitly clear dictionaries to release Unity object references for GC
+            _objectCache?.Clear();
+            _prefabLookupCache?.Clear();
             // BOLT: Explicitly clear caches to release Unity object references
             _objectCache.Clear();
             _prefabLookupCache.Clear();
