@@ -118,6 +118,8 @@ namespace Milehigh.Editor
                 AssetDatabase.CreateAsset(asset, assetPath);
                 Debug.Log($"Created character asset: {assetPath}");
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
+                // Required Sequence: 1. Replace invalid chars with underscores, 2. GetFileName, 3. Replace whitespace with underscores.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use "../" to write assets outside the intended directory.
                 // Required sequence for robust sanitization:
                 string safeFileName = charProfile.name;
@@ -184,6 +186,8 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+                safeFileName = Path.GetFileName(safeFileName);
+                safeFileName = safeFileName.Replace(" ", "_");
 
                 // 2. Use Path.GetFileName to prevent directory traversal
                 safeFileName = Path.GetFileName(safeFileName);
