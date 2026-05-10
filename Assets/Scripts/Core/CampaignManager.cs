@@ -77,6 +77,24 @@ namespace Milehigh.Core
                         currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     // 🛡️ Sentinel: Security validation of deserialized data.
+                    // SECURITY: Perform validation after deserialization to ensure data integrity
+                    if (currentCampaignData != null)
+                    {
+                        if (currentCampaignData.IsValid())
+                        {
+                            currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                            // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                            Debug.Log($"Campaign data loaded and validated from {fileName}");
+                        }
+                        else
+                        {
+                            Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                            currentCampaignData = null;
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to parse campaign data from {fileName}.");
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata!.voidSaturationLevel;
