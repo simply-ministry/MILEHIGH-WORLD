@@ -1,3 +1,39 @@
+// --- UNITY SCENE SETUP --- //
+//
+// 1. Create an empty GameObject in your scene and name it "SceneController".
+//
+// 2. Attach this script (`Cinematic_IntoTheVoid.cs`)
+//    to the "SceneController" GameObject.
+//
+// 3. Create or place the character prefabs/GameObjects for "Sky.ix", "Kai", and "Delilah" into the scene.
+//
+// 4. Ensure each character GameObject has the following components attached:
+//    - An Animator component with a configured Animation Controller.
+//    - An AudioSource component to be used for their voice lines.
+//    - Their respective ability script (e.g., Sky.ix needs `Ability_Skyix.cs`, Kai needs `Ability_Kai.cs`, etc.)
+//
+// 5. Create the UI for the dialogue system:
+//    - Right-click in the Hierarchy -> UI -> Canvas.
+//    - Inside the Canvas, create a UI -> Panel. Rename it "DialogueBox". This will be the background.
+//    - Inside the "DialogueBox", create two UI -> Text - TextMeshPro objects.
+//    - Name the first one "SpeakerNameText" and position it where the speaker's name should appear.
+//    - Name the second one "DialogueText" and position it for the main dialogue content.
+//    - Initially, set the "DialogueBox" GameObject to be inactive (uncheck the box in the Inspector).
+//
+// 6. Select the "SceneController" GameObject. In the Inspector, drag and drop the corresponding scene objects
+//    into the public fields of this script:
+//    - Drag the "Sky.ix" GameObject into the `Skyix_Character` field.
+//    - Drag the AudioSource from "Sky.ix" into the `Skyix_VoiceSource` field.
+//    - Drag the "Kai" GameObject into the `Kai_Character` field.
+//    - Drag the AudioSource from "Kai" into the `Kai_VoiceSource` field.
+//    - Drag the "Delilah" GameObject into the `Delilah_Character` field.
+//    - Drag the AudioSource from "Delilah" into the `Delilah_VoiceSource` field.
+//    - Drag the "DialogueBox" panel into the `Dialogue Box` field.
+//    - Drag the "SpeakerNameText" TMP object into the `Speaker Name Text` field.
+//    - Drag the "DialogueText" TMP object into the `Dialogue Text` field.
+//
+// 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,6 +43,77 @@ using TMPro;
 
 namespace Milehigh.Cinematics
 {
+    // ====================================================================
+    //
+    // CHARACTER ASSET & VOICE REFERENCE BLOCK
+    //
+    // ====================================================================
+
+    // Protagonist: Sky.ix the The Bionic Goddess
+    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void. She was a brilliant xenolinguist who, along with her family, was part of the research team at the Onalym Nexus.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
+    // Ability Script: Ability_Skyix.cs
+    /* VOICE PROFILE:
+     * Pitch: Mid-Range Mezzo-Shorano
+     * Tempo: Steady and Precise (130-140 WPM)
+     * Texture & Effects: Clean, Clear, and Articulated. Subtle Digital/Synthetic Filter (low chorus).
+     * Projection: Medium-High, Direct
+     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
+     * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
+    */
+    public GameObject Skyix_Character;
+    public AudioSource Skyix_VoiceSource;
+
+
+    // Protagonist: Kai the The Child of Prophecy
+    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
+    // Ability Script: Ability_Kai.cs
+    /* VOICE PROFILE:
+     * Pitch: Gender Neutral/Mid-Range
+     * Tempo: Slow and Paused (70-90 WPM)
+     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
+     * Projection: Soft, but Infinitely Resonant
+     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
+     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
+    */
+    public GameObject Kai_Character;
+    public AudioSource Kai_VoiceSource;
+
+
+    // Antagonist: Delilah the The Desolate
+    // Description: A corrupted form of Ingris, wielding Voidfire.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
+    // Ability Script: Ability_Delilah.cs
+    /* VOICE PROFILE:
+     * Not available.
+    */
+    public GameObject Delilah_Character;
+    public AudioSource Delilah_VoiceSource;
+
+    [Header("UI Components")]
+    public GameObject DialogueBox;
+    public TextMeshProUGUI SpeakerNameText;
+    public TextMeshProUGUI DialogueText;
+
+    [Header("UX Settings")]
+    [FormerlySerializedAs("typingSpeed")]
+    [Tooltip("Base delay in seconds between each character being revealed.")]
+    public float baseTypingSpeed = 0.03f;
+    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
+    public float kaiSpeedMultiplier = 3.0f;
+    [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
+    public float skyixSpeedMultiplier = 1.2f;
+
+    private Coroutine typingCoroutine;
+    private float currentTypingSpeed;
+    private string currentSpeakerHex;
+    private bool skipRequested;
+
+    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
+
+    private WaitForSeconds GetWait(float time)
     /// <summary>
     /// Controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
     /// Refactored for performance, readability, and natural dialogue pacing.
@@ -81,6 +188,23 @@ namespace Milehigh.Cinematics
 
         public void ShowDialogue(string speaker, string message)
         {
+            case "Sky.ix":
+                SpeakerNameText.color = Color.cyan;
+                currentSpeakerHex = "#00FFFF";
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                currentSpeakerHex = "#FFD700";
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                currentSpeakerHex = "#991AE6";
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                currentSpeakerHex = "#FFFFFF";
+                break;
+        }
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             if (popCoroutine != null) StopCoroutine(popCoroutine);
 
@@ -161,6 +285,21 @@ namespace Milehigh.Cinematics
 
                 if (i < totalVisibleCharacters)
                 {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Ellipsis detection: Use a faster delay for consecutive dots
+                    bool isEllipsis = (c == '.' && i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                     (c == '.' && i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+
+                    if (isEllipsis)
+                    {
+                        delay = currentTypingSpeed * 5f;
+                    }
+                    else if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Look-ahead: Don't pause for mid-word periods (e.g., Sky.ix)
+                        bool isMidWord = i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+                        if (!isMidWord) delay = currentTypingSpeed * 15f;
                     char c = DialogueText.textInfo.characterInfo[i].character;
                     float delay = currentTypingSpeed;
 
@@ -204,6 +343,9 @@ namespace Milehigh.Cinematics
             skipRequested = false; // Reset skip state after the pause
         }
 
+        // UX Enhancement: Color-coded visual progression cue indicating text reveal is complete.
+        DialogueText.text = $"{message} <color={currentSpeakerHex}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         private IEnumerator Cinematic_IntoTheVoid_Sequence()
         {
             DialogueBox.SetActive(true);
