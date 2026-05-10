@@ -19,6 +19,7 @@ namespace Milehigh.Data
         public float voidSaturationLevel;
 
         /// <summary>
+        /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
         /// </summary>
         /// <summary>
@@ -38,6 +39,7 @@ namespace Milehigh.Data
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
+
             return true;
         }
     }
@@ -45,6 +47,30 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name;
+        public string role;
+        public string[] traits;
+        public string behaviorScript;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 128)
+            {
+                Debug.LogError("[Security] Character name is null, empty or exceeds 128 characters.");
+                return false;
+            }
+            if (role != null && role.Length > 128)
+            {
+                Debug.LogError("[Security] Character role exceeds 128 characters.");
+                return false;
+            }
+            if (behaviorScript != null && behaviorScript.Length > 1024) // Allowing more for script, but still limited
+            {
+                Debug.LogError("[Security] Character behaviorScript exceeds 1024 characters.");
+                return false;
+            }
+            return true;
+        }
         public string name = null!;
         public string role = null!;
         public string[] traits = null!;
@@ -70,6 +96,11 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128)
+            {
+                Debug.LogError("[Security] Interaction objectId is null, empty or exceeds 128 characters.");
+                return false;
+            }
             if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
             return true;
         }
@@ -84,6 +115,10 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (speaker != null && speaker.Length > 128) return false;
+            if (text != null && text.Length > 2048) return false;
+            return true;
+        }
             if (string.IsNullOrEmpty(speaker) || speaker.Length > 128) return false;
             if (text != null && text.Length > 2048) return false;
             return true;
@@ -103,6 +138,30 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
+            {
+                Debug.LogError("[Security] ScenarioId is null, empty or exceeds 128 characters.");
+                return false;
+            }
+
+            if (interactiveObjects != null)
+            {
+                foreach (var interaction in interactiveObjects)
+                {
+                    if (interaction == null || !interaction.IsValid()) return false;
+                }
+            }
+
+            if (dialogue != null)
+            {
+                foreach (var d in dialogue)
+                {
+                    if (d == null || !d.IsValid()) return false;
+                }
+            }
+
+            return true;
+        }
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
             if (interactiveObjects != null)
             {
@@ -132,6 +191,12 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
+            {
+                Debug.LogError("[Security] Game data validation failed: sceneId is null, empty or exceeds 128 characters.");
+                return false;
+            }
+
             if (metadata == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Metadata is missing.");

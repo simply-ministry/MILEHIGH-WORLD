@@ -10,7 +10,8 @@ namespace Milehigh.Editor
         [MenuItem("Milehigh/Import Campaign Data")]
         public static void ImportCampaignData()
         {
-            string path = "Assets/Scripts/Data/campaign_master.json";
+            string fileName = "campaign_master.json";
+            string path = Path.Combine("Assets/Scripts/Data", fileName);
             if (!File.Exists(path))
             {
                 Debug.LogError("Campaign master JSON not found at " + path);
@@ -28,6 +29,7 @@ namespace Milehigh.Editor
             // SECURITY: Always validate data after deserialization to ensure data integrity
             if (data == null || !data.IsValid())
             {
+                Debug.LogError($"[Security] Failed to parse or validate campaign data from {fileName}.");
                 Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
 8            // SECURITY: Always validate data after deserialization
                 // 🛡️ Sentinel: Security validation of deserialized data.
@@ -147,6 +149,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = safeFileName.Replace(c, '_');
                 }
+                // Ensure no directory traversal sequences remain and replace spaces
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
 
                 // Ensure no directory traversal sequences remain and spaces are replaced
                 // 3. Final cleanup: replace spaces with underscores and ensure extension.

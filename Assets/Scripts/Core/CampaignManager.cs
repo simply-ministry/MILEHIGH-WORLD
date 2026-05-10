@@ -89,6 +89,10 @@ namespace Milehigh.Core
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
+                }
+                catch (System.Exception ex)
+                {
+                    currentCampaignData = null; // Ensure we don't use partially loaded or invalid data
                     else
                     {
                         // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths in logs.

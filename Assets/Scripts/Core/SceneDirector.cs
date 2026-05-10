@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Milehigh.Data;
 using Milehigh.Characters;
+using System.Text.RegularExpressions;
 
 namespace Milehigh.Core
 {
@@ -1144,6 +1145,18 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Input validation and DoS protection
+            // SECURITY: Limit object name length and restrict characters to prevent DoS via GameObject.Find
+            if (objectName.Length > 128)
+            {
+                Debug.LogWarning($"[Security] GetCachedObject: Name '{objectName.Substring(0, 10)}...' exceeds length limit.");
+                return null;
+            }
+
+            // Whitelist alphanumeric, underscores, spaces, parentheses, hyphens, periods, and square brackets (common in Unity names)
+            if (!Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject: Name '{objectName}' contains potentially dangerous characters.");
             // 🛡️ Sentinel: Input validation to mitigate Denial of Service (DoS) attacks via GameObject.Find.
             // 1. Length constraint.
             if (objectName.Length > 128)
@@ -1165,6 +1178,17 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // SECURITY: Negative caching - if we already searched and found nothing, return null immediately.
+                // Note: ReferenceEquals(obj, null) is true for a legitimate negative cache hit.
+                // Unity's == null check is true if the object was destroyed (fake null).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                if (obj != null) return obj;
+
+                // Object was destroyed, remove from cache and fall through to find it again (or not)
+                _objectCache.Remove(objectName);
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
@@ -1181,6 +1205,9 @@ namespace Milehigh.Core
             if (foundObj != null)
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             obj = GameObject.Find(objectName);
+
+            // SECURITY: Robust negative caching - store null explicitly if not found to prevent future traversals.
+            _objectCache[objectName] = obj;
 
             // BOLT: Cache the result (including null) to prevent repeated O(N) searches for missing objects.
             _objectCache[objectName] = obj;
@@ -1476,12 +1503,17 @@ namespace Milehigh.Core
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             {
-                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                if (CampaignManager.Instance.currentCampaignData.scenarios != null &&
+                    CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
+                {
+                    SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                }
             }
         }
 
         public void SetupScene(SceneScenario scenario)
         {
+            if (scenario == null) return;
             GameObject characterObj = GetCachedGameObject(profile.name);
 
             if (characterObj == null)
@@ -1541,6 +1573,11 @@ namespace Milehigh.Core
 
             // NRT Pattern: Capture singleton property in local variable
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData?.characters != null)
+            {
+                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                {
+                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
             var campaignData = CampaignManager.Instance?.currentCampaignData;
             if (campaignData?.characters != null)
             if (CampaignManager.Instance.currentCampaignData != null)
@@ -1592,6 +1629,7 @@ namespace Milehigh.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
+                    if (interaction != null) ApplyInteraction(interaction);
                     ApplyInteraction(interaction);
                 ApplyInteraction(interaction);
                 foreach (var interaction in scenario.interactiveObjects)
@@ -1720,6 +1758,7 @@ namespace Milehigh.Core
                     }
                 }
                 // Try to find prefab if not in scene
+                GameObject prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profile.name));
                 GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 if (prefab != null)
                 {
@@ -1921,6 +1960,8 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // Clean up to prevent memory leaks if objects are held by the dictionary
+            _objectCache.Clear();
             // BOLT: Clear the cache on destroy to release references and prevent memory leaks.
             _objectCache.Clear();
             // BOLT: Explicitly clear dictionaries to release Unity object references for GC
