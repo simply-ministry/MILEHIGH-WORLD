@@ -15,16 +15,41 @@ namespace Milehigh.Data
     public class Metadata
     {
         public LightingState lighting;
-        public string environment;
+        public string environment = null!;
         public int systemParity;
         public float voidSaturationLevel;
 
         /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized metadata meets business constraints and safety bounds.
+        /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
         /// </summary>
         public bool IsValid()
         {
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+            if (string.IsNullOrEmpty(environment))
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment is missing.");
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range to prevent out-of-bounds visual artifacts or logic errors.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            // SECURITY: Input validation for environment string length (DoS mitigation)
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
+                return false;
+            }
+
+            // Void saturation must be within a safe 0.0 to 1.0 range.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
@@ -37,17 +62,17 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
     }
 
     [System.Serializable]
     public class ObjectInteraction
     {
-        public string objectId;
-        public string action;
+        public string objectId = null!;
+        public string action = null!;
 
         public bool isVector;
         public float floatValue;
@@ -64,30 +89,30 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
-        public string speaker;
-        public string text;
-        public string trigger;
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
     }
 
     [System.Serializable]
     public class SceneScenario
     {
-        public string scenarioId;
-        public string description;
-        public List<ObjectInteraction> interactiveObjects;
-        public List<Dialogue> dialogue;
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
     }
 
     [System.Serializable]
     public class HorizonGameData
     {
-        public string sceneId;
-        public Metadata metadata;
-        public List<CharacterProfile> characters;
-        public List<SceneScenario> scenarios;
+        public string sceneId = null!;
+        public Metadata metadata = null!;
+        public List<CharacterProfile> characters = null!;
+        public List<SceneScenario> scenarios = null!;
 
         /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset after deserialization.
         /// </summary>
         public bool IsValid()
         {
@@ -111,6 +136,18 @@ namespace Milehigh.Data
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+            if (scenarios == null)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");
+                return false;
+            }
+            foreach (var character in characters)
+            {
+                if (!character.IsValid()) return false;
+            }
+
+            if (scenarios == null)
+            {
                 return false;
             }
 
