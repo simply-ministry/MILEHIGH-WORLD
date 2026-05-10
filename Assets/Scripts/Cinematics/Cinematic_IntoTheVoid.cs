@@ -3163,6 +3163,10 @@ namespace Milehigh.Cinematics
             ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
             yield return WaitForSecondsOrSkip(7.0f);
 
+    private Coroutine typingCoroutine;
+    private Coroutine speakerPopCoroutine;
+    private float currentTypingSpeed;
+    private bool skipRequested;
             // --- Dialogue Line 5: Sky.ix ---
             yield return WaitForSecondsOrSkip(0.8f);
             ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
@@ -3203,6 +3207,44 @@ namespace Milehigh.Cinematics
             namePopCoroutine = null;
         }
 
+    private IEnumerator PopEffect(RectTransform rect)
+    {
+        if (rect == null) yield break;
+
+        Vector3 initialScale = Vector3.one;
+        rect.localScale = initialScale;
+
+        float duration = 0.2f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float percent = elapsed / duration;
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            rect.localScale = initialScale + Vector3.one * (curve * 0.1f);
+            yield return null;
+        }
+
+        rect.localScale = initialScale;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
+    {
+        float timer = 0f;
+        while (timer < seconds && !skipRequested)
+        {
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    void Start()
+    {
+        // 🛡️ Sentinel: Security enhancement - Defensive programming
+        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         private IEnumerator WaitForSecondsOrSkip(float duration)
         {
             float elapsed = 0f;
@@ -3286,6 +3328,10 @@ namespace Milehigh.Cinematics
     {
         skipRequested = false;
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
+
+        SpeakerNameText.text = speaker;
+        speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
@@ -3583,7 +3629,12 @@ namespace Milehigh.Cinematics
                     delay = currentTypingSpeed * 8f;
                 }
 
-                yield return GetWait(delay);
+                float timer = 0f;
+                while (timer < delay && !skipRequested)
+                {
+                    timer += Time.unscaledDeltaTime;
+                    yield return null;
+                }
             }
             else
             {
@@ -3669,7 +3720,6 @@ namespace Milehigh.Cinematics
         typingCoroutine = null;
     }
 
-        skipRequested = false;
         typingCoroutine = null;
     }
 
@@ -3695,46 +3745,47 @@ namespace Milehigh.Cinematics
         // Example: CinematicCamera.SetActive(true);
 
         DialogueBox.SetActive(true);
-        yield return GetWait(1.0f);
+        yield return WaitForSecondsOrSkip(1.0f);
 
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
-        yield return GetWait(1.5f);
+        yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
-        yield return GetWait(7.5f);
+        yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("React_Furious");]
         // [CAMERA: Quick cut to a tight close-up on Sky.ix's enraged face.]
-        yield return GetWait(0.5f);
+        yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
-        yield return GetWait(6.0f);
+        yield return WaitForSecondsOrSkip(6.0f);
 
         // --- Dialogue Line 3: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("Point_Urgent");]
         // [CAMERA: Pan to Kai, who points towards a glowing conduit pulsating with corrupted energy.]
-        yield return GetWait(0.7f);
+        yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
-        yield return GetWait(8.0f);
+        yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Smirk_Dismissive");]
         // [CAMERA: Cut back to a low-angle shot of Delilah, making her appear dominant and unconcerned.]
-        yield return GetWait(1.2f);
+        yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
-        yield return GetWait(7.0f);
+        yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Action_Ready");]
         // [CAMERA: Follow Sky.ix as she turns her body towards the conduit, cybernetics glowing.]
-        yield return GetWait(0.8f);
+        yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(4.5f);
         yield return GetWait(4.5f);
         yield return WaitForSecondsOrSkip(4.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(4.5f));
