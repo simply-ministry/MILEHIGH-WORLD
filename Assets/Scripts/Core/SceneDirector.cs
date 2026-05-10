@@ -1457,6 +1457,12 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
+            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
+            {
+                Debug.LogWarning($"[Security] Blocked interaction attempt on critical system object: {interaction.objectId}");
+                return;
+            }
             if (interaction == null) return;
             // 🛡️ Sentinel: Prevent IDOR vulnerabilities by blocking untrusted external data from targeting core architectural singletons.
             // SECURITY: Prevent IDOR tampering with core system managers via untrusted JSON data
