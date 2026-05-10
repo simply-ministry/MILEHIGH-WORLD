@@ -161,6 +161,8 @@ namespace Milehigh.Editor
                 // Ensure no directory traversal sequences remain and replace spaces
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
                 // Ensure no directory traversal sequences remain and replace spaces for cleanliness
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 

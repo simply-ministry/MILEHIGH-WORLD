@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -55,6 +54,15 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name;
+        public string role;
+        public string[] traits;
+        public string behaviorScript;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (string.IsNullOrEmpty(role) || role.Length > 128) return false;
         public string name = "";
         public string role = "";
         public string[] traits = Array.Empty<string>();
@@ -109,11 +117,25 @@ namespace Milehigh.Data
             if (string.IsNullOrEmpty(objectId)) return false;
             return true;
         }
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
+            return true;
+        }
     }
 
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker;
+        public string text;
+        public string trigger;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(speaker) || speaker.Length > 128) return false;
+            if (text != null && text.Length > 2048) return false;
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
@@ -184,6 +206,21 @@ namespace Milehigh.Data
         public List<ObjectInteraction> interactiveObjects;
         public List<Dialogue> dialogue;
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null)
+            {
+                if (interactiveObjects.Count > 100) return false;
+                foreach (var io in interactiveObjects) if (io == null || !io.IsValid()) return false;
+            }
+            if (dialogue != null)
+            {
+                if (dialogue.Count > 200) return false;
+                foreach (var d in dialogue) if (d == null || !d.IsValid()) return false;
+            }
+            return true;
+        }
         /// <summary>
         /// 🛡️ Sentinel: Security validation for individual scenarios.
         /// </summary>
@@ -264,6 +301,27 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Character profiles count invalid.");
+                return false;
+            }
+
+            foreach (var character in characters)
+            {
+                if (character == null || !character.IsValid()) return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Scenarios count invalid.");
+                return false;
+            }
+
+            foreach (var scenario in scenarios)
+            {
+                if (scenario == null || !scenario.IsValid()) return false;
+            }
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
