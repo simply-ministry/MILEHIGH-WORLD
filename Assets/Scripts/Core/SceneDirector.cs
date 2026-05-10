@@ -1509,6 +1509,7 @@ namespace Milehigh.Core
                 interaction.objectId == "CameraManager" ||
                 interaction.objectId == "AlliancePowerManager")
             {
+                Debug.LogError($"[Security] Blocked unauthorized interaction with core system object: {interaction.objectId}");
                 Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected system object: {interaction.objectId}");
                 Debug.LogWarning("Security: Blocked unauthorized interaction with core system manager.");
                 Debug.LogWarning($"[Security] Blocked unauthorized interaction with protected system object: {interaction.objectId}");
