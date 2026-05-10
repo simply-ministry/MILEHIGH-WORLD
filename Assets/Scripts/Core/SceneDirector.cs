@@ -105,6 +105,8 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         // BOLT: Consolidated caches for GameObjects, prefabs, and controllers to prevent expensive searches and GetComponent calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for character prefabs to prevent expensive O(N) List.Find calls
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Cache for prefab lookups to avoid O(N) list searches
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 1        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
@@ -932,6 +934,15 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear caches on destroy to release Unity engine object references.
+            // This assists the garbage collector and prevents memory leaks or stale reference issues between scene loads.
+            _objectCache?.Clear();
+            _prefabCache?.Clear();
+        }
+
+        public void SetupScene(SceneScenario scenario)
             if (characterPrefabs != null)
             {
                 prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
@@ -966,6 +977,8 @@ namespace Milehigh.Core
             controller = characterObj.GetComponent<CharacterControllerBase>();
             if (controller != null) _controllerCache[objId] = controller;
 
+            // BOLT: We no longer clear the cache here to allow persistent surgical lazy-loading.
+            // This provides performance benefits across multiple calls.
             // BOLT: Cache component reference to avoid redundant GetComponent calls
             // BOLT: Cache the result even if null (negative caching) to avoid redundant GetComponent calls
             _controllerCache[objId] = controller;

@@ -93,6 +93,8 @@ namespace Milehigh.Core
                     // 🛡️ Sentinel: Perform security validation after deserialization to ensure data integrity and prevent DoS.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
+                        // SECURITY: Log that validation failed and ensure invalid data is not used.
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}. Data failed security validation.");
                         // SECURITY: Use generic error message for validation failure
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         currentCampaignData = null; // Ensure we don't use invalid data

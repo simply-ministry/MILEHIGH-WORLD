@@ -285,6 +285,10 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Scenario validation failed: dialogue collection is null or too large (max 100).");
                 return false;
             }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
             foreach (var d in dialogue)
             {
                 if (d == null || !d.IsValid()) return false;
