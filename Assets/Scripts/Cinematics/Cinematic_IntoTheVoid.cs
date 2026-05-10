@@ -189,6 +189,11 @@ namespace Milehigh.Cinematics
 
     private WaitForSeconds GetWait(float time)
     {
+        int timeKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeKey] = wait;
         int ms = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
         {
