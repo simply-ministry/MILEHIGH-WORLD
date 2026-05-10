@@ -32,11 +32,13 @@ namespace Milehigh.Editor
             catch (System.Exception ex)
             {
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
                 return;
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             }
 
@@ -123,6 +125,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
@@ -162,6 +165,7 @@ namespace Milehigh.Editor
                 // Ensure no directory traversal sequences remain by using Path.GetFileName
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
+                // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 safeFileName = safeFileName.Replace(" ", "_");
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
