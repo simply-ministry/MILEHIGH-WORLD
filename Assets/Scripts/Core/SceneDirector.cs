@@ -735,6 +735,12 @@ namespace Milehigh.Core
                     return obj; // Return cached object or legitimate null (negative cache hit)
                 }
 
+        private GameObject? GetCachedObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
                 // If Unity object was destroyed but entry isn't a negative cache entry, remove it
                 _objectCache.Remove(objectName);
             }
@@ -1249,6 +1255,11 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private GameObject? GetPrefab(string profileName)
+        {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) search and delegate allocation happens only once per profile name
         /// <summary>
         /// Retrieves a character prefab by name using an O(1) lookup.
         /// </summary>
@@ -1571,6 +1582,9 @@ namespace Milehigh.Core
             _objectCache.Clear();
             _controllerCache.Clear();
 
+            // Capture singleton instance to satisfy NRT flow analysis
+            var campaignManager = CampaignManager.Instance;
+            if (campaignManager != null)
             // NRT Pattern: Capture singleton property in local variable
             // Instantiate characters if not already in scene
             if (CampaignManager.Instance.currentCampaignData?.characters != null)
@@ -1606,8 +1620,12 @@ namespace Milehigh.Core
             // Instantiate characters if not already in scene
             if (CampaignManager.Instance.currentCampaignData != null)
             {
-                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
+                var campaignData = campaignManager.currentCampaignData;
+                if (campaignData != null && campaignData.characters != null)
                 {
+                    foreach (var charProfile in campaignData.characters)
+                    {
+                        if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
                     SpawnOrUpdateCharacter(charProfile);
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
@@ -1717,6 +1735,8 @@ namespace Milehigh.Core
 
                 // Fallback for partial name matches if exact match fails (maintaining existing behavior)
                 // BOLT: Use O(1) prefab cache helper
+                GameObject? prefab = GetPrefab(profile.name);
+
                 GameObject prefab = GetPrefab(profile.name);
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
                 GameObject? prefab = null;

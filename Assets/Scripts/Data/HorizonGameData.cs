@@ -33,6 +33,15 @@ namespace Milehigh.Data
         {
             // SECURITY: Ensure void saturation is within a safe 0.0 to 1.0 range.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+
+            // SECURITY: Prevent resource exhaustion by limiting string length
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment string is too long.");
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
             {
@@ -47,6 +56,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
         public string name;
         public string role;
         public string[] traits;
@@ -109,6 +122,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker;
         public string text;
         public string trigger;
@@ -131,6 +147,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
         public string scenarioId;
         public string description;
         public List<ObjectInteraction> interactiveObjects;
@@ -214,6 +234,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");

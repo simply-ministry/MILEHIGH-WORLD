@@ -6,6 +6,7 @@ namespace Milehigh.Physics
     {
         private void OnCollisionEnter(Collision collision)
         {
+            Debug.Log($"Collision with {collision.gameObject.name}");
             Debug.Log("Custom collision detected!");
         }
     }
