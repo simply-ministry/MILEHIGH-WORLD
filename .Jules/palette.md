@@ -25,6 +25,9 @@
 **Learning:** Consolidating multiple, often conflicting, dialogue implementations into a single 'ShowDialogue' pattern using 'TextMeshProUGUI.maxVisibleCharacters' significantly improves UI stability and performance. Reusing 'WaitForSeconds' objects via a cache (e.g., GetWait helper) is essential for minimizing GC pressure in character-by-character text reveal loops.
 **Action:** Always prefer 'maxVisibleCharacters' over manual string concatenation for text reveal animations and implement a 'GetWait' caching pattern for all high-frequency coroutine yields.
 
+## 2026-03-24 - [Natural Pacing and Skip Support for Cinematic Dialogue]
+**Learning:** A "one-speed-fits-all" typewriter effect can feel robotic. Adding subtle delays after punctuation (periods, question marks, commas) significantly improves the "readability" and natural feel of dialogue. Furthermore, providing a responsive "skip to end" interaction is critical for accessibility and user agency. This is best implemented by polling for input in `Update()` to set a flag, ensuring the skip is caught even during long punctuation pauses.
+**Action:** Implement `punctuationPause` and `commaPause` logic and an asynchronous `skipRequested` flag for all cinematic dialogue systems.
 ## 2024-05-20 - [Robust Dialogue Skip & Unity Serialization]
 **Learning:** For responsive skip mechanics in Unity coroutines that include punctuation pauses, polling input in 'Update' to set a persistent flag is more reliable than per-frame 'Input' checks within the loop. Additionally, when renaming serialized UX settings (like 'typingSpeed'), using '[FormerlySerializedAs]' is critical to prevent data loss in the Unity Inspector.
 **Action:** Use a 'skipRequested' flag pattern and 'FormerlySerializedAs' for all Unity UI/UX script refactors.
@@ -43,3 +46,9 @@
 ## 2026-03-25 - [Responsive Cinematic Skip & Narrative Juice]
 **Learning:** In cinematic dialogue sequences, a "skip" action should ideally bypass both the typewriter reveal *and* the subsequent pause between dialogue lines. Decoupling the skip flag from the typewriter logic and using a dedicated 'WaitForSecondsOrSkip' helper ensures a much more responsive feel for players who wish to proceed quickly. Additionally, a subtle scale "pop" animation (using a sine wave) on the speaker's name whenever it changes provides a clear, high-quality visual cue for character transitions without cluttering the screen.
 **Action:** Use the 'WaitForSecondsOrSkip' pattern for all skippable cinematic sequences and implement scale-based 'pop' effects for significant UI transitions.
+## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
+**Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
+**Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+## 2026-03-25 - [Contextual Punctuation and Theme-Linked Cues]
+**Learning:** Generic punctuation-based pauses can feel jerky when encountering mid-word periods (e.g., in character names like 'Sky.ix') or ellipses. Implementing contextual checks (e.g., next-character whitespace) prevents unnatural delays. Furthermore, linking the visual progression cue ('▽') to the speaker's specific color theme creates a more cohesive and delightful UX without adding interface clutter.
+**Action:** Always implement look-ahead/look-behind checks for punctuation pauses to handle abbreviations and ellipses, and leverage existing theme tokens (like speaker colors) for micro-interactions and visual cues.
