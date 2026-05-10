@@ -109,6 +109,13 @@ namespace Milehigh.Core
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                if (obj == null)
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
                 // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj == null)
             {
@@ -506,6 +513,10 @@ namespace Milehigh.Core
 
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p.name.Contains(profileName));
+            if (prefab != null)
+            {
+                _prefabCache[profileName] = prefab;
+            }
             if (prefab != null) _prefabCache[profileName] = prefab;
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (prefab != null) _prefabCache[profileName] = prefab;
@@ -681,6 +692,8 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
+            {
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             if (CampaignManager.Instance?.currentCampaignData != null)
