@@ -772,6 +772,8 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference)
+            // Block external modification of core architectural singletons.
             // SECURITY: Prevent IDOR (Insecure Direct Object Reference). Block external JSON from manipulating core managers.
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects.
             // External JSON could attempt to manipulate core managers by passing their exact names.
@@ -780,6 +782,7 @@ namespace Milehigh.Core
                 interaction.objectId == "CameraManager" ||
                 interaction.objectId == "AlliancePowerManager")
             {
+                Debug.LogWarning($"[Security] Blocked unauthorized attempt to manipulate protected object: {interaction.objectId}");
                 Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected object: {interaction.objectId}");
                 return;
             }
