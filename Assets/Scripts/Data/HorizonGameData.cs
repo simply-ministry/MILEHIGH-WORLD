@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,7 +10,7 @@ namespace Milehigh.Data
         Dynamic
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Metadata
     {
         public LightingState lighting;
@@ -38,7 +37,7 @@ namespace Milehigh.Data
         }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class CharacterProfile
     {
         public string name = null!;
@@ -47,7 +46,7 @@ namespace Milehigh.Data
         public string behaviorScript = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class ObjectInteraction
     {
         public string objectId = null!;
@@ -63,26 +62,62 @@ namespace Milehigh.Data
         {
             return new Vector3(x, y, z);
         }
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
+            return true;
+        }
     }
 
-    [Serializable]
+    [System.Serializable]
     public class Dialogue
     {
+        public string speaker;
+        public string text;
+        public string trigger;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(speaker) || speaker.Length > 128) return false;
+            if (text != null && text.Length > 2048) return false;
+            return true;
+        }
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId;
+        public string description;
+        public List<ObjectInteraction> interactiveObjects;
+        public List<Dialogue> dialogue;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null)
+            {
+                if (interactiveObjects.Count > 100) return false;
+                foreach (var io in interactiveObjects) if (io == null || !io.IsValid()) return false;
+            }
+            if (dialogue != null)
+            {
+                if (dialogue.Count > 200) return false;
+                foreach (var d in dialogue) if (d == null || !d.IsValid()) return false;
+            }
+            return true;
+        }
         public string scenarioId = null!;
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
     }
 
-    [Serializable]
+    [System.Serializable]
     public class HorizonGameData
     {
         public string sceneId = null!;
@@ -103,9 +138,9 @@ namespace Milehigh.Data
                 return false;
             }
 
-            if (characters == null || characters.Count == 0)
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
-                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                Debug.LogError("[Security] Game data validation failed: Character profiles count invalid.");
                 return false;
             }
 
