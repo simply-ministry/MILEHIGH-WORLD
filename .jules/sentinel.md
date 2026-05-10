@@ -47,6 +47,11 @@
 **Vulnerability:** Untrusted external data (JSON) was being used directly by the application without validation, potentially leading to out-of-bounds values or corrupted application state.
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
+
+## 2024-04-07 - Insecure Direct Object Reference (IDOR) via JSON Manipulation
+**Vulnerability:** External JSON game data loaded via CampaignManager allowed applying scale and position modifications to any GameObject in the scene by supplying an exact name, including critical system objects like `CampaignManager`, `SceneDirector`, `CameraManager`, and `AlliancePowerManager`.
+**Learning:** Even singleplayer/offline games loading external configuration files can be susceptible to IDOR-like data tampering vulnerabilities. Objects acting dynamically on names are a massive risk if those names come from an untrusted source. We must avoid broad heuristic matches (e.g., `Contains("Manager")`) to prevent functional regressions, utilizing explicit allowlists or denylists.
+**Prevention:** Sanitize and validate object IDs originating from external sources before using them in dynamic systems. Maintain a strict denylist or allowlist to prevent manipulation of sensitive objects, and ensure specific tag matching rather than loose substring matching.
 ## 2025-01-24 - Ambiguity in Serializable Attribute and CI/Static Analysis Failures
 **Vulnerability:** Static analysis (CodeQL) and standalone C# compilation checks can fail if `[Serializable]` is used while both `System` and `UnityEngine` namespaces are imported, as both define a `SerializableAttribute`.
 **Learning:** While Unity's internal compiler handles this, standard .NET compilers and static analysis runners used in CI (like CodeQL) will flag it as a CS0104 ambiguity error. This can block security scans and CI pipelines.
