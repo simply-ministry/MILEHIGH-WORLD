@@ -337,6 +337,9 @@ namespace Milehigh.Data
 
             if (scenarios == null || scenarios.Count == 0)
             {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
                 Debug.LogError("[Security] Game data validation failed: No scene scenarios defined.");
                 return false;
             }
