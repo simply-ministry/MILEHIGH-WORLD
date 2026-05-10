@@ -1278,6 +1278,11 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Prevent IDOR-like access to core system managers from external data
+            if (objectName == "CampaignManager" || objectName == "SceneDirector" ||
+                objectName == "CameraManager" || objectName == "AlliancePowerManager")
+            {
+                Debug.LogWarning($"Security: Blocked unauthorized lookup attempt for core system object: {objectName}");
             // 🛡️ Sentinel: Sanitize input to mitigate DoS risks and ensure data integrity
             if (objectName.Length > MAX_NAME_LENGTH || !_safeNameRegex.IsMatch(objectName))
             {
