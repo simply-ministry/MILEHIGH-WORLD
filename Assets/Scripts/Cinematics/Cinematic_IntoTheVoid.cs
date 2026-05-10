@@ -448,32 +448,6 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Standardized skip logic for both keyboard and mouse
     // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    // ⚡ Bolt: Changed key to int (milliseconds) to prevent dictionary lookup cache misses caused by floating-point tolerance variations.
-    // ⚡ Bolt: Use int key (milliseconds) to avoid floating-point imprecision cache misses
-    // ⚡ Bolt: Using int (milliseconds) instead of float as dictionary key to prevent
-    // cache misses caused by floating-point imprecision, avoiding unnecessary GC allocations.
-    // ⚡ Bolt: Use int key for milliseconds to prevent float imprecision dictionary misses
-    private static readonly Dictionary<float, WaitForSeconds?> _waitForSecondsCache = new Dictionary<float, WaitForSeconds?>();
-    // ⚡ Bolt: Using int keys (milliseconds) prevents float precision cache misses and redundant GC allocations.
-    // ⚡ Bolt: Cache for WaitForSeconds using integer keys (milliseconds) to eliminate GC allocations and floating-point cache misses
-    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
-    private Vector3 _originalSpeakerScale;
-    private string _lastSpeaker;
-    private Coroutine _popCoroutine;
-
-    void Update()
-    {
-        // Poll for skip input to ensure responsiveness
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
-    {
-        // Poll for skip input to ensure responsiveness across multiple accessible inputs
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
-    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    // ⚡ Bolt: Use int (milliseconds) instead of float for dictionary key to avoid cache misses from float imprecision
-    // ⚡ Bolt: Using int (milliseconds) instead of float for dictionary keys prevents cache misses from float imprecision
-    // BOLT: Changed to int (milliseconds) key to prevent cache misses from float precision issues
-    // BOLT: Refactored dictionary to use int (milliseconds) instead of float to prevent precision-based cache misses
-    // ⚡ Bolt: Use int (milliseconds) for the key to avoid float imprecision cache misses
     private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
     private WaitForSeconds GetWait(float time)
@@ -482,6 +456,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
         int ms = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
         {
