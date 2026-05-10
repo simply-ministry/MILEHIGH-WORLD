@@ -175,6 +175,7 @@ namespace Milehigh.Cinematics
     // BOLT: Cache for WaitForSeconds using int (milliseconds) to eliminate GC allocations during coroutine execution.
     // Using int keys instead of float prevents cache misses caused by floating-point precision errors.
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // BOLT: Use int (milliseconds) for dictionary key instead of float to prevent cache misses from floating-point inaccuracies
     // ⚡ Bolt: Using int key (milliseconds) to prevent float imprecision cache misses
     // ⚡ Bolt: Use int (milliseconds) for Dictionary key to prevent cache misses due to float precision
     // BOLT: Changed key to int (milliseconds) to prevent dictionary cache misses from floating-point inaccuracies
@@ -192,6 +193,11 @@ namespace Milehigh.Cinematics
 
     private WaitForSeconds GetWait(float time)
     {
+        int msKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[msKey] = wait;
         int timeKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
         {
