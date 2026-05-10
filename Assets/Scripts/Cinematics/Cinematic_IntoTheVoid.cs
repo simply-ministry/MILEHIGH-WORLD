@@ -204,6 +204,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        DialogueText.text = message;
+        DialogueText.maxVisibleCharacters = 0;
+
+        for (int i = 0; i <= message.Length; i++)
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
@@ -244,7 +248,6 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         for (int i = 0; i <= totalVisibleCharacters; i++)
         {
-            // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
             {
                 DialogueText.maxVisibleCharacters = totalVisibleCharacters;
@@ -277,7 +280,19 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             if (i > 0)
             {
                 char c = message[i - 1];
+                float delay = currentTypingSpeed;
+
+                // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
                 if (c == '.' || c == '?' || c == '!')
+                    delay = currentTypingSpeed * 15f;
+                else if (c == ',' || c == ';' || c == ':')
+                    delay = currentTypingSpeed * 8f;
+
+                yield return GetWait(delay);
+            }
+            else
+            {
+                yield return GetWait(currentTypingSpeed);
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
                 // We check the previous character (i-1) to pause *after* it has been revealed.
                 if (i > 0)
@@ -334,6 +349,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 yield return GetWait(delay);
             }
         }
+
+        // UX Enhancement: Add a "Continue" indicator once message is fully revealed
+        DialogueText.text += " ▽";
+        DialogueText.maxVisibleCharacters = DialogueText.text.Length;
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.

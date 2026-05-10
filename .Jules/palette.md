@@ -35,6 +35,9 @@
 **Learning:** Dialogue-heavy cinematics benefit from punctuation-aware typewriter timing (longer pauses after '.', '?', ',', etc.), which mimics the natural cadence of speech and improves readability. Additionally, color-coding speaker names provides an immediate visual cue for character identification, reducing cognitive load during fast-paced sequences.
 **Action:** Implement rhythmic pauses in typewriter effects and use consistent character-specific color palettes for speaker UI to enhance immersion and accessibility.
 
+## 2026-03-24 - [Dialogue Completion Indicator]
+**Learning:** In narrative-driven interfaces, users often struggle to know exactly when a typewriter effect has finished, especially if the last sentence is short. Adding a visual "Continue" indicator (like a '▽' symbol) at the end of the reveal provides a clear affordance that the dialogue sequence is ready for the next interaction.
+**Action:** Always append a completion symbol or change the UI state once a text reveal animation concludes to improve usability and reduce user uncertainty.
 ## 2025-05-20 - [Rich Text Aware Typewriter Reveal]
 **Learning:** In Unity TextMeshPro, iterating over string length for typewriter reveals can break when rich text tags (like <color> or <b>) are present, as the tag characters are revealed one-by-one. Using 'TMP_Text.ForceMeshUpdate()' followed by iterating over 'TMP_Text.textInfo.characterCount' ensures only rendered characters are revealed, maintaining both accessibility (screen readers) and visual polish.
 **Action:** Always use 'textInfo.characterCount' and 'ForceMeshUpdate' for typewriter effects to ensure compatibility with rich text and accurate character-based pacing.
