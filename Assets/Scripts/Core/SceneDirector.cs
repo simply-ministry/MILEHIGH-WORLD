@@ -131,6 +131,9 @@ namespace Milehigh.Core
             }
         }
 
+        // BOLT: Cache for prefab lookups to avoid O(N) string comparisons in loops
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
@@ -483,6 +486,8 @@ namespace Milehigh.Core
                     }
                 }
                 // Try to find prefab if not in scene
+                // BOLT: O(1) cache lookup with lazy fallback to O(N) search (including negative caching)
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
                 GameObject prefab = null;
                 if (!_prefabCache.TryGetValue(profile.name, out prefab))
                 {
