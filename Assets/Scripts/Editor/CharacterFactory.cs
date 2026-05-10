@@ -29,6 +29,10 @@ namespace Milehigh.Editor
             }
             catch (Exception)
 
+                // 🛡️ Sentinel: Security validation of deserialized data.
+                if (data == null || !data.IsValid())
+                {
+                    Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
                 if (data == null)
                 if (data == null || data.characters == null || !data.IsValid())
                 {
@@ -38,6 +42,8 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking absolute paths or full stack traces.
+                Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
             }
@@ -88,6 +94,7 @@ namespace Milehigh.Editor
                 string safeFileName = charProfile.name;
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
@@ -135,6 +142,8 @@ namespace Milehigh.Editor
                 }
                 safeFileName = safeFileName.Replace(" ", "_");
 
+                // Ensure no directory separators or traversal sequences remain by extracting only the filename
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
                 // Ensure no directory separators or traversal sequences remain
                 safeFileName = Path.GetFileName(safeFileName);
                 string safeFileName = GetSafeFileName(charProfile.name);

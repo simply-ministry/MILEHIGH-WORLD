@@ -64,6 +64,8 @@ namespace Milehigh.Core
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
+        // 🛡️ Sentinel: Whitelist regex for object names to prevent malicious input.
+        private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_\s\(\)\-\[\]\.]+$", RegexOptions.Compiled);
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls.
         // Performance Insight: Dictionary.TryGetValue is O(1).
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
@@ -96,7 +98,11 @@ namespace Milehigh.Core
 
         private GameObject? GetCachedObject(string objectName)
         {
-            if (string.IsNullOrEmpty(objectName)) return null;
+            // 🛡️ Sentinel: Implement input length limits and validation to prevent DoS via expensive Find operations.
+            if (string.IsNullOrEmpty(objectName) || objectName.Length > 128 || !SafeNameRegex.IsMatch(objectName))
+            {
+                return null;
+            }
 
             // 🛡️ Sentinel: DoS Mitigation - Enforce length limit and character whitelist on object names.
             if (objectName.Length > 128 || !_nameWhitelist.IsMatch(objectName))
@@ -112,6 +118,7 @@ namespace Milehigh.Core
 
             GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             if (_objectCache.TryGetValue(objectName, out obj))
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
@@ -538,6 +545,10 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) search happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
 
             GameObject? prefab;
             if (_prefabCache.TryGetValue(profileName, out prefab)) return prefab;
