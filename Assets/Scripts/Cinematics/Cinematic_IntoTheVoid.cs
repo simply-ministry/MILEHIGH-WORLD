@@ -39,6 +39,11 @@ namespace Milehigh.Cinematics
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 {
+    [Header("Character References")]
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
     [Header("Characters")]
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
@@ -77,6 +82,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     private bool playerInteracted;
 
     [Header("UX Settings")]
+    [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
     public float skyixSpeedMultiplier = 1.2f;
@@ -125,6 +131,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         return wait;
     }
 
+    void Start()
+    {
+        // 🛡️ Sentinel: Defensive programming - Ensure UI components are assigned
     void Start()
     {
         // Poll for skip input to ensure responsiveness
@@ -251,7 +260,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         // Defensive check to ensure UI components are assigned
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
-            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            Debug.LogError("Missing UI components required for cinematic. Aborting.");
             return;
         }
 
@@ -343,9 +352,16 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueCanvasGroup.alpha = targetAlpha;
     }
 
-    /// <summary>
-    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
-    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested)
+        {
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
     public void ShowDialogue(string speaker, string message)
     {
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -401,6 +417,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         skipRequested = false;
 
         Color speakerColor = speaker switch
+        {
+            "Sky.ix" => Color.cyan,
+            "Kai" => new Color(1f, 0.84f, 0f),
+            "Delilah" => new Color(0.6f, 0.1f, 0.9f),
+            _ => Color.white
+        };
+
         {
             "Sky.ix" => Color.cyan,
             "Kai" => new Color(1f, 0.84f, 0f), // Gold
@@ -463,6 +486,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private IEnumerator TypeDialogue(string message)
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         // BOLT: Cache hex color and cue to avoid per-frame allocations
         // UX Enhancement: Color-coded completion cue ('▽') that matches the current speaker.
         // We append it immediately to ensure the full layout is calculated upfront, preventing layout shifts.
@@ -585,10 +610,10 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
 
-        // BOLT: Typewriter effect optimized for performance.
-        // We use the existing GetWait(float) method to ensure zero-allocation yields,
-        // avoiding GC pressure during dialogue sequences.
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+        // The cue is the last character '▽' (and potentially rich text tags),
+        // we reveal characters up to the cue.
+        int messageLength = message.Length;
 
         for (int i = 0; i <= messageChars; i++)
         {
@@ -609,6 +634,15 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             {
                 char c = textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i].character;
+
+                // Rhythmic punctuation pauses
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = DialogueText.textInfo.characterInfo[i+1].character;
                 char c = textInfo.characterInfo[i].character;
 
                 // Rhythmic Punctuation Pacing
@@ -626,6 +660,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                     bool isEllipsis = (i + 1 < messageCharsCount && textInfo.characterInfo[i + 1].character == '.') || (i > 0 && textInfo.characterInfo[i - 1].character == '.');
                     bool isMidWord = (i + 1 < messageCharsCount && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character));
 
+                    if (isEndOfSentence) delay *= 15f;
+                    else delay *= 5f; // Ellipsis or mid-word period
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay *= 8f;
                     if (isMidWord && !isEllipsis) delay = currentTypingSpeed;
                     else delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                 }
@@ -685,6 +725,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 delay = currentTypingSpeed * 8f;
             }
 
+        // skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
             yield return GetWait(delay);
         }
 
@@ -3850,6 +3891,18 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
         yield return FadeDialogue(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
+
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. Hit the third resonant frequency conduit... now!");
+        yield return WaitForSecondsOrSkip(8.0f);
+
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is built on pure, unadulterated nothingness.");
+        yield return WaitForSecondsOrSkip(7.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
