@@ -18,6 +18,11 @@ namespace Milehigh.Editor
                 return;
             }
 
+            HorizonGameData? data = null;
+            try
+            {
+                string json = File.ReadAllText(path);
+                data = JsonUtility.FromJson<HorizonGameData>(json);
             string json = File.ReadAllText(path);
             HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
@@ -67,6 +72,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to prevent using malicious or corrupted data
             }
 
@@ -112,7 +118,11 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
+
                 // Malicious JSON could use "../" to write assets outside the intended directory.
+                // Required sequence: replace invalid chars, use Path.GetFileName, then replace spaces.
                 string rawName = charProfile.name ?? "unnamed_character";
 
                 // 1. Strip directory traversal sequences using Path.GetFileName.

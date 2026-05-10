@@ -6,6 +6,12 @@ namespace Milehigh.SceneManagement
 {
     public class AsyncSceneLoader : MonoBehaviour
     {
+        public void LoadSceneAsync(string sceneName)
+        {
+            StartCoroutine(LoadSceneCoroutine(sceneName));
+        }
+
+        private IEnumerator LoadSceneCoroutine(string sceneName)
         public void LoadScene(string sceneName)
         {
             StartCoroutine(LoadAsync(sceneName));
