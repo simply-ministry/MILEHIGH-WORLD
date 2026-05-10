@@ -57,6 +57,20 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name;
+        public string role;
+        public string[] traits;
+        public string behaviorScript;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for individual character data.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Implement resource exhaustion protection (DoS prevention)
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (string.IsNullOrEmpty(role) || role.Length > 128) return false;
+            if (behaviorScript != null && behaviorScript.Length > 128) return false;
         public string name = string.Empty;
         public string role = string.Empty;
         public string[] traits = Array.Empty<string>();
@@ -209,6 +223,13 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId;
+        public string description;
+        public List<ObjectInteraction> interactiveObjects;
+        public List<Dialogue> dialogue;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for individual scenarios.
         public string scenarioId = string.Empty;
         public string description = string.Empty;
         public string scenarioId = null!;

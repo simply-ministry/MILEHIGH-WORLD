@@ -73,6 +73,7 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Security validation of deserialized data.
                     // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
                     var data = currentCampaignData;
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
@@ -86,6 +87,10 @@ namespace Milehigh.Core
                     // 🛡️ Sentinel: Perform security validation after deserialization to ensure data integrity and prevent DoS.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
+                        // SECURITY: Use generic error message for validation failure
+                        Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
+                        currentCampaignData = null; // Ensure we don't use invalid data
+                    }
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
@@ -119,6 +124,8 @@ namespace Milehigh.Core
                 catch (Exception ex)
                 catch (System.Exception)
                 {
+                    // SECURITY: Catch exceptions to fail securely and avoid leaking internal stack traces or paths.
+                    Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");
                     // SECURITY: Fail securely and avoid leaking internal stack traces or absolute paths.
                     Debug.LogError($"Error loading campaign data from {fileName}.");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
