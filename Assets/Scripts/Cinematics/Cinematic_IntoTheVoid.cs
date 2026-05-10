@@ -316,6 +316,18 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             default:
                 SpeakerNameText.color = Color.white;
                 currentSpeakerColorTag = "#FFFFFF";
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                currentSpeakerColorTag = "#FFD700";
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                currentSpeakerColorTag = "#991AE6";
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                currentSpeakerColorTag = "#FFFFFF";
                 currentSpeakerColorTag = "<color=#00FFFF>";
                 break;
             case "Kai":
@@ -551,6 +563,28 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    bool isDot = c == '.';
+
+                    if (isDot || c == '!' || c == '?')
+                    {
+                        // Check for ellipsis (consecutive dots)
+                        bool isEllipsis = false;
+                        if (isDot)
+                        {
+                            if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                            else if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        }
+
+                        if (isEllipsis)
+                        {
+                            delay = currentTypingSpeed * 5f; // Faster pause for ellipsis dots
+                        }
+                        else
+                        {
+                            // Standard sentence end - check if next char is whitespace to avoid mid-word delays (e.g. Sky.ix)
+                            bool nextIsWhitespace = i >= totalVisibleCharacters || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+                            if (nextIsWhitespace) delay = currentTypingSpeed * 15f;
+                        }
                     if (c == '.' || c == '!' || c == '?') currentWait = periodWait;
                     else if (c == ',' || c == ';' || c == ':') currentWait = commaWait;
                     bool isNextCharWhitespace = (i < totalVisibleCharacters) && char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
@@ -697,6 +731,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // Color-code the completion character to match the speaker's theme.
+        DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2; // +1 for space, +1 for triangle
         DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
         // PALETTE: Color-coded cue to match the speaker's theme for a delightful touch.
         DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
