@@ -26,6 +26,7 @@ namespace Milehigh.Editor
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
 
+                if (data == null)
                 if (data == null || data.characters == null || !data.IsValid())
                 {
                     Debug.LogError("[Security] Character import aborted: Campaign data is null or failed validation.");
@@ -45,6 +46,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to ensure integrity
                 Debug.LogError($"Failed to load or parse campaign data. Error parsing file.");
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
@@ -80,6 +82,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name);
                 string safeFileName = GetSafeFileName(charProfile.name ?? "unnamed_character");
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
 
@@ -256,6 +259,21 @@ namespace Milehigh.Editor
                 safeName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             }
             return safeName;
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Sentinel Path Sanitization Standard: whitelist-based regex
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized))
+            {
+                return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+            return sanitized;
         }
     }
 }

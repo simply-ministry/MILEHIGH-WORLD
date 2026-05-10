@@ -124,6 +124,8 @@ namespace Milehigh.Cinematics
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    [Tooltip("Optional: If not assigned, will try to get from DialogueBox.")]
+    public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SkipHint = null!;
     public TextMeshProUGUI? SkipHint;
     public TextMeshProUGUI SkipHint = null!;
@@ -137,6 +139,8 @@ namespace Milehigh.Cinematics
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
     public float skyixSpeedMultiplier = 1.2f;
+    [Tooltip("Duration of dialogue box fade transitions.")]
+    public float fadeDuration = 0.5f;
     public float idleHintThreshold = 2.0f;
 
     private Coroutine? typingCoroutine;
@@ -395,8 +399,12 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
-    void Update()
+    void Awake()
     {
+        if (DialogueCanvasGroup == null && DialogueBox != null)
+        {
+            DialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
+        }
         // Poll for any input to set skip flag and reset idle timer
         if (Input.anyKeyDown)
         {
@@ -555,6 +563,9 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        // Initialize UI state
+        if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
+        DialogueBox.SetActive(false);
         if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         if (SkipHint == null)
@@ -574,6 +585,49 @@ namespace Milehigh.Cinematics
     /// </summary>
     void Update()
     {
+        // Polling for space or left-click for skip functionality
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+        }
+    }
+
+    private IEnumerator FadeDialogueBox(float targetAlpha)
+    {
+        if (DialogueCanvasGroup == null)
+        {
+            DialogueBox.SetActive(targetAlpha > 0);
+            yield break;
+        }
+
+        if (targetAlpha > 0) DialogueBox.SetActive(true);
+
+        float startAlpha = DialogueCanvasGroup.alpha;
+        float elapsed = 0;
+
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / fadeDuration);
+            yield return null;
+        }
+
+        DialogueCanvasGroup.alpha = targetAlpha;
+        if (targetAlpha <= 0) DialogueBox.SetActive(false);
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested)
+        {
+            yield return null;
+        }
+        skipRequested = false;
         // Reset idle timer and hide hint on any interaction
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
         {
@@ -757,6 +811,13 @@ namespace Milehigh.Cinematics
 
     private IEnumerator TypeDialogue(string message, Color themeColor)
     {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = message;
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        int totalCharacters = DialogueText.textInfo.characterCount;
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -870,12 +931,48 @@ namespace Milehigh.Cinematics
         // We only want to apply rhythmic pacing to the message itself.
         int messageVisibleCount = totalVisibleCharacters - 2; // Subtracting ' ▽'
 
-        for (int i = 0; i <= totalVisibleCharacters; i++)
+        for (int i = 0; i < totalCharacters; i++)
         {
             if (skipRequested)
             // Poll for skip input to ensure responsiveness across multiple accessible inputs
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
             {
+                DialogueText.maxVisibleCharacters = totalCharacters;
+                break;
+            }
+
+            // Reveal character at index i
+            DialogueText.maxVisibleCharacters = i + 1;
+
+            float delay = currentTypingSpeed;
+            char c = DialogueText.textInfo.characterInfo[i].character;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // These occur AFTER the character has been revealed for a more natural cadence.
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                bool isEllipsis = (i + 1 < totalCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.') ||
+                                    (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.');
+
+                bool isEndOfSentence = (i + 1 >= totalCharacters) || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i + 1].character);
+
+                if (isEllipsis) delay = currentTypingSpeed * 5f;
+                else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        // Add the completion cue
+        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+        DialogueText.ForceMeshUpdate();
+        DialogueText.maxVisibleCharacters = DialogueText.textInfo.characterCount;
+
                 skipRequested = true;
                 playerInteracted = true;
                 idleTimer = 0;
@@ -1301,6 +1398,7 @@ namespace Milehigh.Cinematics
                 yield return null;
             }
 
+        yield return StartCoroutine(FadeDialogueBox(1.0f));
             target.localScale = initialScale;
             namePopCoroutine = null;
         }
@@ -1509,6 +1607,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(7.5f);
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        yield return StartCoroutine(FadeDialogueBox(0.0f));
         yield return StartCoroutine(FadeDialogueBox(0f, 0.5f));
         yield return FadeDialogueBox(0f, 0.5f);
 

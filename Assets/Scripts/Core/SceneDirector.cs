@@ -19,6 +19,9 @@ namespace Milehigh.Core
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
 
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+
         // BOLT: Component cache to avoid redundant GetComponent calls.
         // Note: Using CharacterControllerBase? to support negative caching.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
@@ -458,6 +461,8 @@ namespace Milehigh.Core
         {
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
+            // BOLT: O(P) search happens only once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             if (string.IsNullOrEmpty(profileName)) return null;
