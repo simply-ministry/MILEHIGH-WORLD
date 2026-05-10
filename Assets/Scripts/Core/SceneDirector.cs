@@ -241,6 +241,7 @@ namespace Milehigh.Core
             // BOLT: Clear scene-specific caches to avoid stale references across scenarios/scenes.
             // Prefab cache is persisted as it remains valid across the session.
             _objectCache.Clear();
+            _prefabCache.Clear();
             // BOLT: Clear lookup caches at start of setup to avoid stale references and memory leaks across scenes.
             _objectCache.Clear();
             _prefabCache.Clear();
@@ -316,6 +317,11 @@ namespace Milehigh.Core
             {
                 // Try to find prefab if not in scene
                 GameObject prefab = null;
+                if (!_prefabCache.TryGetValue(profile.name, out prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    _prefabCache[profile.name] = prefab;
+                }
                 if (_prefabCache.TryGetValue(profile.name, out GameObject cachedPrefab))
                 {
                     prefab = cachedPrefab;
