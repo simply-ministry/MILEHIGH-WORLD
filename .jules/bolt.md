@@ -218,6 +218,10 @@
 ## 2026-03-26 - Unity Negative Caching Pitfalls
 **Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
 **Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
+
+## 2024-05-27 - Unity WaitForSeconds float dictionary cache misses
+**Learning:** Caching `WaitForSeconds` with a `float` key causes dictionary cache misses due to floating-point imprecision, leading to unintended GC allocations.
+**Action:** Always use an integer key (e.g., milliseconds via `Mathf.RoundToInt(time * 1000f)`) when caching Unity coroutine yield instructions to ensure reliable cache hits and eliminate GC pressure.
 ## 2026-04-25 - Cache Consolidation in SceneDirector.cs
 **Learning:** Fragmented caching implementations (multiple dictionaries, redundant helpers, and inconsistent lookup logic) in Unity managers can lead to state inconsistency and subtle performance regressions. Consolidation into a unified caching pattern (O(1) lookups for objects, prefabs, and components) ensures predictable performance and cleaner code.
 **Action:** Audit caching systems for redundancy and consolidate into a single source of truth. Always include 'OnDestroy' cleanup for persistent caches to prevent memory leaks in the Unity Editor.

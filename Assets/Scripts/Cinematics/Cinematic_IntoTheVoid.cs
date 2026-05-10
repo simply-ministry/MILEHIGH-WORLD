@@ -135,6 +135,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     // BOLT: Cache for WaitForSeconds using int (milliseconds) to eliminate GC allocations during coroutine execution.
     // Using int keys instead of float prevents cache misses caused by floating-point precision errors.
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Using int key (milliseconds) to prevent float imprecision cache misses
     // ⚡ Bolt: Use int (milliseconds) for Dictionary key to prevent cache misses due to float precision
     // BOLT: Changed key to int (milliseconds) to prevent dictionary cache misses from floating-point inaccuracies
     // ⚡ Bolt: Use int keys (milliseconds) instead of floats to prevent cache misses due to floating-point precision
