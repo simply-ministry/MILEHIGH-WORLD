@@ -8,6 +8,8 @@ namespace Milehigh.Core
     [DefaultExecutionOrder(-100)]
     public class CampaignManager : MonoBehaviour
     {
+        private static CampaignManager? _instance;
+        public static CampaignManager? Instance
         private static CampaignManager _instance;
         public static CampaignManager Instance
         {
@@ -22,6 +24,7 @@ namespace Milehigh.Core
                         _instance = go.AddComponent<CampaignManager>();
                     }
                 }
+                return _instance;
                 if (_instance == null) InitializeInstance();
                 return _instance!;
             }
@@ -70,6 +73,13 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
+                    var data = currentCampaignData;
+                    // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
+                    if (data != null && data.IsValid())
+                    {
+                        currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;

@@ -21,6 +21,8 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
         // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
         private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\-.\[\]\(\)\$]+$", RegexOptions.Compiled);
@@ -377,6 +379,15 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                if (obj == null)
             // 🛡️ Sentinel: Mitigate DoS via complex GameObject.Find queries.
             // Restrict name length and characters to prevent expensive scene traversals with complex patterns.
             if (objectName.Length > 128) return null;
@@ -906,6 +917,15 @@ namespace Milehigh.Core
                 }
             }
 
+            // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
+            var campaignManager = CampaignManager.Instance;
+            if (campaignManager != null)
+            {
+                var data = campaignManager.currentCampaignData;
+                if (data != null && data.scenarios != null && data.scenarios.Count > 0)
+                {
+                    SetupScene(data.scenarios[0]);
+                }
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
@@ -973,6 +993,18 @@ namespace Milehigh.Core
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
+            var campaignManager = CampaignManager.Instance;
+            if (campaignManager != null)
+            {
+                var data = campaignManager.currentCampaignData;
+                if (data != null && data.characters != null)
+                {
+                    foreach (var charProfile in data.characters)
+                    {
+                        if (charProfile != null)
+                        {
+                            SpawnOrUpdateCharacter(charProfile);
+                        }
             if (CampaignManager.Instance.currentCampaignData != null)
             // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
             var campaignData = CampaignManager.Instance.currentCampaignData;
@@ -1233,6 +1265,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            if (interaction == null) return;
             // 🛡️ Sentinel: Prevent IDOR vulnerabilities by blocking untrusted external data from targeting core architectural singletons.
             // SECURITY: Prevent IDOR tampering with core system managers via untrusted JSON data
             // 🛡️ Sentinel: Prevent IDOR by blocking manipulation of critical system managers
