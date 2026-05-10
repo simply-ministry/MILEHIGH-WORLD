@@ -8,6 +8,7 @@ namespace Milehigh.Characters
 {
     public class DelilahAIController : CharacterControllerBase
     {
+        public GameObject? shadowClonePrefab;
         public GameObject shadowClonePrefab = null!;
         public float cloneDuration = 5f;
 

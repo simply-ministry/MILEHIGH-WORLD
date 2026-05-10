@@ -11,6 +11,7 @@ namespace Milehigh.Core
     public class SceneDirector : MonoBehaviour
     {
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform? characterSpawnRoot;
         public Transform characterSpawnRoot = null!;
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -80,6 +81,7 @@ namespace Milehigh.Core
         // BOLT: Unified caching system to replace multiple redundant/conflicting declarations.
         // Uses O(1) lookups to eliminate expensive O(N) scene traversals and linear list searches.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
@@ -795,6 +797,18 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // We use System.Object.ReferenceEquals(obj, null) to distinguish between a truly null reference
+            // and a destroyed Unity object, which allows us to implement "negative caching" for missing objects.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // Managed reference is null: object was never found (cached negative result).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // Managed reference exists, check if Unity object is still alive.
+                if (obj != null) return obj;
+
+                // Managed reference is non-null but obj == null: object was destroyed.
+                return null;
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             // We use ReferenceEquals to check if the managed reference exists in the cache,
             // then Unity's == null check to see if the native object was destroyed.
@@ -835,6 +849,16 @@ namespace Milehigh.Core
 
             // BOLT: Fallback to O(N) scene traversal only if not cached.
             obj = GameObject.Find(objectName);
+            // Cache the result (including null if not found) for future O(1) retrieval.
+            _objectCache[objectName] = obj!;
+            return obj;
+        }
+
+        private void OnDestroy()
+        {
+            // BOLT: Ensure references are released to prevent memory leaks, especially with negative caching.
+            _objectCache.Clear();
+            _prefabCache.Clear();
 
             // BOLT: Cache the result, even if it's null (negative caching), to prevent repeated O(N) lookups.
             _objectCache[objectName] = obj;
@@ -1065,6 +1089,17 @@ namespace Milehigh.Core
 
             InitializePrefabCache();
 
+            // BOLT: Optimization - Pre-populate the cache with a single scene traversal.
+            // This avoids multiple O(N) GameObject.Find calls later.
+            _objectCache.Clear();
+            var allObjects = Object.FindObjectsByType<GameObject>(FindObjectsInactive.None, FindObjectsSortMode.None);
+            foreach (var go in allObjects)
+            {
+                if (!_objectCache.ContainsKey(go.name))
+                {
+                    _objectCache[go.name] = go;
+                }
+            }
             // Performance Insight: Clear cache at start of setup to prevent stale references or
             // negative cache leakage between scenarios if objects were created/destroyed.
             // Clear cache at start of setup to avoid stale references across scenes

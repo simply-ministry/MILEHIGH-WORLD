@@ -26,6 +26,8 @@ namespace Milehigh.Editor
                 return;
             }
 
+            string json = File.ReadAllText(path);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
             HorizonGameData? data = null;
             HorizonGameData data = null;
             try
@@ -159,6 +161,8 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities
                 string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = Path.GetFileName(baseName);
+
                 string safeFileName = baseName;
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 string safeFileName = charProfile.name ?? "unnamed_character";
@@ -219,6 +223,7 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+                safeFileName = safeFileName.Replace(" ", "_");
                 // Ensure no directory traversal sequences remain by using Path.GetFileName
             }
 

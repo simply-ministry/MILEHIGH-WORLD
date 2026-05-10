@@ -24,6 +24,11 @@ namespace Milehigh.Data
         public bool IsValid()
         {
         /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints.
+        /// Validates metadata integrity and safety bounds.
+        /// </summary>
+        public bool IsValid()
+        {
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and resource limits.
         /// </summary>
         public bool IsValid()
@@ -255,6 +260,19 @@ namespace Milehigh.Data
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
+    }
+
+    [System.Serializable]
+    public class HorizonGameData
+    {
+        public string sceneId = null!;
+        public Metadata metadata = null!;
+        public List<CharacterProfile> characters = null!;
+        public List<SceneScenario> scenarios = null!;
+
+        /// <summary>
+        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+        /// Validates the deserialized game data for security and integrity.
 
         /// <summary>
         /// 🛡️ Sentinel: Security validation for individual scenarios.
@@ -334,6 +352,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null) return false;
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
