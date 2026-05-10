@@ -205,21 +205,51 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 float delay = currentTypingSpeed;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // We check the previous character (i-1) to pause *after* it has been revealed.
+                // Includes look-ahead to avoid pauses in names like "Sky.ix", handles clusters (!!?), and ellipsis dots.
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
-                    if (c == '.' || c == '!' || c == '?') delay = currentTypingSpeed * 15f;
-                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEndOfCluster = true;
+                        if (i < totalVisibleCharacters)
+                        {
+                            char nextC = DialogueText.textInfo.characterInfo[i].character;
+                            if (nextC == '.' || nextC == '!' || nextC == '?') isEndOfCluster = false;
+                        }
+
+                        if (isEndOfCluster)
+                        {
+                            bool isEndOfSentence = true;
+                            if (i < totalVisibleCharacters)
+                            {
+                                char nextC = DialogueText.textInfo.characterInfo[i].character;
+                                if (!char.IsWhiteSpace(nextC)) isEndOfSentence = false;
+                            }
+
+                            if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                        }
+                        else if (c == '.')
+                        {
+                            // Mid-cluster dot (ellipsis)
+                            delay = currentTypingSpeed * 5f;
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':' || c == '—' || c == '-')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                 }
 
                 yield return GetWait(delay);
             }
         }
 
-        // UX Enhancement: Visual progression cue indicating text reveal is complete.
-        DialogueText.text = message + " ▽";
-        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        // UX Enhancement: Visual progression cue themed to the speaker.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+        DialogueText.ForceMeshUpdate();
+        DialogueText.maxVisibleCharacters = DialogueText.textInfo.characterCount;
 
         skipRequested = false;
         typingCoroutine = null;
