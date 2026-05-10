@@ -50,11 +50,15 @@
 **Action:** Always use dictionary caches (e.g., `Dictionary<string, GameObject>`) to store and retrieve object references to avoid repeated scene traversals.
 ## 2024-05-25 - Unity WaitForSeconds GC Allocation in Loops
 **Learning:** Using `new WaitForSeconds()` inside a tight loop (like a typewriter text effect in a Coroutine) creates a new object allocation on the heap for every single character typed. This causes unnecessary garbage collection (GC) pressure and can lead to frame stuttering during text-heavy cinematic sequences.
-**Action:** Always cache `WaitForSeconds` objects outside the loop or use a shared caching mechanism when the yield duration is constant, returning the cached instance inside the loop.
+**Action:** Always cache `WaitForSeconds` objects outside the loop or use a shared caching mechanism when the duration is constant, returning the cached instance inside the loop.
 
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
+
+## 2024-06-12 - List.Find with string allocation in instantiation loop
+**Learning:** Using `List.Find` combined with a string operation (like `p.name.Contains`) inside a scene initialization or instantiation loop scales at O(N) and creates repeated overhead per instantiated entity.
+**Action:** Cache prefab lookups into a `Dictionary<string, GameObject>` keyed by the search name to convert sequential iterations into an O(1) hash map lookup, preventing performance hitches during dynamic scene setups.
 ## 2026-04-02 - Unity Negative Caching and ReferenceEquals
 **Learning:** Unity's 'GameObject.Find' is expensive, especially when it fails. Implementing negative caching by storing 'null' in the dictionary prevents repeated O(N) scene traversals for non-existent objects. Additionally, using 'System.Object.ReferenceEquals(obj, null)' alongside the '== null' check is critical for robustly identifying truly null entries versus destroyed Unity objects (fake nulls).
 **Action:** Use negative caching in GameObject caches and combine '== null' with 'ReferenceEquals' to safely manage the lifecycle of cached Unity objects.

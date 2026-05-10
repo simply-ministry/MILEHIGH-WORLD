@@ -18,6 +18,8 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _prefabLookupCache = new Dictionary<string, GameObject?>();
         // BOLT: Consolidated caches to prevent expensive O(N) scene traversals and linear searches
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefab lookups to prevent O(N) list searches on instantiation
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         // BOLT: Consolidated caches for GameObjects, prefabs, and controllers to prevent expensive searches and GetComponent calls
