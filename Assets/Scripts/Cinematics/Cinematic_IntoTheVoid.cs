@@ -263,6 +263,19 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             case "Sky.ix":
                 SpeakerNameText.color = Color.cyan;
+                currentSpeakerColorTag = "<color=#00FFFF>";
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                currentSpeakerColorTag = "<color=#FFD700>";
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                currentSpeakerColorTag = "<color=#9919E6>";
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                currentSpeakerColorTag = "<color=#FFFFFF>";
                 currentSpeakerColorTag = "#00FFFF";
                 break;
             case "Kai":
@@ -462,6 +475,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // PALETTE: Check for ellipsis or mid-word periods to maintain natural flow.
+                        bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                        (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+
+                        bool isMidWord = (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character));
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isMidWord) delay = currentTypingSpeed; // No pause for mid-word abbreviations
+                        else delay = currentTypingSpeed * 15f;
                     if (c == '.' || c == '!' || c == '?') currentWait = periodWait;
                     else if (c == ',' || c == ';' || c == ':') currentWait = commaWait;
 
@@ -588,6 +612,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // PALETTE: Color-coded cue to match the speaker's theme for a delightful touch.
+        DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
         // We color-code the completion symbol to match the speaker's theme.
         DialogueText.text = message + " <color=" + currentSpeakerColorTag + ">▽</color>";
         DialogueText.text = message + " <color=#FFD700>▽</color>";
