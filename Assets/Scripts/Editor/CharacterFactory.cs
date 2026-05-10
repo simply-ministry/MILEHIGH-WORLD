@@ -231,6 +231,9 @@ namespace Milehigh.Editor
                     Debug.Log($"Created character asset: {assetPath}");
                 }
 
+                // Ensure no directory traversal sequences remain
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 safeFileName = Path.GetFileName(safeFileName);
                 safeFileName = safeFileName.Replace(" ", "_");
 

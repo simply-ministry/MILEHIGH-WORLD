@@ -112,6 +112,8 @@ namespace Milehigh.Data
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
@@ -561,6 +563,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null) return false;
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
                 Debug.LogError("[Security] Game data validation failed: Invalid character count.");
