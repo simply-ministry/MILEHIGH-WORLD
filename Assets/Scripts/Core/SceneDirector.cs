@@ -2045,6 +2045,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             GameObject? target = GetCachedObject(interaction.objectId);

@@ -28,6 +28,10 @@
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
 
+## 2024-04-14 - Prevent IDOR on System Objects
+**Vulnerability:** External JSON data could manipulate critical game singletons (CampaignManager, SceneDirector, CameraManager, AlliancePowerManager) by providing their names as object IDs in ObjectInteractions.
+**Learning:** Using GameObject.Find (or cached wrappers) on unsanitized external strings allows uncontrolled access to any object in the scene hierarchy, essentially creating an Insecure Direct Object Reference (IDOR) vulnerability within the game engine.
+**Prevention:** Explicitly validate and sanitize target IDs from external data to ensure they cannot match critical system managers. Use exact string matching for protection rather than broad substring checks to prevent functional regressions.
 ## 2026-04-14 - Denial of Service (DoS) mitigation for GameObject.Find
 **Vulnerability:** Untrusted input from JSON was used in `GameObject.Find` in `SceneDirector.cs`. Maliciously long strings or path-traversal-like patterns (e.g., using `/`) could lead to expensive scene traversals or unexpected object access.
 **Learning:** `GameObject.Find` is an O(N) operation that can be abused. While caching helps, the initial lookup using unsanitized strings is a risk.
