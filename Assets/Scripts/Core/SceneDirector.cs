@@ -772,6 +772,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // SECURITY: Prevent IDOR (Insecure Direct Object Reference). Block external JSON from manipulating core managers.
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects.
             // External JSON could attempt to manipulate core managers by passing their exact names.
             if (interaction.objectId == "CampaignManager" ||
@@ -779,6 +780,11 @@ namespace Milehigh.Core
                 interaction.objectId == "CameraManager" ||
                 interaction.objectId == "AlliancePowerManager")
             {
+                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected object: {interaction.objectId}");
+                return;
+            }
+
+            GameObject? target = GetCachedObject(interaction.objectId);
                 Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on system object: {interaction.objectId}");
                 return;
             }
