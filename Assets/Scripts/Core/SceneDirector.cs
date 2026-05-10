@@ -10,6 +10,10 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
+        // BOLT: Consolidated caches to prevent expensive O(N) scene traversals and O(P) linear searches.
+        private readonly Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        private readonly Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        private readonly Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls.
         // We use GameObject? to support negative caching (O(1) for known-missing objects).
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -1402,6 +1406,10 @@ namespace Milehigh.Core
         private GameObject? GetPrefab(string profileName)
         {
             if (string.IsNullOrEmpty(profileName)) return null;
+
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) linear search only if not pre-cached.
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
             // BOLT: O(P) search happens only once per profile name.
@@ -1581,6 +1589,8 @@ namespace Milehigh.Core
             return obj;
         }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios.Count > 0)
             var data = CampaignManager.Instance.currentCampaignData;
             if (data != null && data.scenarios != null && data.scenarios.Count > 0)
             {
@@ -1610,6 +1620,7 @@ namespace Milehigh.Core
         {
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // BOLT: Clear dynamic caches at start of setup
             // Clear cache at start of setup to avoid stale references across scenes
             _objectCache.Clear();
             _prefabCache.Clear();
@@ -1623,6 +1634,8 @@ namespace Milehigh.Core
                 }
             }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null)
             // Instantiate characters if not already in scene
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
@@ -1636,6 +1649,7 @@ namespace Milehigh.Core
                 SpawnOrUpdateCharacter(charProfile);
             }
 
+            if (scenario.interactiveObjects != null)
             // Execute interactive objects logic
             foreach (var interaction in scenario.interactiveObjects)
             {
@@ -1677,6 +1691,7 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: Optimized prefab lookup using dictionary cache (O(1))
                 GameObject? prefab = GetPrefab(profile.name);
 
@@ -1814,19 +1829,17 @@ namespace Milehigh.Core
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
-
-                    // BOLT: Immediately cache the newly instantiated object
                     _objectCache[profile.name] = characterObj;
                 }
             }
 
             if (characterObj != null)
             {
+                var controller = GetCharacterController(characterObj);
                 // Assign data to controllers
                 var controller = characterObj.GetComponent<CharacterControllerBase>();
                 if (controller != null)
                 {
-                    // Create a dummy CharacterData for runtime initialization
                     CharacterData data = ScriptableObject.CreateInstance<CharacterData>();
                     data.characterName = profile.name;
                     data.role = profile.role;
