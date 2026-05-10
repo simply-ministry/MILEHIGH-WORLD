@@ -319,6 +319,7 @@ namespace Milehigh.Cinematics
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI SkipHintText = null!;
     [Tooltip("Optional: If not assigned, will try to get from DialogueBox.")]
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SkipHint = null!;
@@ -577,6 +578,23 @@ namespace Milehigh.Cinematics
     void Start()
     {
         // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            idleTimer = 0f;
+            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+        }
+
+        // UX: Display skip hint if player is idle during dialogue
+        if (typingCoroutine != null && !playerInteracted)
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2.0f && SkipHintText != null)
+            {
+                SkipHintText.gameObject.SetActive(true);
+            }
+        }
         if (Input.anyKeyDown || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         // Poll for skip input to ensure responsiveness across keyboard and mouse
         if (Input.anyKeyDown)
@@ -652,9 +670,15 @@ namespace Milehigh.Cinematics
             return;
         }
 
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
+        // Programmatically find SkipHint if not assigned
+        if (SkipHintText == null && DialogueBox != null)
+        {
+            SkipHintText = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
+        }
 
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     void Update()
     {
         // Single location for skip input to ensure responsiveness and accessibility
@@ -719,6 +743,22 @@ namespace Milehigh.Cinematics
 
     private IEnumerator TypeDialogue(string message)
     {
+        // Reset interaction timer when new dialogue starts
+        idleTimer = 0f;
+
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 0; i <= totalVisibleCharacters; i++)
+        {
+            if (skipRequested)
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
@@ -1958,6 +1998,10 @@ namespace Milehigh.Cinematics
             typingCoroutine = null;
         }
 
+        // Reset interaction states after reveal
+        skipRequested = false;
+        idleTimer = 0f;
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
         // skipRequested is NOT reset here to allow the subsequent pause to be skipped
         // UX Enhancement: Visual progression cue
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
