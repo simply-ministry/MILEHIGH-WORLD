@@ -39,6 +39,12 @@ namespace Milehigh.Editor
 
             if (!data.IsValid())
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity
                 Debug.LogError($"Failed to load or parse campaign data. Error parsing file.");
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
                 Debug.LogError($"Failed to read or parse campaign data from {Path.GetFileName(path)}: {ex.Message}");
@@ -72,6 +78,12 @@ namespace Milehigh.Editor
                 asset.traits = charProfile.traits;
                 asset.behaviorScript = charProfile.behaviorScript;
 
+                // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
+                // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
+                string safeFileName = charProfile.name ?? "unnamed_character";
+
+                foreach (char c in Path.GetInvalidFileNameChars())
                 string safeFileName = GetSafeFileName(charProfile.name);
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
 
@@ -103,6 +115,8 @@ namespace Milehigh.Editor
                 }
             }
 
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
