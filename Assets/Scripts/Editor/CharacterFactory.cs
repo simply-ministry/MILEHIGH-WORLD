@@ -71,6 +71,10 @@ namespace Milehigh.Editor
             if (!data.IsValid())
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
             }
 

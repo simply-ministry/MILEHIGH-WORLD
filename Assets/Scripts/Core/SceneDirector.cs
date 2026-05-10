@@ -23,6 +23,8 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Component cache to avoid redundant GetComponent calls.
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
@@ -388,6 +390,23 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: DoS Hardening - prevent expensive Find operations with malicious or oversized strings
+            // SECURITY: Whitelist regex ensures only safe characters are passed to GameObject.Find
+            if (objectName.Length > 128 || !Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\$\.\\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject: Blocked potentially malicious object name: {objectName}");
+                return null;
+            }
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                if (obj == null)
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
                 if (System.Object.ReferenceEquals(obj, null)) return null;
@@ -591,7 +610,7 @@ namespace Milehigh.Core
                 // If the reference is not null but Unity says it is, the object was destroyed.
                 if (obj == null && !ReferenceEquals(obj, null))
                 {
-                    _objectCache.Remove(objectName);
+                     _objectCache.Remove(objectName);
                 }
                 else
                 {
@@ -828,6 +847,10 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
+            // BOLT: O(P) search and delegate allocation happens only once per profile name
+            // SECURITY: Using non-nullable reference directly to avoid CS8604 if null-conditional is redundant
+            prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
+
             // BOLT: O(P) search happens only once per profile name
             if (characterPrefabs != null)
             {
@@ -1014,6 +1037,10 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance.currentCampaignData != null &&
+                CampaignManager.Instance.currentCampaignData.scenarios != null &&
+                CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
+            {
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
                     if (prefab != null) _prefabLookupCache[prefab.name] = prefab;
@@ -1124,6 +1151,7 @@ namespace Milehigh.Core
 
             // NRT Pattern: Capture singleton property in local variable
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
             var campaignManager = CampaignManager.Instance;
             if (campaignManager != null)
             {
