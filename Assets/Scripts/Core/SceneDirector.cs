@@ -64,6 +64,7 @@ namespace Milehigh.Core
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
+
         // 🛡️ Sentinel: Whitelist regex for object names to prevent malicious input.
         private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_\s\(\)\-\[\]\.]+$", RegexOptions.Compiled);
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls.
@@ -486,6 +487,17 @@ namespace Milehigh.Core
                 _objectCache.Remove(objectName);
             }
 
+            // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                // or just return the Unity null which behaves like null.
+                if (obj == null)
             // Fallback to scene traversal
             obj = GameObject.Find(objectName);
             // Note: ReferenceEquals(obj, null) checks if the managed reference is null,
