@@ -334,6 +334,7 @@ namespace Milehigh.Cinematics
     /// </summary>
     public void ShowDialogue(string speaker, string message)
     {
+        skipRequested = false;
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
