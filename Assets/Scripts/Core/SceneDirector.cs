@@ -193,6 +193,8 @@ namespace Milehigh.Core
 
             if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
                 // BOLT: Negative caching implementation.
@@ -707,6 +709,7 @@ namespace Milehigh.Core
                 }
 
                 // Try to find prefab if not in scene
+                GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 GameObject prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profile.name));
                 GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
 

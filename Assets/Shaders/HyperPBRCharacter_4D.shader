@@ -78,13 +78,13 @@ Shader "Milehigh/HyperPBRCharacter_4D"
         void vert (inout appdata_full v, out Input o)
         {
             UNITY_INITIALIZE_OUTPUT(Input, o);
+            o.N = UnityObjectToWorldNormal(v.normal);
             o.T = UnityObjectToWorldDir(v.tangent.xyz);
             o.B = cross(o.N, o.T) * v.tangent.w; // Bitangent
-            o.N = UnityObjectToWorldNormal(v.normal);
 
             // Parallax Occlusion Mapping
             half h = tex2Dlod(_ParallaxMap, float4(v.texcoord.xy, 0, 0)).a;
-            float2 offset = ParallaxOffset(h, _Parallax, v.viewDir);
+            float2 offset = ParallaxOffset(h, _Parallax, ObjSpaceViewDir(v.vertex));
             v.texcoord.xy += offset;
         }
 

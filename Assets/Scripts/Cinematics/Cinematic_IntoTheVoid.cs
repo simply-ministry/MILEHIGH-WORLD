@@ -903,6 +903,8 @@ namespace Milehigh.Cinematics
         DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+        skipRequested = false;
+        typingCoroutine = null!;
         // Note: skipRequested is NOT reset here to allow 'fast skip' to carry over to the subsequent pause.
         typingCoroutine = null;
             DialogueText.maxVisibleCharacters = totalCharacters + 2; // Include the cue
