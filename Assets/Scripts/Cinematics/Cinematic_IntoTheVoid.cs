@@ -110,6 +110,10 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private bool skipRequested;
 
+    private Vector3 _originalSpeakerScale;
+    private string _lastSpeaker;
+    private Coroutine _popCoroutine;
+
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
 
@@ -167,6 +171,11 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // PALETTE: Capture original scale for animations
+        _originalSpeakerScale = SpeakerNameText.transform.localScale;
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
         private void Start()
         {
             if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
@@ -183,6 +192,20 @@ namespace Milehigh.Cinematics
             DialogueText.outlineWidth = 0.2f;
             DialogueText.outlineColor = Color.black;
 
+        // PALETTE: Trigger "Pop" scale effect when speaker changes for visual delight
+        if (speaker != _lastSpeaker)
+        {
+            if (_popCoroutine != null) StopCoroutine(_popCoroutine);
+            _popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform, _originalSpeakerScale));
+        }
+        _lastSpeaker = speaker;
+
+        SpeakerNameText.text = speaker;
+
+        // Apply speaker-specific speed multipliers based on voice profiles
+        float multiplier = 1.0f;
+        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
 
@@ -211,6 +234,27 @@ namespace Milehigh.Cinematics
             SpeakerNameText.text = speaker;
             popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
 
+    private IEnumerator PopEffect(Transform target, Vector3 baseScale)
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float percent = elapsed / duration;
+            // Subtle pop using a sine wave: scales up to 1.1x and back down
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            target.localScale = baseScale * (1f + 0.1f * curve);
+            yield return null;
+        }
+        target.localScale = baseScale;
+    }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        DialogueText.text = message;
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
             float multiplier = 1.0f;
             if (speaker == "Kai")
             {
