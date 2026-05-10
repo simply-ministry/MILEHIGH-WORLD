@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 using Milehigh.Characters;
 
@@ -52,6 +53,8 @@ namespace Milehigh.Core
         // BOLT: Cache for character controllers to avoid redundant GetComponent calls
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
 
+        // 🛡️ Sentinel: Regex for validating object names to prevent DoS via malicious GameObject.Find queries.
+        private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\_\.\\[\]\/]+$", RegexOptions.Compiled);
         private void EnsurePrefabCache()
         {
             if (_prefabCache.Count > 0 || characterPrefabs == null) return;
@@ -76,6 +79,9 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Input validation to prevent DoS attacks using extremely long or malformed strings in GameObject.Find.
+            if (objectName.Length > 128 || !SafeNameRegex.IsMatch(objectName))
+            {
             // BOLT: O(1) dictionary lookup.
             // Unity overrides the == operator to check if the native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
@@ -157,6 +163,15 @@ namespace Milehigh.Core
                 // If it's a Unity null (native object destroyed), we remove it to allow re-finding.
                 if (System.Object.ReferenceEquals(obj, null)) return null;
 
+                // If it's a Unity null (native object destroyed), we should try to find it again.
+                if (obj != null) return obj;
+            }
+
+            // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
+            obj = GameObject.Find(objectName);
+            // BOLT: Cache result even if null (negative caching) to avoid future O(N) traversals.
+            _objectCache[objectName] = obj;
+            return obj;
                 // If it's a Unity null (native object destroyed), we should try to find it again
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
@@ -184,6 +199,9 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(profileName)) return null;
 
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
+
+            // BOLT: O(P) search happens only once per profile name if not pre-populated.
             if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
 
             // Fallback for partial matches (legacy support)
@@ -316,6 +334,7 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
             var campaignData = CampaignManager.Instance?.currentCampaignData;
             // NRT Pattern: Capture singleton property in local variable before null check
             if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
@@ -362,6 +381,7 @@ namespace Milehigh.Core
                 foreach (var charProfile in campaignData.characters)
                 {
                     if (charProfile != null)
+                        SpawnOrUpdateCharacter(charProfile);
                     {
                         SpawnOrUpdateCharacter(charProfile);
                     }
@@ -439,6 +459,7 @@ namespace Milehigh.Core
                 foreach (var interaction in scenario.interactiveObjects)
                 {
                     if (interaction != null)
+                        ApplyInteraction(interaction);
                     {
                         ApplyInteraction(interaction);
                     }

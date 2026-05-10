@@ -125,6 +125,8 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 string safeFileName = charProfile.name ?? "unnamed_character";
@@ -165,6 +167,7 @@ namespace Milehigh.Editor
                 // Ensure no directory traversal sequences remain by using Path.GetFileName
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
+                // SECURITY: Log relative asset path to avoid absolute path disclosure
                 // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 safeFileName = safeFileName.Replace(" ", "_");
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.

@@ -96,6 +96,7 @@ namespace Milehigh.Core
                 catch (System.Exception ex)
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
+                    // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
                     // SECURITY: Catch exceptions to fail securely and avoid leaking internal stack traces or paths.
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}. Error: {ex.Message}");
