@@ -7,6 +7,12 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
+        public List<GameObject> characterPrefabs; // Assign in Inspector
+        public Transform characterSpawnRoot;
+
+        // ⚡ Bolt: Cache game objects to prevent expensive O(N) GameObject.Find() calls.
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
@@ -1288,6 +1294,12 @@ namespace Milehigh.Core
             return controller;
         }
 
+        private GameObject GetCachedGameObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            // Check cache first; safely handle natively destroyed objects via Unity's overloaded == operator
+            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
         private void Start()
         {
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups during scene setup
@@ -1324,6 +1336,8 @@ namespace Milehigh.Core
                 }
             }
 
+            GameObject foundObj = GameObject.Find(objectName);
+            if (foundObj != null)
             // NRT Pattern: Capture singleton property in local variable before null check
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
@@ -1389,6 +1403,17 @@ namespace Milehigh.Core
 
         public void SetupScene(SceneScenario scenario)
         {
+            GameObject characterObj = GetCachedGameObject(profile.name);
+
+            if (characterObj == null)
+            {
+                // Try to find prefab
+                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                if (prefab != null)
+                {
+                    characterObj = Instantiate(prefab, characterSpawnRoot);
+                    characterObj.name = profile.name;
+                    _objectCache[profile.name] = characterObj; // Cache newly spawned object
             if (scenario == null) return;
             Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
@@ -1618,6 +1643,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            GameObject target = GetCachedGameObject(interaction.objectId);
             // 🛡️ Sentinel: Security validation to prevent IDOR via external JSON mapping to core managers.
             string[] protectedManagers = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
             if (System.Array.Exists(protectedManagers, m => m == interaction.objectId))
