@@ -270,7 +270,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         {
             SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
         }
-        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        if (SkipHint != null)
+        {
+            SkipHint.text = "[Any Key/Click] Skip";
+            // 🎨 Palette: accessibility - outline for better contrast
+            SkipHint.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+            SkipHint.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            SkipHint.gameObject.SetActive(false);
+        }
 
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         // Programmatically locate SkipHint if not assigned
@@ -371,8 +378,12 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        // 🎨 Palette: Pop animation when the speaker changes
+        if (SpeakerNameText.text != speaker)
+        {
+            popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.2f, 0.15f));
+        }
         SpeakerNameText.text = speaker;
-        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.2f, 0.15f));
         SpeakerNameText.transform.localScale = Vector3.one;
 
         // UX Enhancement: Pop animation for speaker name change
