@@ -71,6 +71,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     public TextMeshProUGUI DialogueText = null!;
     public TextMeshProUGUI? SkipHintText;
 
+    [Header("Skip Hint")]
+    public TextMeshProUGUI SkipHint = null!;
+    private float idleTimer;
+    private bool playerInteracted;
+
     [Header("UX Settings")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
@@ -122,6 +127,21 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     void Start()
     {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            idleTimer = 0;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+            if (!playerInteracted && idleTimer >= 2.0f && SkipHint != null)
+            {
+                SkipHint.gameObject.SetActive(true);
+            }
         // Poll for skip input to ensure responsiveness (supports keyboard, mouse, and gamepad via anyKeyDown)
         if (Input.anyKeyDown)
         // 🛡️ Sentinel: Security enhancement - Defensive programming
@@ -235,6 +255,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // Palette: Programmatically locate SkipHint if not assigned
+        if (SkipHint == null && DialogueBox != null)
+        {
+            SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
+        }
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         // Programmatically locate SkipHint if not assigned
         if (SkipHintText == null && DialogueBox != null)
         {
@@ -442,6 +470,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         string completionCue = $" <color=#{hexColor}>▽</color>";
 
+        DialogueText.maxVisibleCharacters = 0;
         DialogueText.text = message + completionCue;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -459,6 +488,8 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalVisibleCharacters = textInfo.characterCount;
+
+        for (int i = 0; i < totalVisibleCharacters; i++)
 
         for (int i = 0; i < totalVisibleCharacters; i++)
             DialogueText.maxVisibleCharacters = i;
@@ -487,6 +518,27 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            float delay = currentTypingSpeed;
+            char c = textInfo.characterInfo[i].character;
+
+            // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
+            // Note: Delay occurs *after* character reveal for natural rhythm.
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < totalVisibleCharacters)
+                {
+                    char nextChar = textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                bool isEllipsis = false;
+                if (c == '.')
+                {
+                    if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                    if (i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
             // Don't delay after the last character (the cue)
             if (i < totalVisibleCharacters - 1)
             // Palette: Show skip hint if player is idle for 2 seconds
@@ -625,10 +677,20 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                     else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                 }
 
-                yield return GetWait(delay);
+                if (isEllipsis) delay = currentTypingSpeed * 5f;
+                else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
             }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
         }
 
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        skipRequested = false;
+        typingCoroutine = null;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         DialogueText.text = message + " ▽";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
