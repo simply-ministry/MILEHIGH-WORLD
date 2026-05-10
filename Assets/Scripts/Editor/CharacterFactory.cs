@@ -147,6 +147,7 @@ namespace Milehigh.Editor
                     safeFileName = safeFileName.Replace(c, '_');
                 }
 
+                // Ensure no directory traversal sequences remain and spaces are replaced
                 // 3. Final cleanup: replace spaces with underscores and ensure extension.
                 safeFileName = safeFileName.Replace(" ", "_");
 

@@ -116,6 +116,14 @@ namespace Milehigh.Core
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        // BOLT: Cache for prefab lookups to avoid O(P) list searches during spawning
+        private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
+
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear caches to release Unity object references and prevent memory leaks
+            _objectCache?.Clear();
+            _prefabLookupCache?.Clear();
         private readonly Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // BOLT: Cache for prefabs to avoid repeated string matching in the list
         private readonly Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
@@ -1482,6 +1490,8 @@ namespace Milehigh.Core
             Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
+            // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading to persist.
+            // Unity's == null check in GetCachedObject handles destroyed objects safely.
             // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading cache
             // to persist across multiple scenario updates for incremental performance.
             // BOLT: Clear dynamic caches at start of setup to avoid stale references.
@@ -1596,6 +1606,8 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use prefab lookup cache to avoid expensive O(P) list searches
+                if (!_prefabLookupCache.TryGetValue(profile.name, out GameObject prefab) || prefab == null)
                 // BOLT: Use dictionary for O(1) prefab lookup instead of O(P) linear search
                 if (!_prefabLookupCache.TryGetValue(profile.name, out GameObject prefab))
                 {
