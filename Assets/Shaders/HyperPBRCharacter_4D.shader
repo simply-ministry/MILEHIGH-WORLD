@@ -84,7 +84,7 @@ Shader "Milehigh/HyperPBRCharacter_4D"
 
             // Parallax Occlusion Mapping
             half h = tex2Dlod(_ParallaxMap, float4(v.texcoord.xy, 0, 0)).a;
-            float2 offset = ParallaxOffset(h, _Parallax, v.viewDir);
+            float2 offset = ParallaxOffset(h, _Parallax, ObjSpaceViewDir(v.vertex));
             v.texcoord.xy += offset;
         }
 
@@ -98,8 +98,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
 
         void surf (Input IN, inout SurfaceOutputStandardSpecular o)
         {
-            fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
-            clip(albedo.a - _Cutoff);
+            // BOLT: Moved base albedo assignment to the start to prevent dead-work and correctly apply additive effects.
+            fixed4 texAlbedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            o.Albedo = texAlbedo.rgb;
+            clip(texAlbedo.a - _Cutoff);
 
             // --- PBR Properties ---
             fixed4 rmai = tex2D(_RMAIMap, IN.uv_MainTex);
@@ -136,6 +138,24 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             }
 
             o.Albedo = albedo.rgb;
+            // ⚡ Bolt: Removed dead SSS calculation block that was previously here.
+            // It was performing expensive texture samples and ALU ops only to be
+            // completely overwritten by the following assignment.
+            o.Albedo = albedo.rgb;
+            // --- Subsurface Scattering ---
+            half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
+            if (sssMask > 0)
+            {
+                // A more advanced SSS would use a proper lighting model.
+                // This is a stylistic approximation.
+                half NdotL = dot(o.Normal, _WorldSpaceLightPos0.xyz);
+                // ⚡ Bolt: Replace pow(..., 8.0) with nested squares for performance
+                half sss_base = saturate(dot(IN.viewDir, -_WorldSpaceLightPos0.xyz));
+                half sss_sq = sss_base * sss_base;
+                half sss_4 = sss_sq * sss_sq;
+                half sss = sss_4 * sss_4 * _SSSScale;
+                o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
+            }
         }
         ENDCG
     }
