@@ -62,8 +62,7 @@ namespace Milehigh.Core
             string filePath = "";
 
 #if UNITY_EDITOR
-            filePath = Path.Combine(Application.dataPath, "Scripts/Data");
-            filePath = Path.Combine(filePath, fileName);
+            filePath = Path.Combine(Application.dataPath, "Scripts/Data", fileName);
 #else
             filePath = Path.Combine(Application.streamingAssetsPath, fileName);
 #endif
@@ -75,6 +74,17 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Perform security validation after deserialization to ensure data integrity and prevent DoS.
+                    if (currentCampaignData != null && currentCampaignData.IsValid())
+                    {
+                        currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        // SECURITY: If data fails validation, ensure it's not used by the application and log a safe error message.
+                        Debug.LogError($"[Security] Campaign data from {fileName} failed security validation or parsing.");
                     //  Sentinel: Security validation of deserialized data.
                     // 🛡️ Sentinel: Security validation of deserialized data to ensure data integrity
                     // 🛡️ Sentinel: Security validation of deserialized data.
@@ -137,6 +147,8 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely.
+                    // Mask runtime exception stack traces and avoid leaking absolute paths in logs.
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
                     else
                     {
@@ -157,12 +169,12 @@ namespace Milehigh.Core
                     Debug.LogError("Error loading campaign data from " + fileName + ": " + ex.Message);
                     Debug.LogError($"Error loading or parsing campaign data from {fileName}: {ex.Message}");
                     Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
-                    currentCampaignData = null; // Ensure failure state is consistent
                     currentCampaignData = null;
                 }
             }
             else
             {
+                // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
                 // SECURITY: Log only the file name, not the absolute path.
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                 Debug.LogError("Campaign master JSON not found: " + fileName);

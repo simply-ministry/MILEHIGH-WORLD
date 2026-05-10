@@ -18,7 +18,7 @@ namespace Milehigh.Editor
                 return;
             }
 
-            HorizonGameData? data = null;
+            HorizonGameData data = null;
             try
             {
                 string json = File.ReadAllText(path);
@@ -31,14 +31,14 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
-                // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces.
-                Debug.LogError($"Failed to read or parse campaign data from {Path.GetFileName(path)}.");
-                Debug.LogError($"Error loading or parsing campaign data from {path}: {ex.Message}");
+                // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
+                Debug.LogError($"Failed to read or parse campaign data from {Path.GetFileName(path)}: {ex.Message}");
                 return;
             }
 
             //  Sentinel: Security validation of deserialized data.
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization to ensure integrity and prevent resource exhaustion.
             // SECURITY: Always validate data after deserialization to ensure integrity
             if (data == null || !data.IsValid())
             {
@@ -99,6 +99,8 @@ namespace Milehigh.Editor
             {
                 foreach (var charProfile in data.characters)
                 {
+                    if (charProfile == null) continue;
+
                     CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
                     asset.characterName = charProfile.name;
                     asset.role = charProfile.role;
@@ -292,38 +294,19 @@ namespace Milehigh.Editor
             AssetDatabase.Refresh();
         }
 
+        /// <summary>
+        /// 🛡️ Sentinel: Sanitizes a string for use as a file name.
+        /// Prevents Path Traversal by using Path.GetFileName and a strict whitelist regex.
+        /// </summary>
         private static string GetSafeFileName(string input)
         {
             if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
-                // Ensure no directory traversal sequences remain and replace whitespace
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
-                // Ensure no directory traversal sequences remain
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-                safeFileName = Path.GetFileName(safeFileName);
-                safeFileName = safeFileName.Replace(" ", "_");
-                safeFileName = safeFileName.Replace(" ", "_");
-                // Ensure no directory traversal sequences remain and replace spaces for clean paths
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
-
-                // Ensure no directory traversal sequences remain
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
-                // Ensure no directory separators or traversal sequences remain
-                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
-
-                // Ensure no directory traversal sequences remain
-                string safeFileName = Path.GetFileName(sanitizedName);
-                if (string.IsNullOrEmpty(safeFileName))
-                {
-                    safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
-                }
-
-            // 🛡️ Sentinel: Use a strict whitelist-based regex to strip dangerous characters and prevent path traversal.
+            // 1. Replace invalid characters with underscores using a strict whitelist.
             string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
-            sanitized = sanitized.TrimStart('.', '_'); // Strip leading dots/underscores
 
+            // 2. Strip leading dots/underscores and handle potential directory traversal.
+            sanitized = sanitized.TrimStart('.', '_');
                 // SECURITY: Log relative asset path to avoid absolute path disclosure.
                 Debug.Log($"Created character asset: {assetPath}");
             // Ensure no directory traversal remains
@@ -340,6 +323,9 @@ namespace Milehigh.Editor
                 // SECURITY: Log relative asset path to avoid absolute path disclosure
                 Debug.Log("Created character asset: " + assetPath);
             }
+
+            // 3. Replace whitespaces with underscores (already handled by regex but for clarity).
+            safeName = safeName.Replace(" ", "_");
 
             return safeName;
         }
