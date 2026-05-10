@@ -88,6 +88,10 @@ namespace Milehigh.Data
                 return false;
             }
 
+            // Environment string length limit (128 chars)
+            if (environment != null && environment.Length > 128)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: environment string length {environment.Length} exceeds 128 chars.");
             if (environment != null && environment.Length > 128)
             {
                 Debug.LogError("[Security] Metadata validation failed: environment string too long.");
