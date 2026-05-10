@@ -72,6 +72,10 @@
 ## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2026-03-26 - [Accessible Text Outlines for Dark Cinematics]
+**Learning:** In Unity cinematics with dark or high-contrast backgrounds (like 'The Void'), standard TextMeshPro text can become unreadable. Enabling the 'OUTLINE_ON' keyword and setting a subtle black outline (0.2 width) via 'ShaderUtilities' significantly improves accessibility and readability without cluttering the UI.
+**Action:** Apply black text outlines to all dialogue and speaker UI in dark or visually busy cinematic sequences.
 ## 2026-03-26 - [Skip Hint Micro-UX for Dialogue]
 **Learning:** For cinematic dialogue sequences, users may sometimes miss the ability to skip. A subtle skip hint that appears only after a short idle period (e.g., 2 seconds) and disappears once the user has interacted prevents UI clutter for experienced players while providing essential guidance for newcomers.
 **Action:** Implement an idle-timer based skip hint with a 'playerInteracted' persistence flag to balance guidance and minimal UI intrusion.
