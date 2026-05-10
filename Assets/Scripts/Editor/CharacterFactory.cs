@@ -29,6 +29,8 @@ namespace Milehigh.Editor
             }
             catch (Exception)
 
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            // SECURITY: Always validate data after deserialization
                 // 🛡️ Sentinel: Security validation of deserialized data.
                 if (data == null || !data.IsValid())
                 {
