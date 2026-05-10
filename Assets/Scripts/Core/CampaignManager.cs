@@ -32,7 +32,7 @@ namespace Milehigh.Core
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
+            if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
             {
                 UnityEngine.Object.Destroy(gameObject);
                 return;
@@ -99,6 +99,11 @@ namespace Milehigh.Core
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata!.voidSaturationLevel;
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
@@ -135,6 +140,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
                     currentCampaignData = null; // Ensure we don't use partially loaded or invalid data
                     // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
                     Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
