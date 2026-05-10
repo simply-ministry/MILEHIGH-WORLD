@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.IO;
 using Milehigh.Data;
 
@@ -24,7 +25,7 @@ namespace Milehigh.Core
             }
         }
 
-        public HorizonGameData currentCampaignData;
+        public HorizonGameData currentCampaignData = null!;
         public float currentVoidSaturationLevel;
 
         private void Awake()
@@ -69,6 +70,17 @@ namespace Milehigh.Core
                     {
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         currentCampaignData = null; // Ensure we don't use invalid data
+                    }
+                    else
+                    {
+                        // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths in logs.
+                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null;
+                        // SECURITY: Fail securely and don't use invalid data.
+                        Debug.LogError($"Failed to validate campaign data from {fileName}. Ensure it conforms to security standards.");
+                        currentCampaignData = null;
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)
