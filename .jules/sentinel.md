@@ -1,23 +1,3 @@
-## 2025-05-14 - [Information Disclosure in Unity Logs]
-**Vulnerability:** Absolute file paths being logged during data loading.
-**Learning:** Hardcoded paths or `Application.dataPath` in logs can reveal developer filesystem structure.
-**Prevention:** Only log filenames or relative identifiers in production-facing logs.
-
-## 2025-01-24 - Restoration of Data Integrity Framework and Unit Testing for Core Mechanics
-**Vulnerability:** Critical syntax errors and redundant logic were found in `HorizonGameData.cs` and `CampaignManager.cs`, breaking the security validation framework and CI/CD pipelines.
-**Learning:** Botched merges and inconsistent security updates can lead to "broken windows" in the codebase, where intended security features (like `IsValid()` checks) are bypassed or rendered inert by compilation errors. Unit testing core mechanics like `IncreaseVoidSaturation` is essential to ensure that even simple logic adheres to security-driven constraints (like clamping and range validation).
-**Prevention:** Always verify the codebase's compilability after applying security patches. Implement isolated unit tests for state-changing logic to guarantee that constraints are enforced consistently and that future refactoring doesn't break security-critical behavior.
-## 2025-11-23 - Null Reference Protection in OmegaOneController
-
-**Vulnerability:** OmegaOneController.CheckStability would crash with a NullReferenceException if the passed 'nearestShard' was null, as it accessed 'shard.name' in a Debug.Log statement.
-
-**Learning:** Even simple logging statements can cause crashes if they dereference objects without null checks.
-
-**Prevention:** Implement explicit null checks for GameObjects before accessing their properties, especially in methods that might be called with dynamic scene references.
-## 2024-03-26 - Path Traversal Vulnerability during Asset Generation
-**Vulnerability:** A path traversal vulnerability was present when dynamically creating Unity scriptable objects from JSON input (`charProfile.name`). A malicious actor could provide a JSON payload containing `../` sequences in character names, leading to arbitrary file write outside of the intended `Assets/Data/Characters` directory.
-**Learning:** The previous path sanitization attempt was flawed. It correctly used `Path.GetInvalidFileNameChars()` to replace invalid characters, but then used `Path.GetFileName()` on a new `sanitizedName` variable that didn't have the invalid chars removed, or otherwise applied `Path.GetFileName()` incorrectly, leaving it vulnerable or broken.
-**Prevention:** When dynamically creating files based on unstrusted input, always use `Path.GetFileName()` to extract only the final file component, and then optionally sanitize the remaining string against invalid filename characters. Never use `Path.Combine` or format strings for file paths with unverified input before stripping directory traversal sequences.
 ## 2024-05-24 - Path Traversal in Editor Extension Scripts
 **Vulnerability:** Found a Path Traversal vulnerability in an Editor window script (`CharacterFactory.cs`). The script trusted the `name` field from a parsed JSON file (`campaign_master.json`) to construct the file path for creating new `.asset` files (`string assetPath = $"{folderPath}/{charProfile.name...}.asset";`).
 **Learning:** Even though the JSON is a "local" file used by a developer in the Editor, trusting external data to construct file paths without sanitization is a security risk. If a malicious JSON file is imported, it could contain names like `../../Scripts/Core/ImportantScript` which would overwrite arbitrary files in the project.
@@ -39,10 +19,6 @@
 **Vulnerability:** Information Disclosure and Error Stack Trace Leak
 **Learning:** `Application.dataPath` and `Application.streamingAssetsPath` resolve to physical file paths on the host system. Logging these directly in production environments or allowing unhandled exceptions from methods like `File.ReadAllText` and `JsonUtility.FromJson` to print to the console can expose internal file structures and stack traces to attackers.
 **Prevention:** Always use relative file paths or file names (e.g. `fileName`) in logs. Wrap file I/O operations and JSON deserialization in `try-catch` blocks to fail securely and prevent unhandled exceptions from leaking internal details. Catch generic exceptions and provide a sanitized, secure error message.
-## 2024-05-24 - Fail Securely on File I/O in Unity Editor Scripts
-**Vulnerability:** Unhandled exceptions during file reading (`File.ReadAllText`) and JSON deserialization (`JsonUtility.FromJson`) in Unity Editor scripts leak full stack traces and absolute file paths in the Unity Console.
-**Learning:** Unity's default exception handling exposes implementation details (stack traces and internal directory structures). While this is an Editor script and won't be in the final build, it's still a poor security practice to leak sensitive developer paths, especially in collaborative environments or CI/CD pipelines.
-**Prevention:** Always wrap `File.ReadAllText` and `JsonUtility.FromJson` in a `try-catch` block. Log a generic error message (e.g., "Error parsing file") and catch the exception gracefully to prevent Unity from printing the stack trace.
 ## 2025-01-24 - Input Validation and Secure Exception Handling in Game Data Management
 **Vulnerability:** The application lacked a systematic way to validate the integrity and security of deserialized JSON campaign data, potentially leading to logic errors or vulnerabilities if malicious data was loaded. Furthermore, previous "security fixes" in `CampaignManager.cs` and `CharacterFactory.cs` had introduced syntax errors and redundant/ineffective logging.
 **Learning:** Security fixes applied without full contextual understanding or verification can lead to compilation errors and degraded maintainability. A centralized `IsValid()` pattern in the data model provides a clean, reusable way to enforce business constraints and security requirements immediately after deserialization.
