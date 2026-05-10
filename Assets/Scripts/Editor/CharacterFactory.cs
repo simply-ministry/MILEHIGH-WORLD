@@ -17,6 +17,26 @@ namespace Milehigh.Editor
                 return;
             }
 
+            HorizonGameData? data = null;
+            try
+            {
+                string json = File.ReadAllText(path);
+                data = JsonUtility.FromJson<HorizonGameData>(json);
+
+                if (data == null || data.characters == null)
+                {
+                    Debug.LogError("Failed to parse campaign data.");
+                    return;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
+                Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
+                return;
+            }
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
             string json = File.ReadAllText(path);
             HorizonGameData data = JsonUtility.FromJson<HorizonGameData>(json);
 
@@ -58,6 +78,8 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = baseName;
                 // Malicious JSON could use "../" or absolute paths to write assets outside the intended directory.
                 string baseName = charProfile.name ?? "unnamed_character";
 
@@ -104,6 +126,7 @@ namespace Milehigh.Editor
                 string safeFileName = Path.GetFileName(baseName).Replace(" ", "_");
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
+                AssetDatabase.CreateAsset(asset, assetPath);
                 AssetDatabase.CreateAsset((UnityEngine.Object)asset, assetPath);
 
                 // SECURITY: Log relative asset path to avoid absolute path disclosure.

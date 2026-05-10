@@ -66,6 +66,15 @@ namespace Milehigh.Data
         public string role = null!;
         public string[] traits = null!;
         public string behaviorScript = null!;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
+            if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 64) return false;
+            return true;
+        }
     }
 
     [System.Serializable]
@@ -92,6 +101,13 @@ namespace Milehigh.Data
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
+
+        public bool IsValid()
+        {
+            if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64) return false;
+            if (string.IsNullOrEmpty(text) || text.Length > 1024) return false;
+            return true;
+        }
     }
 
     [System.Serializable]
@@ -101,6 +117,30 @@ namespace Milehigh.Data
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
         public List<Dialogue> dialogue = null!;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
+            if (dialogue != null && dialogue.Count > 50) return false;
+
+            if (interactiveObjects != null)
+            {
+                foreach (var interaction in interactiveObjects)
+                {
+                    if (interaction == null || !interaction.IsValid()) return false;
+                }
+            }
+
+            if (dialogue != null)
+            {
+                foreach (var d in dialogue)
+                {
+                    if (d == null || !d.IsValid()) return false;
+                }
+            }
+            return true;
+        }
     }
 
     [System.Serializable]
@@ -133,6 +173,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             if (scenarios == null || scenarios.Count == 0)
             {
                 Debug.LogError("[Security] Game data validation failed: No scenarios defined.");

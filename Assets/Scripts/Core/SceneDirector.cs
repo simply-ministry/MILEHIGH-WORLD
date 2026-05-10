@@ -1291,6 +1291,13 @@ namespace Milehigh.Core
             }
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (ReferenceEquals(obj, null)) return null;
+
+                // If the native object was destroyed, remove from cache and fall back
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
                 // BOLT: Robust negative caching check.
@@ -1334,6 +1341,7 @@ namespace Milehigh.Core
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             obj = GameObject.Find(objectName);
 
+            // BOLT: Fallback to O(N) scene traversal
             // BOLT: Cache the result, including null to enable negative caching
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
@@ -1499,6 +1507,8 @@ namespace Milehigh.Core
                 return null;
             }
 
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
@@ -1539,6 +1549,13 @@ namespace Milehigh.Core
             _prefabCache.Clear();
 
             // Instantiate characters if not already in scene
+            var campaignData = CampaignManager.Instance.currentCampaignData;
+            if (campaignData != null && campaignData.characters != null)
+            {
+                foreach (var charProfile in campaignData.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
+                }
             foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
             {
                 SpawnOrUpdateCharacter(charProfile);
@@ -1583,6 +1600,11 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Optimized prefab lookup using dictionary cache (O(1))
+                GameObject? prefab = GetPrefab(profile.name);
+
+                // Try exact match first in the lookup cache if the basic prefab cache fails
+                if (prefab == null && !_prefabLookupCache.TryGetValue(profile.name, out prefab))
                 // BOLT: Use O(1) prefab cache lookup instead of O(M) list search.
                 _prefabCache.TryGetValue(profile.name, out GameObject prefab);
 

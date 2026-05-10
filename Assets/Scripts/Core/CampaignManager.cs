@@ -101,6 +101,9 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Mask runtime exception details, avoid leaking absolute paths, and fail securely by not using invalid data.
+                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null;
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
