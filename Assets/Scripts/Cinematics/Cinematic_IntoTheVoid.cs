@@ -34,66 +34,17 @@
 //
 // 7. Ensure your project has TextMeshPro imported (Window -> TextMeshPro -> Import TMP Essential Resources).
 
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using TMPro;
-using UnityEngine.UI;
-using System.Collections;
-using System.Collections.Generic;
 
-namespace Milehigh.Cinematics
+/// <summary>
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'—a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
+/// </summary>
+public class Cinematic_IntoTheVoid : MonoBehaviour
 {
-    public class Cinematic_IntoTheVoid : MonoBehaviour
-    {
-        [Header("UI Components")]
-        public GameObject DialogueBox = null!;
-        public TextMeshProUGUI SpeakerNameText = null!;
-        public TextMeshProUGUI DialogueText = null!;
-        public CanvasGroup CinematicOverlay = null!;
-
-        [Header("Settings")]
-        public float DefaultTypingSpeed = 0.05f;
-        private float currentTypingSpeed;
-        private Coroutine? typingCoroutine;
-        private bool skipRequested = false;
-
-        private Dictionary<float, WaitForSeconds> _waitCache = new Dictionary<float, WaitForSeconds>();
-
-        private WaitForSeconds GetWait(float seconds)
-        {
-            if (!_waitCache.TryGetValue(seconds, out var wait))
-            {
-                wait = new WaitForSeconds(seconds);
-                _waitCache[seconds] = wait;
-            }
-            return wait;
-        }
-
-        private void Start()
-        {
-            currentTypingSpeed = DefaultTypingSpeed;
-            StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-        }
-
-        private void Update()
-    public GameObject Skyix_Character = null!;
-    public AudioSource Skyix_VoiceSource = null!;
-
-    public GameObject Kai_Character = null!;
-    public I AudioSource Kai_VoiceSource = null!;
-
-    [Header("Characters")]
-    [Header("Character Assets")]
-
-    [Header("Character References")]
-    public GameObject Skyix_Character = null!;
-    public AudioSource Skyix_VoiceSource = null!;
-    public GameObject Kai_Character = null!;
-    public AudioSource Kai_VoiceSource = null!;
-    public GameObject Delilah_Character = null!;
-    public AudioSource Delilah_VoiceSource = null!;
     // ====================================================================
     //
     // CHARACTER ASSET & VOICE REFERENCE BLOCK
@@ -146,7 +97,6 @@ namespace Milehigh.Cinematics
     public GameObject DialogueBox = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
-    public TextMeshProUGUI SkipHint = null!;
 
     [Header("UX Settings")]
     [FormerlySerializedAs("typingSpeed")]
@@ -161,21 +111,9 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private bool skipRequested;
     private Coroutine? popCoroutine;
-    private Coroutine typingCoroutine;
-    private Coroutine popCoroutine;
-    private Coroutine namePopCoroutine;
-    private Coroutine popCoroutine;
-    private Vector3 originalSpeakerNameScale;
     private float currentTypingSpeed;
-    private string speakerHexColor;
-    private string currentSpeakerHex;
     private bool skipRequested;
-    private float idleTimer;
-    private bool playerInteracted;
-    private string currentSpeakerHex;
 
-    // BOLT: Cache for WaitForSeconds using int (milliseconds) to eliminate GC allocations during coroutine execution.
-    // Using int keys instead of float prevents cache misses caused by floating-point precision errors.
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
     // BOLT: Use int (milliseconds) for dictionary key instead of float to prevent cache misses from floating-point inaccuracies
     // ⚡ Bolt: Using int key (milliseconds) to prevent float imprecision cache misses
@@ -183,18 +121,10 @@ namespace Milehigh.Cinematics
     // BOLT: Changed key to int (milliseconds) to prevent dictionary cache misses from floating-point inaccuracies
     // ⚡ Bolt: Use int keys (milliseconds) instead of floats to prevent cache misses due to floating-point precision
     private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
-    // Cache for WaitForSeconds to eliminate GC allocations
-    // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations
-    private void Update()
-    {
-        // UX Enhancement: Standardized skip logic for both keyboard and mouse
-    // Cache for WaitForSeconds to eliminate GC allocations
-    // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    // BOLT: Changed key to int (milliseconds) to avoid floating-point tolerance cache misses.
-    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
     private WaitForSeconds GetWait(float time)
     {
+        if (!_waitForSecondsCache.TryGetValue(time, out var wait))
         int msKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
         {
@@ -215,210 +145,27 @@ namespace Milehigh.Cinematics
         if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
         {
             wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int timeKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeKey] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int ms = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[ms] = wait;
-        int msKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[msKey] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        // BOLT: Convert float time to int milliseconds for caching to prevent cache misses
-        // caused by floating-point precision inaccuracies when durations are dynamically calculated.
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int timeKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeKey] = wait;
+            _waitForSecondsCache[time] = wait;
         }
         return wait;
     }
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        int ms = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[ms] = wait;
-        int timeMs = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeMs] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        int msKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[msKey] = wait;
-        int timeKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeKey] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        // ⚡ Bolt: Use int key (milliseconds) to prevent dictionary cache misses from floating-point tolerance variations
-        int timeKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeKey] = wait;
-        // ⚡ Bolt: Use integer key (milliseconds) to prevent float imprecision cache misses
-        int msKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[msKey] = wait;
-        int timeKey = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[timeKey] = wait;
-        int key = Mathf.RoundToInt(time * 1000f);
-        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
-        {
-            wait = new WaitForSeconds(time);
-            _waitForSecondsCache[key] = wait;
-        // Add an Action Delegate at the top of the class
-        public event Action? OnCinematicComplete;
 
-    private IEnumerator WaitForSecondsOrSkip(float duration)
+    private IEnumerator PopScale(Transform target, float duration, float scaleFactor)
     {
-        float start = Time.time;
-        while (Time.time - start < duration && !skipRequested)
-    private IEnumerator PopSpeakerName()
-    {
-        // Poll for skip input to ensure responsiveness across all input devices
-        // Poll for skip input to ensure responsiveness
-        if (Input.anyKeyDown)
-        {
-            skipRequested = true;
-            playerInteracted = true;
-            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
-            idleTimer = 0;
-        }
-
-        // UX Enhancement: Show skip hint after 2 seconds of inactivity
-        if (!playerInteracted && typingCoroutine != null)
-        {
-            idleTimer += Time.deltaTime;
-            if (idleTimer >= 2.0f && SkipHint != null)
-            {
-                SkipHint.text = "[Space] Skip";
-                SkipHint.gameObject.SetActive(true);
-            }
-        }
-    }
-
-            idleTimer = 0f;
-            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
-        }
-    }
-
-        else
-        {
-            idleTimer += Time.deltaTime;
-            if (idleTimer >= idleHintThreshold && !playerInteracted && SkipHint != null)
-            {
-                SkipHint.gameObject.SetActive(true);
-            }
-        }
-    }
-    /// <summary>
-    /// Yields for the specified duration but returns immediately if a skip is requested.
-    /// Resets the skip flag upon completion.
-    /// </summary>
-        float duration = 0.25f;
+        target.localScale = Vector3.one;
+        Vector3 initialScale = target.localScale;
         float elapsed = 0f;
         while (elapsed < duration)
         {
-            elapsed += Time.unscaledDeltaTime;
-            float percent = elapsed / duration;
-            float scaleMod = 1f + Mathf.Sin(percent * Mathf.PI) * 0.15f;
-            SpeakerNameText.transform.localScale = speakerNameOriginalScale * scaleMod;
+            elapsed += Time.deltaTime;
+            float curve = Mathf.Sin((elapsed / duration) * Mathf.PI) * scaleFactor;
+            target.localScale = initialScale + new Vector3(curve, curve, curve);
             yield return null;
         }
-        return wait;
+        target.localScale = initialScale;
     }
 
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
     /// <summary>
     /// Wait for a specified duration, but allow the user to skip the wait by pressing any key.
     /// </summary>
@@ -455,7 +202,7 @@ namespace Milehigh.Cinematics
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
         float elapsed = 0f;
-        while (elapsed < duration && !skipRequested)
+        while (elapsed < seconds && !skipRequested)
         {
             elapsed += Time.deltaTime;
             yield return null;
@@ -465,50 +212,22 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
-        // Cache original scale to prevent scale drift during interrupted animations
-        if (SpeakerNameText != null) originalSpeakerNameScale = SpeakerNameText.transform.localScale;
-
         // 🛡️ Sentinel: Security enhancement - Defensive programming
         // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
-            {
-                skipRequested = true;
-            }
+            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            return;
         }
-
-        // Programmatically find SkipHint if not assigned
-        if (SkipHint == null && DialogueBox != null)
-        {
-            SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
-        }
-        private IEnumerator WaitForSecondsOrSkip(float seconds)
-        {
-            float elapsed = 0;
-            while (elapsed < seconds && !skipRequested)
-            {
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-            skipRequested = false;
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
-    public void ShowDialogue(string speaker, string message)
+    void Update()
     {
-        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (Input.anyKeyDown) skipRequested = true;
+    }
 
-        SpeakerNameText.text = speaker;
-
-        float multiplier = 1.0f;
-        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
-        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
     /// <summary>
     /// Updates the speaker name and begins the typewriter effect for the dialogue message.
     /// </summary>
@@ -518,6 +237,7 @@ namespace Milehigh.Cinematics
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
         SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.2f, 0.15f));
         SpeakerNameText.transform.localScale = Vector3.one;
 
         // UX Enhancement: Pop animation for speaker name change
@@ -550,266 +270,68 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
-
-        Color speakerColor = Color.white;
-        Color speakerColor;
-        switch (speaker)
-        {
-            case "Sky.ix": speakerColor = Color.cyan; break;
-            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break; // Gold
-            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
-            default: speakerColor = Color.white; break;
-        }
-
-        SpeakerNameText.color = speakerColor;
         // Apply character-specific colors for better speaker identification
         switch (speaker)
         {
             case "Sky.ix":
-                speakerColor = Color.cyan;
+                SpeakerNameText.color = Color.cyan;
                 break;
             case "Kai":
-                speakerColor = new Color(1f, 0.84f, 0f); // Gold
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
                 break;
             case "Delilah":
-                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
                 break;
         }
-        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
 
-        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        // Capture hex for color-coded UI cues
-        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-
-        public void ShowDialogue(string speaker, string text)
-        {
-            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-            SpeakerNameText.text = speaker;
-            typingCoroutine = StartCoroutine(TypeDialogue(text));
-        }
-
-        private IEnumerator TypeDialogue(string message)
-        {
-            DialogueText.text = message;
-            DialogueText.maxVisibleCharacters = 0;
-            DialogueText.ForceMeshUpdate();
-        SpeakerNameText.color = speakerColor;
-        speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
-
-        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         typingCoroutine = StartCoroutine(TypeDialogue(message));
-    }
-
-    private IEnumerator PopEffect(Transform target)
-    {
-        Vector3 initialScale = Vector3.one;
-        target.localScale = initialScale;
-        float duration = 0.15f;
-        float elapsed = 0f;
-    private IEnumerator PopScale(Transform target)
-    {
-        if (target == null) yield break;
-
-        float duration = 0.25f;
-        float elapsed = 0f;
-        Vector3 initialScale = Vector3.one;
-
-        // Reset scale in case it was interrupted
-        target.localScale = initialScale;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float percent = elapsed / duration;
-            // Sine wave for a smooth bounce effect
-            float curve = Mathf.Sin(percent * Mathf.PI);
-            target.localScale = initialScale * (1f + curve * 0.15f);
-            yield return null;
-        }
-        target.localScale = initialScale;
-        popCoroutine = null;
-    }
-
-    private IEnumerator WaitForSecondsOrSkip(float duration)
-    {
-        float elapsed = 0f;
-        while (elapsed < duration && !skipRequested)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            yield return null;
-        }
-        skipRequested = false;
-            float curve = Mathf.Sin(percent * Mathf.PI);
-            target.localScale = initialScale + (Vector3.one * (curve * 0.12f));
-            yield return null;
-        }
-
-        target.localScale = initialScale;
-        namePopCoroutine = null;
     }
 
     private IEnumerator TypeDialogue(string message)
     {
-        // UX Enhancement: Set the full text (including themed completion cue) at the start to prevent layout shifts.
-        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
-        // BOLT: Optimization - Pre-concatenate cue and set text once to avoid redundant layout rebuilds and extra allocations.
-        DialogueText.text = message + " ▽";
-        DialogueText.maxVisibleCharacters = 0;
-        // UX Enhancement: Include the completion cue from the start to prevent layout shifts
-        // when the symbol is revealed. We use rich text to color-code it.
-        string fullText = $"{message} <color=#{currentSpeakerHex}>▽</color>";
-        DialogueText.text = fullText;
+        DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
-        int totalCharacters = DialogueText.textInfo.characterCount;
-
-        for (int i = 0; i <= totalCharacters; i++)
-        {
-            if (skipRequested)
-            {
-                DialogueText.maxVisibleCharacters = totalCharacters;
-                break;
-        // UX Enhancement: Color-coded completion cue that matches speaker theme.
-        // We append it immediately to ensure the full layout is calculated upfront, preventing "jumping".
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = 0;
 
         // BOLT: Typewriter effect optimized for performance.
         // We use the existing GetWait(float) method to ensure zero-allocation yields,
         // avoiding GC pressure during dialogue sequences.
-        // Note: textInfo.characterCount includes the '▽' but excludes rich text tags.
-        int totalCharacters = DialogueText.textInfo.characterCount;
-        int messageCharacters = totalCharacters - 1; // Everything except the '▽'
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
 
-        for (int i = 0; i <= totalCharacters; i++)
-        // Ensure TMP is updated to get accurate character info
-        DialogueText.ForceMeshUpdate();
-        TMP_TextInfo textInfo = DialogueText.textInfo;
-        int totalVisibleCharacters = textInfo.characterCount;
-
-        // We use the existing GetWait(float) method to ensure zero-allocation yields,
-        // avoiding GC pressure during dialogue sequences.
-        int totalWithCue = DialogueText.textInfo.characterCount;
-        int messageLength = totalWithCue - 2;
-
-        for (int i = 0; i <= messageLength; i++)
+        for (int i = 0; i <= totalVisibleCharacters; i++)
         {
             // UX Enhancement: Robust skip logic using persistent flag
             if (skipRequested)
-            if (skipRequested) break;
-
-            DialogueText.maxVisibleCharacters = i + 1;
-
-            float delay = currentTypingSpeed;
-
-            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-            // We check the revealed character to pause *after* it has been revealed.
-            char c = DialogueText.textInfo.characterInfo[i].character;
-
-            if (c == '.' || c == '!' || c == '?')
             {
-                DialogueText.maxVisibleCharacters = totalCharacters;
-                break;
-                // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
-                bool isMidWord = false;
-                if (i + 1 < totalVisibleCharacters)
-                {
-                    char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
-                    if (!char.IsWhiteSpace(nextChar)) isMidWord = true;
-                }
-
-                if (!isMidWord)
-                {
-                    // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
-                    bool isEllipsis = false;
-                    if (c == '.')
-                    {
-                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
-                        if (i + 1 < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
-                    }
-
-                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
-                }
-            }
-            else if (c == ',' || c == ';' || c == ':')
-            {
-                delay = currentTypingSpeed * 8f;
-            }
-
-            // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
-            yield return GetWait(delay);
-        }
-
-        // Finalize text display
-        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-        [Header("UX Settings")]
-        [FormerlySerializedAs("typingSpeed")]
-        public float baseTypingSpeed = 0.03f;
-        public float kaiSpeedMultiplier = 3.0f;
-        public float skyixSpeedMultiplier = 1.2f;
-
-        private Coroutine? typingCoroutine;
-        private float currentTypingSpeed;
-        private bool skipRequested;
-
-        // BOLT: Cache for WaitForSeconds to eliminate GC allocations.
-        private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
-
-        private WaitForSeconds GetWait(float time)
-        {
-            if (skipRequested)
-            if (!_waitForSecondsCache.TryGetValue(time, out var wait))
-            {
+                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
                 break;
             }
 
-            int totalVisibleCharacters = DialogueText.textInfo.characterCount;
-            skipRequested = false;
+            DialogueText.maxVisibleCharacters = i;
 
-            if (i > 0 && i <= totalVisibleCharacters)
+            if (i < totalVisibleCharacters)
             {
                 float delay = currentTypingSpeed;
-                char c = textInfo.characterInfo[i - 1].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                if (c == '.' || c == '!' || c == '?')
+                // We check the previous character (i-1) to pause *after* it has been revealed.
+                if (i > 0)
                 {
-                    // Refined ellipsis detection
-                    bool isEllipsis = (i > 1 && textInfo.characterInfo[i - 2].character == '.') ||
-                                     (i < totalVisibleCharacters && textInfo.characterInfo[i].character == '.');
-
-                    // Smart Punctuation: Look ahead to avoid pauses in mid-word (e.g., Sky.ix)
-            for (int i = 1; i <= totalVisibleCharacters; i++)
-            {
-                if (skipRequested)
-                {
-                    DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-                    break;
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?') delay = currentTypingSpeed * 15f;
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                 }
 
-                DialogueText.maxVisibleCharacters = i;
+                yield return GetWait(delay);
+            }
+        }
 
-                float delay = currentTypingSpeed;
-                char c = DialogueText.textInfo.characterInfo[i - 1].character;
-
-                // Rhythmic punctuation pauses for natural reading.
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (i < totalVisibleCharacters && !char.IsWhiteSpace(textInfo.characterInfo[i].character))
-                    {
-                        isEndOfSentence = false;
-                    }
-
-                    if (isEllipsis) delay = currentTypingSpeed * 5f;
-                    else if (isEndOfSentence) delay = currentTypingSpeed * 15f;
-                    if (isEndOfSentence)
-                    {
-                        // Check for ellipsis
-                        bool isEllipsis = false;
-                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.text = message + " ▽";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
                         delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                     }
@@ -3861,21 +3383,6 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
-        DialogueBox.SetActive(true);
-        yield return WaitForSecondsOrSkip(1.0f);
-
-        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
-        yield return WaitForSecondsOrSkip(7.5f);
-
-        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
-        yield return WaitForSecondsOrSkip(6.0f);
-
-        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
-        yield return WaitForSecondsOrSkip(8.0f);
-
-        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
-        yield return WaitForSecondsOrSkip(7.0f);
-
         // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
         // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(true);
@@ -3889,6 +3396,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
         yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
@@ -3897,6 +3405,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(6.0f));
         yield return WaitForSecondsOrSkip(6.0f);
 
         // --- Dialogue Line 3: Kai ---
@@ -3905,6 +3414,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(8.0f));
         yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
@@ -3913,6 +3423,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.0f));
         yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
@@ -3925,87 +3436,45 @@ namespace Milehigh.Cinematics
         yield return GetWait(4.5f);
         yield return WaitForSecondsOrSkip(4.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(4.5f));
-        yield return WaitForSecondsOrSkip(4.5f);
-        yield return WaitForSecondsOrSkip(4.5f);
-
-        yield return WaitForSecondsOrSkip(2.0f);
-
-        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-        yield return WaitForSecondsOrSkip(3.5f);
-
-        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
-        yield return WaitForSecondsOrSkip(5.5f);
-
-
-        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-        yield return WaitForSecondsOrSkip(3.5f);
-
-        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
-        yield return WaitForSecondsOrSkip(5.5f);
-
-
-        // --- Dialogue Line 6: Kai ---
-
-        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-        yield return WaitForSecondsOrSkip(3.5f);
-
-        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
-        yield return WaitForSecondsOrSkip(5.5f);
-
-
-        yield return WaitForSecondsOrSkip(2.0f);
-
-        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-        yield return WaitForSecondsOrSkip(3.5f);
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Dash_Forward");]
         // [VFX: Play glitchy dash particle trail from Sky.ix's starting position to the conduit.]
         // [CAMERA: Fast dolly track, following Sky.ix's movement. Add motion blur.]
         // [SFX: Play sound of cybernetic dash and energy whoosh.]
-        yield return WaitForSecondsOrSkip(2.0f);
+        yield return GetWait(2.0f);
 
         // --- Dialogue Line 6: Kai ---
         // [ANIMATION: Kai_Character.GetComponent<Animator>().SetTrigger("React_Alarmed");]
         // [CAMERA: Cut to Kai, a holographic display in front of them shows a massive energy spike warning.]
-        yield return WaitForSecondsOrSkip(0.5f);
+        yield return GetWait(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
         yield return StartCoroutine(WaitForSecondsOrSkip(3.5f));
-        yield return WaitForSecondsOrSkip(3.5f);
 
         // --- Dialogue Line 7: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Taunt_OpenArms");]
         // [CAMERA: Wide shot showing Sky.ix nearing the objective, with Delilah in the background, arms spread in a mocking invitation.]
-        yield return WaitForSecondsOrSkip(1.5f);
+        yield return GetWait(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
-        yield return WaitForSecondsOrSkip(5.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(5.5f));
 
         // --- Dialogue Line 8: Sky.ix ---
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Determined_Resolve");]
         // [CAMERA: Extreme close-up on Sky.ix's eyes, reflecting the corrupted energy, but her expression is resolute.]
-        yield return WaitForSecondsOrSkip(1.0f);
+        yield return GetWait(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
-        yield return WaitForSecondsOrSkip(7.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
-        yield return GetWait(5.5f);
-        yield return WaitForSecondsOrSkip(5.5f);
 
-            ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
-            yield return WaitForSecondsOrSkip(7.5f);
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        SpeakerNameText.text = "";
+        DialogueText.text = "";
+        DialogueBox.SetActive(false);
 
-            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-            SpeakerNameText.text = "";
-            DialogueText.text = "";
-            DialogueBox.SetActive(false);
-
-            Debug.Log("Cinematic Sequence Complete.");
-        }
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
-        // Example: PlayerInput.Instance.DisableControls();
+        // Example: PlayerInput.Instance.EnableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");

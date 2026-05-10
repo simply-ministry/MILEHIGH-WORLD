@@ -1,23 +1,19 @@
-using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using Milehigh.Data;
 using Milehigh.Characters;
-using System.Text.RegularExpressions;
 
 namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
-        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public List<GameObject>? characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
-        // BOLT: Cache for prefab lookups to avoid O(P) linear searches
-        private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
 
+        private GameObject GetCachedObject(string objectName)
         // ⚡ Bolt: Cache game objects to prevent expensive O(N) GameObject.Find() calls.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
 
@@ -1481,391 +1477,54 @@ namespace Milehigh.Core
 
         public void SetupScene(SceneScenario scenario)
         {
-            StartCoroutine(SetupSceneCoroutine(scenario));
-        }
-            Debug.Log($"Setting up scenario: {scenario.scenarioId}");
-            if (characterObj == null) return null;
-            int objId = characterObj.GetInstanceID();
-
-            if (_controllerCache.TryGetValue(objId, out var controller) && controller != null)
-            {
-                return controller;
-            }
-            // Clear caches at start of setup to avoid stale references across scenes
-            _objectCache.Clear();
-            _prefabCache.Clear();
-            if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
-            CharacterControllerBase? controller;
-            if (_controllerCache.TryGetValue(objId, out controller)) return controller;
-            if (_controllerCache.TryGetValue(objId, out var controller))
-            {
-                if (controller != null) return controller;
-            }
-            // BOLT: Use dictionary lookup with negative caching support
-            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
-
-            // Clear caches at start of setup to avoid stale references across scenes
-            _objectCache.Clear();
-            _prefabCache.Clear();
-
-            // BOLT: Pre-populate object cache with a single O(N) pass to avoid multiple GameObject.Find calls
-            // Using FindObjectsOfType for maximum compatibility across Unity versions.
-            GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();
-            foreach (var go in allObjects)
-            {
-                if (!_objectCache.ContainsKey(go.name))
-                {
-                    _objectCache[go.name] = go;
-                }
-            }
-            controller = characterObj.GetComponent<CharacterControllerBase>();
-            if (controller != null) _controllerCache[objId] = controller;
-
-            // BOLT: We no longer clear the cache here to allow persistent surgical lazy-loading.
-            // This provides performance benefits across multiple calls.
-            // BOLT: Cache component reference to avoid redundant GetComponent calls
-            // BOLT: Cache the result even if null (negative caching) to avoid redundant GetComponent calls
-            _controllerCache[objId] = controller;
-            if (_controllerCache.TryGetValue(objId, out CharacterControllerBase? controller)) return controller;
-
-            // BOLT: Initialize prefab lookup cache once per setup
-            InitializePrefabCache();
-
-        private IEnumerator SetupSceneCoroutine(SceneScenario scenario)
-        {
-            Debug.Log($"⚡ Bolt: Setting up scenario asynchronously: {scenario.scenarioId}");
-
-            if (CampaignManager.Instance.currentCampaignData == null) yield break;
-
-            // Instantiate characters across multiple frames if needed to prevent spikes
-            var characters = CampaignManager.Instance.currentCampaignData.characters;
-            for (int i = 0; i < characters.Count; i++)
-            {
-                SpawnOrUpdateCharacter(characters[i]);
-                // Yield every 2 characters to balance speed and framerate
-                if (i % 2 == 1) yield return null;
-                SpawnOrUpdateCharacter(charProfile);
-            if (_controllerCache.TryGetValue(objId, out var controller)) return controller;
-
-            controller = characterObj.GetComponent<CharacterControllerBase>();
-            if (controller != null) _controllerCache[objId] = controller;
-            if (controller != null)
-            {
-                _controllerCache[objId] = controller;
-            }
-            return controller;
-        }
-
-        private GameObject GetCachedGameObject(string objectName)
-        {
             if (string.IsNullOrEmpty(objectName)) return null;
 
-            // Check cache first; safely handle natively destroyed objects via Unity's overloaded == operator
+            // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
+            {
+                return obj;
+            }
+
+            // BOLT: Fallback to O(N) scene traversal only if not cached.
+            obj = GameObject.Find(objectName);
+            if (obj != null)
+            {
+                _objectCache[objectName] = obj;
+            }
+            return obj;
+        }
+
         private void Start()
         {
-            if (CampaignManager.Instance != null &&
-                CampaignManager.Instance.currentCampaignData != null &&
-                CampaignManager.Instance.currentCampaignData.scenarios != null &&
-                CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-            // BOLT: Pre-populate prefab cache to ensure O(1) lookups during scene setup
-            // BOLT: Pre-populate prefab cache
-            // BOLT: Pre-populate prefab cache to ensure O(1) lookups
-            // BOLT: Pre-populate prefab cache for O(1) lookups
-            if (characterPrefabs != null)
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
+            if (CampaignManager.Instance.currentCampaignData != null)
             {
                 SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
-                foreach (var prefab in characterPrefabs)
-                {
-                    if (prefab != null && !string.IsNullOrEmpty(prefab.name))
-                    {
-                        _prefabCache[prefab.name] = prefab;
-                    }
-                }
-            }
-
-            var campaignData = CampaignManager.Instance?.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
-            {
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Length > 0)
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            if (CampaignManager.Instance.currentCampaignData != null &&
-                CampaignManager.Instance.currentCampaignData.scenarios != null &&
-                CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-            {
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-                    if (prefab != null) _prefabLookupCache[prefab.name] = prefab;
-                }
-            }
-
-            GameObject foundObj = GameObject.Find(objectName);
-            if (foundObj != null)
-            // NRT Pattern: Capture singleton property in local variable before null check
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-            {
-            // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
-            var campaignManager = CampaignManager.Instance;
-            if (campaignManager != null)
-            {
-                var data = campaignManager.currentCampaignData;
-                if (data != null && data.scenarios != null && data.scenarios.Count > 0)
-                {
-                    SetupScene(data.scenarios[0]);
-                }
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null)
-            // BOLT: Capture property in local variable for NRT flow analysis
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null)
-            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-            {
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            if (CampaignManager.Instance?.currentCampaignData != null)
-            {
-                    if (prefab != null)
-                    {
-                         _prefabCache[prefab.name] = prefab;
-                         _prefabLookupCache[prefab.name] = prefab;
-                    }
-                }
-            }
-
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
-            {
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-                    if (prefab != null && !_prefabLookupCache.ContainsKey(prefab.name))
-                    {
-                        _prefabLookupCache[prefab.name] = prefab;
-                    }
-                    if (prefab != null) _prefabLookupCache[prefab.name] = prefab;
-                }
-            }
-
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
-            {
-                if (CampaignManager.Instance.currentCampaignData.scenarios != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-                {
-                    SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
-                }
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
-            {
-                if (CampaignManager.Instance.currentCampaignData.scenarios != null &&
-                    CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
-                {
-                    SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
-                }
             }
         }
 
         public void SetupScene(SceneScenario scenario)
         {
-            if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
-            // BOLT: Performance optimization - Pre-populate the cache with a single O(N) pass
-            // instead of calling GameObject.Find (O(N)) repeatedly in loops (O(N*M)).
+            // Clear cache at start of setup to avoid stale references across scenes
             _objectCache.Clear();
-            GameObject[] allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
-            foreach (var go in allObjects)
-            {
-                if (go != null) _objectCache[go.name] = go;
-            }
-
-            // BOLT: Pre-cache prefabs for faster lookup.
-            _prefabCache.Clear();
-            if (characterPrefabs != null)
-            {
-                foreach (var prefab in characterPrefabs)
-                {
-                    if (prefab != null) _prefabCache[prefab.name] = prefab;
-                }
-            }
-            GameObject characterObj = GetCachedGameObject(profile.name);
-
-            if (characterObj == null)
-            {
-                // Try to find prefab
-                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
-                if (prefab != null)
-                {
-                    characterObj = Instantiate(prefab, characterSpawnRoot);
-                    characterObj.name = profile.name;
-                    _objectCache[profile.name] = characterObj; // Cache newly spawned object
-            if (scenario == null) return;
-            Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
-            Debug.Log($"Setting up scenario: {scenario.scenarioId}");
-
-            // BOLT: Performance Optimization - Pre-populate cache with a single O(N) pass
-            // This eliminates redundant O(N) scene traversals for subsequent lookups.
-            _objectCache.Clear();
-            var allObjects = UnityEngine.Object.FindObjectsOfType<GameObject>();
-            foreach (var go in allObjects)
-            {
-                if (!_objectCache.ContainsKey(go.name))
-                {
-                    _objectCache[go.name] = go;
-                }
-            }
-            // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading to persist.
-            // Unity's == null check in GetCachedObject handles destroyed objects safely.
-            // BOLT: Removed redundant _objectCache.Clear() to allow surgical lazy-loading cache
-            // to persist across multiple scenario updates for incremental performance.
-            // BOLT: Clear dynamic caches at start of setup to avoid stale references.
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            // BOLT: Pre-populate object cache with existing scene objects to avoid lazy O(N) lookups
-            // Note: FindObjectsOfType is legacy but highly compatible across Unity versions.
-            foreach (var go in FindObjectsOfType<GameObject>())
-            {
-                if (go != null && !string.IsNullOrEmpty(go.name) && !_objectCache.ContainsKey(go.name))
-                {
-                    _objectCache[go.name] = go;
-                }
-            }
 
             // Instantiate characters if not already in scene
-            if (CampaignManager.Instance.currentCampaignData != null)
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null)
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            // BOLT: Clear scene-specific caches to avoid stale references and memory leaks.
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            // BOLT: Clear dynamic caches to avoid stale references across scenarios
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            // BOLT: Pre-populate cache with a single O(N) pass to avoid repeated O(N) GameObject.Find calls.
-            GameObject[] allObjects = Object.FindObjectsOfType<GameObject>();
-            foreach (var go in allObjects)
+            foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
             {
-                if (go != null && !string.IsNullOrEmpty(go.name))
-                {
-                    // If multiple objects have the same name, the last one found wins,
-                    // which matches the behavior of GameObject.Find.
-                    _objectCache[go.name] = go;
-                }
-            }
-
-            // Capture singleton instance to satisfy NRT flow analysis
-            var campaignManager = CampaignManager.Instance;
-            if (campaignManager != null)
-            // NRT Pattern: Capture singleton property in local variable
-            // Instantiate characters if not already in scene
-            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.characters != null)
-            {
-                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
-                {
-                    SpawnOrUpdateCharacter(charProfile);
-            if (CampaignManager.Instance.currentCampaignData?.characters != null)
-            {
-                foreach (var charProfile in CampaignManager.Instance.currentCampaignData.characters)
-                {
-                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
-            var campaignData = CampaignManager.Instance?.currentCampaignData;
-            if (campaignData?.characters != null)
-            if (CampaignManager.Instance.currentCampaignData != null)
-            var campaignManager = CampaignManager.Instance;
-            if (campaignManager != null)
-            {
-                var data = campaignManager.currentCampaignData;
-                if (data != null && data.characters != null)
-                {
-                    foreach (var charProfile in data.characters)
-                    {
-                        if (charProfile != null)
-                        {
-                            SpawnOrUpdateCharacter(charProfile);
-                        }
-            if (CampaignManager.Instance.currentCampaignData != null)
-            // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null)
-            if (CampaignManager.Instance.currentCampaignData != null)
-            if (CampaignManager.Instance?.currentCampaignData != null)
-            _objectCache.Clear();
-            _controllerCache.Clear();
-
-            if (CampaignManager.Instance?.currentCampaignData?.characters != null)
-            // Instantiate characters if not already in scene
-            if (CampaignManager.Instance.currentCampaignData != null)
-            {
-                var campaignData = campaignManager.currentCampaignData;
-                if (campaignData != null && campaignData.characters != null)
-                {
-                    foreach (var charProfile in campaignData.characters)
-                    {
-                        if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
-                    SpawnOrUpdateCharacter(charProfile);
-            var campaignData = CampaignManager.Instance.currentCampaignData;
-            if (campaignData != null && campaignData.characters != null)
-            {
-                foreach (var charProfile in campaignData.characters)
-                {
-                    if (charProfile != null)
-                        SpawnOrUpdateCharacter(charProfile);
-                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
-                    if (charProfile != null)
-                    {
-                        SpawnOrUpdateCharacter(charProfile);
-                    }
-                }
+                SpawnOrUpdateCharacter(charProfile);
             }
 
             // Execute interactive objects logic
-            if (scenario.interactiveObjects != null)
+            foreach (var interaction in scenario.interactiveObjects)
             {
-                foreach (var interaction in scenario.interactiveObjects)
-                {
-                    ApplyInteraction(interaction);
-                    if (interaction != null) ApplyInteraction(interaction);
-                    ApplyInteraction(interaction);
                 ApplyInteraction(interaction);
-                foreach (var interaction in scenario.interactiveObjects)
-                {
-                    if (interaction != null)
-                        ApplyInteraction(interaction);
-                    if (interaction != null) ApplyInteraction(interaction);
-                    if (interaction != null)
-                    {
-                        ApplyInteraction(interaction);
-                    }
-                }
             }
         }
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
-            if (profile == null || string.IsNullOrEmpty(profile.name)) return;
-
             GameObject characterObj = GetCachedObject(profile.name);
 
             if (characterObj == null)
@@ -2016,50 +1675,24 @@ namespace Milehigh.Core
                 }
 
                 // Try to find prefab if not in scene
-                GameObject prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profile.name));
-                GameObject? prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                GameObject prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
                 if (prefab != null)
                 {
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
 
-                    // BOLT: Immediately cache the newly instantiated object.
                     // BOLT: Immediately cache the newly instantiated object
-                    // BOLT: Immediately cache the newly instantiated object to avoid subsequent searches
-                    // BOLT: Immediately cache the newly instantiated object.
-                    // BOLT: Immediately cache the newly instantiated object to prevent redundant scene searches
-                    // BOLT: Immediately cache the newly instantiated object to resolve negative cache hits.
-                    // BOLT: Immediately cache the newly instantiated object to prevent redundant searches
                     _objectCache[profile.name] = characterObj;
-                }
-                else
-                {
-                    // BOLT: Use O(1) prefab lookup cache
-                    _prefabLookupCache.TryGetValue(profile.name, out GameObject? prefab);
-
-                    // Fallback to partial match if exact match fails (legacy behavior)
-                    if (prefab == null && characterPrefabs != null)
-                    {
-                        prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profile.name));
-                    }
-
-                    if (prefab != null)
-                    {
-                        characterObj = Instantiate(prefab, characterSpawnRoot);
-                        characterObj.name = profile.name;
-                        _objectCache[profile.name] = characterObj;
-                    }
                 }
             }
 
             if (characterObj != null)
             {
+                // Assign data to controllers
                 var controller = characterObj.GetComponent<CharacterControllerBase>();
-                // BOLT: O(1) controller lookup avoids redundant GetComponent calls
-                var controller = GetCharacterController(characterObj);
-                var controller = GetCachedController(characterObj);
                 if (controller != null)
                 {
+                    // Create a dummy CharacterData for runtime initialization
                     CharacterData data = ScriptableObject.CreateInstance<CharacterData>();
                     data.characterName = profile.name;
                     data.role = profile.role;
@@ -2068,22 +1701,6 @@ namespace Milehigh.Core
 
                     controller.Initialize(data);
                 }
-            }
-        }
-
-        // BOLT: Public method to return characters to pool
-        public void DespawnCharacter(string characterName)
-        {
-            if (_objectCache.TryGetValue(characterName, out GameObject? obj) && obj != null)
-            {
-                obj.SetActive(false);
-                _objectCache.Remove(characterName);
-
-                if (!_characterPool.ContainsKey(characterName))
-                {
-                    _characterPool[characterName] = new Stack<GameObject>();
-                }
-                _characterPool[characterName].Push(obj);
             }
         }
 
