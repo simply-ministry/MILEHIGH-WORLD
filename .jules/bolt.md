@@ -47,6 +47,9 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2026-04-10 - Unity GameObject.Find and Prefab Lookup Optimization
+**Learning:** O(N) scene traversals via 'GameObject.Find' and O(M) linear searches for prefabs in 'SceneDirector.cs' were causing significant bottlenecks during scene initialization. Implementing negative caching (storing nulls for missing objects) and a prefab dictionary provides a measurable performance boost.
+**Action:** Use 'Dictionary<string, GameObject>' for both scene objects and prefabs. Ensure caches are cleared in 'OnDestroy' to prevent memory leaks.
 ## 2024-05-26 - Float Dictionary Keys Cause Cache Misses
 **Learning:** Caching WaitForSeconds using a float key based on time (e.g. Dictionary<float, WaitForSeconds>) leads to cache misses because of floating-point imprecision when calculating the delay times (especially with multipliers applied). This defeats the purpose of the cache and continues to cause GC allocations.
 **Action:** Always use an int key representing milliseconds (e.g., via Mathf.RoundToInt(time * 1000f)) when using dictionaries to cache objects based on floating point durations.

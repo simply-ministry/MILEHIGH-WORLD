@@ -280,6 +280,8 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name ?? "unnamed_character");
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
 
+                // 🛡️ Sentinel: Ensure no directory traversal sequences remain
+                safeFileName = Path.GetFileName(safeFileName);
                 if (string.IsNullOrEmpty(safeFileName) || safeFileName == "_")
                 AssetDatabase.CreateAsset(asset, assetPath);
                 string safeFileName = GetSafeFileName(charProfile.name);
