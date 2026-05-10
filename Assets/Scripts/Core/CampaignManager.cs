@@ -6,7 +6,7 @@ namespace Milehigh.Core
 {
     public class CampaignManager : MonoBehaviour
     {
-        private static CampaignManager _instance;
+        private static CampaignManager? _instance;
         public static CampaignManager Instance
         {
             get
@@ -24,7 +24,7 @@ namespace Milehigh.Core
             }
         }
 
-        public HorizonGameData currentCampaignData;
+        public HorizonGameData? currentCampaignData;
         public float currentVoidSaturationLevel;
 
         private void Awake()
@@ -64,11 +64,6 @@ namespace Milehigh.Core
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
-                    }
-                    else
-                    {
-                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
-                        currentCampaignData = null; // Ensure we don't use invalid data
                     }
                     else
                     {
