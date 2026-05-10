@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System;
 using System.IO;
 using Milehigh.Data;
 
@@ -120,6 +121,9 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths in logs.
+                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
+                        currentCampaignData = null;
                         // SECURITY: Fail securely and don't use invalid data.
                         Debug.LogError($"Failed to validate campaign data from {fileName}. Ensure it conforms to security standards.");
                         currentCampaignData = null;

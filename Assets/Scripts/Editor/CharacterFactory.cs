@@ -82,6 +82,8 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
+            // 🛡️ Sentinel: Security validation of deserialized data.
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
                 return;
             }
