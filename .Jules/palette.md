@@ -53,6 +53,9 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion character after typewriter reveals to improve readability and interaction clarity.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Dynamic Dialogue Cohesion and Responsive Skipping]
+**Learning:** Micro-UX polish in dialogue systems is best achieved by unifying visual cues (like matching the completion icon color to the speaker name) and ensuring interaction responsiveness. A persistent 'skipRequested' flag that carries through both the typewriter reveal and subsequent pauses provides a much more fluid experience for fast readers.
+**Action:** Always implement skippable pauses in cinematic sequences and use 'ColorUtility' to maintain visual consistency across dynamic UI elements.
 ## 2026-03-25 - [Layout-Safe Cinematic Dialogue Reveal]
 **Learning:** Appending visual elements (like a completion cue '▽') to the end of a typewriter-revealed string can cause jarring layout shifts if the new character forces a line break or word wrap. By setting the final text (including the cue) at the beginning and using 'maxVisibleCharacters' to reveal it, the layout is pre-calculated and remains stable throughout the animation.
 **Action:** Pre-append completion cues and use 'maxVisibleCharacters' to ensure visual stability in all Unity text animations.
