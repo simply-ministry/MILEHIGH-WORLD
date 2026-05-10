@@ -7,8 +7,8 @@ namespace Milehigh.Core
 {
     public class SceneDirector : MonoBehaviour
     {
-        public List<GameObject> characterPrefabs; // Assign in Inspector
-        public Transform characterSpawnRoot;
+        public List<GameObject> characterPrefabs = null!; // Assign in Inspector
+        public Transform characterSpawnRoot = null!;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
@@ -16,6 +16,14 @@ namespace Milehigh.Core
         private GameObject GetCachedObject(string objectName)
         {
             if (string.IsNullOrEmpty(objectName)) return null;
+
+            // 🛡️ Sentinel: Hardening against Denial of Service (DoS) attacks
+            // Limit object name length and restrict to safe characters to prevent expensive Find operations.
+            if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
+                return null;
+            }
 
             // BOLT: Perform an O(1) dictionary lookup first.
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
@@ -112,6 +120,15 @@ namespace Milehigh.Core
                 {
                     target.transform.localScale = Vector3.one * interaction.floatValue;
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear the cache to release Unity engine object references
+            if (_objectCache != null)
+            {
+                _objectCache.Clear();
             }
         }
     }
