@@ -1,11 +1,23 @@
 using UnityEngine;
 using Milehigh.Data;
+using Milehigh.Core;
 
-namespace Milehigh.Core
+namespace Milehigh.World.Engine
 {
     public class BicameralBattleEngine : MonoBehaviour
     {
+        public enum RealityState { Void, Now }
+
+        [SerializeField] public RealityState currentReality = RealityState.Now;
+
         public bool isDualProcessingActive = false;
+
+        public void ToggleReality()
+        {
+            currentReality = (currentReality == RealityState.Now) ? RealityState.Void : RealityState.Now;
+            // Update GlobalResonance based on state
+            GlobalResonanceManager.Instance.UpdateGlobalResonance(currentReality);
+        }
 
         public void ProcessDualIntent(string protagonistIntent, string antagonistIntent)
         {
