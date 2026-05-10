@@ -77,6 +77,9 @@ namespace Milehigh.Characters
         private void CastSicklyGreenBlackVoidfire()
         {
             Debug.Log("Delilah: Casting sickly green-black Voidfire!");
+        public override void ExecuteBehavior()
+        {
+            Debug.Log("Delilah AI executing behavior...");
         }
     }
 }
