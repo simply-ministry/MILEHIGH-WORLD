@@ -780,6 +780,8 @@ namespace Milehigh.Cinematics
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+        skipRequested = false;
+        typingCoroutine = null!;
         typingCoroutine = null;
     }
 

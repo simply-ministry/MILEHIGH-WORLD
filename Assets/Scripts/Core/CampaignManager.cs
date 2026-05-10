@@ -8,6 +8,7 @@ namespace Milehigh.Core
     public class CampaignManager : MonoBehaviour
     {
         private static CampaignManager? _instance;
+        public static CampaignManager Instance
         public static CampaignManager? Instance
         {
             get
@@ -95,6 +96,7 @@ namespace Milehigh.Core
                         currentCampaignData = null; // Prevent use of invalid data.
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
+                        currentCampaignData = null!; // Ensure we don't use invalid data
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }

@@ -1212,6 +1212,13 @@ namespace Milehigh.Core
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             obj = GameObject.Find(objectName);
 
+        private GameObject? GetCachedObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // SECURITY: Robust negative caching - store null explicitly if not found to prevent future traversals.
             _objectCache[objectName] = obj;
 
@@ -1850,6 +1857,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            GameObject? target = GetCachedObject(interaction.objectId);
             // 🛡️ Sentinel: Prevent IDOR tampering with core architectural managers
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
