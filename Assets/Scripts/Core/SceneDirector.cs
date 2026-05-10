@@ -14,6 +14,8 @@ namespace Milehigh.Core
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         // Note: Using GameObject? to support negative caching (storing confirmed nulls)
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
 
@@ -88,6 +90,13 @@ namespace Milehigh.Core
 
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                if (obj == null)
             {
                 // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
                 // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
@@ -469,6 +478,8 @@ namespace Milehigh.Core
         {
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
 
+            // BOLT: O(P) search only happens once per profile name
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
@@ -709,6 +720,7 @@ namespace Milehigh.Core
 
         public void SetupScene(SceneScenario scenario)
         {
+            if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
             _objectCache.Clear();
@@ -738,7 +750,10 @@ namespace Milehigh.Core
             {
                 foreach (var charProfile in campaignData.characters)
                 {
-                    SpawnOrUpdateCharacter(charProfile);
+                    if (charProfile != null)
+                    {
+                        SpawnOrUpdateCharacter(charProfile);
+                    }
                 }
             }
 
@@ -746,7 +761,10 @@ namespace Milehigh.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
-                    ApplyInteraction(interaction);
+                    if (interaction != null)
+                    {
+                        ApplyInteraction(interaction);
+                    }
                 }
             }
         }

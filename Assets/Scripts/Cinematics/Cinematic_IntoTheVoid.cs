@@ -48,6 +48,7 @@ namespace Milehigh.Cinematics
 public class Cinematic_IntoTheVoid : MonoBehaviour
 namespace Milehigh.Cinematics
 {
+    [Header("Characters")]
     [Header("Character Assets")]
 
     [Header("Character References")]
@@ -373,12 +374,31 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
-    /// <summary>
-    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
-    /// </summary>
     public void ShowDialogue(string speaker, string message)
     void Awake()
     {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
+        SpeakerNameText.text = speaker;
+
+        float multiplier = 1.0f;
+        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+
+        Color speakerColor;
+        switch (speaker)
+        {
+            case "Sky.ix": speakerColor = Color.cyan; break;
+            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break; // Gold
+            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
+            default: speakerColor = Color.white; break;
+        }
+
+        SpeakerNameText.color = speakerColor;
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
         if (DialogueBox != null)
         {
             dialogueCanvasGroup = DialogueBox.GetComponent<CanvasGroup>();
@@ -389,6 +409,12 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
@@ -448,6 +474,25 @@ namespace Milehigh.Cinematics
             // Palette: Show skip hint if player is idle during dialogue
             if (idleTimer >= idleHintThreshold && !playerInteracted && DialogueBox.activeInHierarchy && SkipHint != null)
             {
+                float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i].character;
+
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence) delay *= 15f;
+                    else delay *= 5f; // Ellipsis or mid-word
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay *= 8f;
+                }
                 SkipHint.gameObject.SetActive(true);
             }
         }
@@ -536,6 +581,7 @@ namespace Milehigh.Cinematics
         float start = Time.time;
         while (Time.time - start < duration && !skipRequested) yield return null;
         skipRequested = false;
+        typingCoroutine = null;
     }
 
     private void Start()
@@ -1517,6 +1563,18 @@ namespace Milehigh.Cinematics
         yield return FadeDialogueBox(1.0f, 0.5f);
         yield return WaitForSecondsOrSkip(1.0f);
 
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
+        yield return WaitForSecondsOrSkip(5.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. I need you to hit the third resonant frequency conduit... now!");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Sky.ix", "I see it! I'm going in!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         DialogueBox.SetActive(true);
@@ -1668,6 +1726,8 @@ namespace Milehigh.Cinematics
         Debug.Log("Cinematic Sequence Complete.");
         SpeakerNameText.text = "";
         DialogueText.text = "";
+        DialogueBox.SetActive(false);
+        Debug.Log("Cinematic Sequence Complete.");
         DialogueBox.SetActive(false);        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         Debug.Log("Cinematic Sequence Complete.");

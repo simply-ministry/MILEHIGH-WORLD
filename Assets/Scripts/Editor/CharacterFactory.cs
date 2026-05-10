@@ -83,6 +83,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name);
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
                 foreach (char c in Path.GetInvalidFileNameChars())
@@ -284,6 +285,26 @@ namespace Milehigh.Editor
             {
                 return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             }
+            return sanitized;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Robustly sanitizes a string for use as a file name.
+        /// Prevents Path Traversal by using a strict whitelist regex and stripping leading dots/underscores.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            // 1. Remove all characters that are not alphanumeric, underscores, or hyphens (Strict Whitelist)
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+
+            // 2. Strip leading dots or underscores to prevent hidden files or traversal tricks
+            sanitized = sanitized.TrimStart('.', '_');
+
+            // 3. Ensure we only return a filename, not a path
+            sanitized = Path.GetFileName(sanitized);
+
             return sanitized;
         }
     }
