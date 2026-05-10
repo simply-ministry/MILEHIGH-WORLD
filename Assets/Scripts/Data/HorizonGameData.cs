@@ -160,6 +160,19 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (!metadata.IsValid()) return false;
+
+            if (characters == null || characters.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
                 Debug.LogError("[Security] Game data validation failed: Character profiles count out of bounds.");
