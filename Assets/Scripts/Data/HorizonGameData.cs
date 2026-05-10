@@ -76,6 +76,7 @@ namespace Milehigh.Data
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
             if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             // BOLT: Increased behaviorScript length limit to support complex AI while maintaining safety threshold
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 1024) return false;

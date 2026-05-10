@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.IO;
 using Milehigh.Data;
@@ -103,6 +104,7 @@ namespace Milehigh.Core
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
                 }
+                catch (Exception ex)
                 catch (System.Exception)
                 {
                     // SECURITY: Fail securely and avoid leaking internal stack traces or absolute paths.

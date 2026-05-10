@@ -1,3 +1,6 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 // --- UNITY SCENE SETUP --- //
 //
 // 1. Create an empty GameObject in your scene and name it "SceneController".
@@ -231,6 +234,7 @@ using Milehigh.Core;
 namespace Milehigh.Cinematics
 {
 /// <summary>
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID..."
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
 /// Controls the cinematic sequence for "Deep within the anti-reality of ŤĤÊ VØĪĐ".
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of THE VOID, the very concept of existence is under assault. Delilah, an agent of entropy, has located and harnessed a 'Memory Stream'--a torrent of glitching data containing the metaphysical essence of Sky.ix's recently reunited husband and child. She intends to weaponize this stream, funneling its corrupted energy into a finality engine that will not just kill them, but permanently erase their existence from every timeline and memory. Sky.ix, whose cybernetics offer a fragile anchor in this digital abyss, must race against the unraveling of reality itself, supported by her ally Kai, to sever Delilah's connection before her family becomes nothing more than a corrupted file in the memory of the universe."
@@ -637,6 +641,23 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    void Update()
+    {
+        // Single location for skip input to ensure responsiveness and accessibility
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested)
+        {
+            yield return null;
+        }
+        skipRequested = false;
         // Palette UX: Programmatically find SkipHint if not assigned
         if (SkipHint == null)
         {
@@ -664,6 +685,33 @@ namespace Milehigh.Cinematics
         private Coroutine? typingCoroutine;
         private float currentTypingSpeed;
         private bool skipRequested;
+
+        float multiplier = 1.0f;
+        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+
+        Color speakerColor;
+        switch (speaker)
+        {
+            case "Sky.ix": speakerColor = Color.cyan; break;
+            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break;
+            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break;
+            default: speakerColor = Color.white; break;
+        }
+
+        SpeakerNameText.color = speakerColor;
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
 
         // BOLT: Cache for WaitForSeconds to eliminate GC allocations
         private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
@@ -1522,6 +1570,21 @@ namespace Milehigh.Cinematics
                 float delay = currentTypingSpeed;
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
+                // Rhythmic punctuation pauses for natural reading
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEllipsis = false;
+                    if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                    if (i < totalVisibleCharacters - 1 && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (i == totalVisibleCharacters - 1 || char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i + 1].character))
+                        delay = currentTypingSpeed * 15f;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
+
                 // Rhythmic punctuation pauses
                 if (c == '.' || c == '!' || c == '?')
                 {
@@ -1884,6 +1947,7 @@ namespace Milehigh.Cinematics
             typingCoroutine = null;
         }
 
+        // skipRequested is NOT reset here to allow the subsequent pause to be skipped
         // UX Enhancement: Visual progression cue
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
@@ -2033,6 +2097,27 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.0f);
 
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. Hit the resonant conduit... now!");
+        yield return WaitForSecondsOrSkip(8.0f);
+
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is built on pure nothingness.");
+        yield return WaitForSecondsOrSkip(7.0f);
+
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        yield return WaitForSecondsOrSkip(4.5f);
+
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return WaitForSecondsOrSkip(5.5f);
+
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you.");
         yield return WaitForSecondsOrSkip(5.5f);
 
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're just a vandal smashing something beautiful you could never understand.");

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
@@ -25,6 +26,8 @@ namespace Milehigh.Editor
             {
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
+            }
+            catch (Exception)
 
                 if (data == null)
                 if (data == null || data.characters == null || !data.IsValid())
@@ -46,8 +49,7 @@ namespace Milehigh.Editor
                 return;
             }
 
-            // 🛡️ Sentinel: Security validation of deserialized data.
-            if (!data.IsValid())
+            // 🛡️ Sentinel: Security validation of deserialized data.            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to ensure integrity
                 Debug.LogError($"Failed to load or parse campaign data. Error parsing file.");
                 // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
@@ -83,6 +85,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name;
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
@@ -143,6 +146,8 @@ namespace Milehigh.Editor
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
                 {
+                    safeFileName = "character_" + Guid.NewGuid().ToString().Substring(0, 8);
+                }
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.

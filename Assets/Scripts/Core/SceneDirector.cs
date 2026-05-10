@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 using Milehigh.Characters;
 
@@ -16,6 +17,11 @@ namespace Milehigh.Core
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
+
+        // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
+        private static readonly Regex _nameWhitelist = new Regex(@"^[a-zA-Z0-9_\s\-.\[\]\(\)\$]+$", RegexOptions.Compiled);
         // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
@@ -92,6 +98,10 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: DoS Mitigation - Enforce length limit and character whitelist on object names.
+            if (objectName.Length > 128 || !_nameWhitelist.IsMatch(objectName))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious object name: {objectName}");
             // 🛡️ Sentinel: DoS Mitigation - Limit string length and validate against whitelist
             // to prevent expensive GameObject.Find from being triggered by malicious or oversized input.
             if (objectName.Length > 128 || !_nameWhitelist.IsMatch(objectName))
@@ -102,6 +112,14 @@ namespace Milehigh.Core
 
             GameObject? obj;
             // BOLT: Perform an O(1) dictionary lookup first.
+            if (_objectCache.TryGetValue(objectName, out obj))
+            {
+                // BOLT: Surgical negative caching. We use ReferenceEquals to distinguish between
+                // a 'true' null (explicitly cached as missing) and a 'Unity' null (destroyed object).
+                if (ReferenceEquals(obj, null)) return null;
+
+                // If it's a Unity null (native object destroyed), we should try to find it again
+                if (obj == null)
             // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
@@ -519,6 +537,10 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+
+            GameObject? prefab;
+            if (_prefabCache.TryGetValue(profileName, out prefab)) return prefab;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
 
@@ -541,6 +563,7 @@ namespace Milehigh.Core
             // BOLT: O(P) search happens only once per profile name
             prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName));
             // BOLT: O(P) search and delegate allocation happens only once per profile name
+            prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
             if (characterPrefabs != null)
             {
                 prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profileName));
@@ -680,6 +703,8 @@ namespace Milehigh.Core
             if (characterObj == null) return null;
             int objId = characterObj.GetInstanceID();
 
+            CharacterControllerBase? controller;
+            if (_controllerCache.TryGetValue(objId, out controller)) return controller;
             if (_controllerCache.TryGetValue(objId, out var controller))
             {
                 if (controller != null) return controller;
@@ -823,6 +848,7 @@ namespace Milehigh.Core
             _controllerCache.Clear();
 
             // Instantiate characters if not already in scene
+            if (CampaignManager.Instance.currentCampaignData != null)
             // 🛡️ Sentinel: Capture singleton property to local for NRT flow analysis
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null)
