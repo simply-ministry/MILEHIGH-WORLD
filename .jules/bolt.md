@@ -47,6 +47,9 @@
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
 
+## 2024-05-26 - Unity Dictionary Cache Misses with Float Keys
+**Learning:** Using `float` as a key in a `Dictionary<float, WaitForSeconds>` for caching coroutine yields leads to frequent cache misses due to floating-point precision inaccuracies, especially when delays are calculated via multipliers. This defeats the cache and causes massive GC allocations during text reveal loops.
+**Action:** Always convert float times to integer milliseconds (`Mathf.RoundToInt(time * 1000f)`) when using them as dictionary keys to guarantee deterministic cache hits.
 ## 2024-05-24 - Dictionary float keys causing cache misses in WaitForSeconds
 **Learning:** When caching `WaitForSeconds` to avoid GC allocations, using a `float` key leads to cache misses due to floating-point precision tolerance. This defeats the cache.
 **Action:** Use an `int` key representing milliseconds (e.g., `Mathf.RoundToInt(time * 1000f)`) to ensure reliable O(1) dictionary lookups.
