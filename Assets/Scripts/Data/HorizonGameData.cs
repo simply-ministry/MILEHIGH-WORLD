@@ -107,6 +107,13 @@ namespace Milehigh.Data
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
             {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment string too long.");
                 Debug.LogError($"[Security] Invalid voidSaturationLevel detected: {voidSaturationLevel}. Must be between 0.0 and 1.0.");
                 return false;
             }
@@ -138,6 +145,12 @@ namespace Milehigh.Data
         public string role;
         public string behaviorScript;
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
+            // Increased limit for behaviorScript to accommodate larger logic blocks
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 1024) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates character profile data for security and integrity.
         /// 🛡️ Sentinel: Validates character profile data.
@@ -239,6 +252,10 @@ namespace Milehigh.Data
             return new Vector3(x, y, z);
         }
 
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
+            if (!string.IsNullOrEmpty(action) && action.Length > 128) return false;
         /// <summary>
         /// 🛡️ Sentinel: Validates interaction data.
         public bool IsValid()
@@ -271,6 +288,15 @@ namespace Milehigh.Data
     [Serializable]
     public class Dialogue
     {
+        public string speaker;
+        public string text;
+        public string trigger;
+
+        public bool IsValid()
+        {
+            if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64) return false;
+            if (!string.IsNullOrEmpty(text) && text.Length > 1024) return false;
+            if (!string.IsNullOrEmpty(trigger) && trigger.Length > 128) return false;
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
@@ -314,6 +340,22 @@ namespace Milehigh.Data
     [Serializable]
     public class SceneScenario
     {
+        public string scenarioId;
+        public string description;
+        public List<ObjectInteraction> interactiveObjects;
+        public List<Dialogue> dialogue;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
+            if (dialogue != null && dialogue.Count > 50) return false;
+
+            if (interactiveObjects != null)
+            {
+                foreach (var interaction in interactiveObjects)
+                {
+                    if (!interaction.IsValid()) return false;
         public string scenarioId = null!;
         public string description = null!;
         public List<ObjectInteraction> interactiveObjects = null!;
@@ -348,6 +390,10 @@ namespace Milehigh.Data
 
             if (dialogue != null)
             {
+                foreach (var d in dialogue)
+                {
+                    if (!d.IsValid()) return false;
+                }
                 if (dialogue.Count > 50) return false;
                 if (dialogue.Count > 100) return false;
                 foreach (var line in dialogue) if (!line.IsValid()) return false;
@@ -439,6 +485,8 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (metadata == null || !metadata.IsValid())
+            {
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
             {
                 Debug.LogError("[Security] Game data validation failed: sceneId is missing or too long.");
@@ -459,6 +507,7 @@ namespace Milehigh.Data
 
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
+            {
             if (!metadata.IsValid()) return false;
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
@@ -471,6 +520,8 @@ namespace Milehigh.Data
                 if (character != null && !character.IsValid()) return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
             foreach (var charProfile in characters)
             {
                 if (charProfile == null || !charProfile.IsValid())
@@ -486,6 +537,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            foreach (var profile in characters)
+            {
+                if (!profile.IsValid()) return false;
             // SECURITY: Enforce collection size limits to prevent resource exhaustion (DoS)
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
@@ -649,6 +703,8 @@ namespace Milehigh.Data
 
             foreach (var scenario in scenarios)
             {
+                if (!scenario.IsValid()) return false;
+            }
                 if (!scenario.IsValid())
                 {
                     Debug.LogError($"[Security] Game data validation failed: Scenario {scenario.scenarioId} has invalid data.");

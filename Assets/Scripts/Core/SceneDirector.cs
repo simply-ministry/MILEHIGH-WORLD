@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 using Milehigh.Data;
@@ -16,6 +17,9 @@ namespace Milehigh.Core
         private readonly Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         public List<GameObject> characterPrefabs; // Assign in Inspector
         public Transform characterSpawnRoot;
+
+        // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls.
+        // Performance Insight: Dictionary.TryGetValue is O(1).
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab lookup cache to avoid O(P) linear searches
@@ -132,6 +136,37 @@ namespace Milehigh.Core
             if (string.IsNullOrEmpty(objectName)) return null;
 
             // BOLT: Perform an O(1) dictionary lookup first.
+            // Performance Insight: We use negative caching (storing 'null' for missing objects)
+            // to avoid repeated O(N) scene traversals for objects that don't exist.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj))
+            {
+                // Unity overrides the == operator for GameObjects. If 'obj' was destroyed, it returns null.
+                // We must check if the reference is actually valid.
+                if (ReferenceEquals(obj, null))
+                {
+                    // This is a legitimate negative cache hit (real null).
+                    return null;
+                }
+
+                if (obj == null)
+                {
+                    // Object was destroyed (fake null). Remove from cache and continue.
+                    _objectCache.Remove(objectName);
+                }
+                else
+                {
+                    // Valid object found.
+                    return obj;
+                }
+            }
+
+            // BOLT: Fallback to O(N) scene traversal only if not in cache.
+            obj = GameObject.Find(objectName);
+
+            // Performance Insight: Even if obj is null, we store it to enable negative caching.
+            _objectCache[objectName] = obj;
+
+            return obj;
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
                 // BOLT: Performance optimization - use ReferenceEquals for native null checks.
@@ -336,6 +371,8 @@ namespace Milehigh.Core
 
             InitializePrefabCache();
 
+            // Performance Insight: Clear cache at start of setup to prevent stale references or
+            // negative cache leakage between scenarios if objects were created/destroyed.
             // Clear cache at start of setup to avoid stale references across scenes
             // BOLT: Clear scene-specific caches to avoid stale references across scenarios/scenes.
             // Prefab cache is persisted as it remains valid across the session.
@@ -518,6 +555,7 @@ namespace Milehigh.Core
                     characterObj = Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
 
+                    // BOLT: Immediately cache the newly instantiated object to prevent redundant scene searches
                     // BOLT: Immediately cache the newly instantiated object to resolve negative cache hits.
                     // BOLT: Immediately cache the newly instantiated object to prevent redundant searches
                     _objectCache[profile.name] = characterObj;

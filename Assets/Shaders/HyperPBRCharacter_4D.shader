@@ -96,6 +96,8 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
             clip(albedo.a - _Cutoff);
 
+            // ⚡ Bolt: Performance Fix - Assign base albedo first so that additive effects (like SSS)
+            // are correctly applied to the final output rather than being overwritten by the subsequent assignment.
             // ⚡ Bolt: Move Albedo assignment to the top to ensure additive effects
             // (like SSS) are applied to the final color and avoid redundant work.
             o.Albedo = albedo.rgb;

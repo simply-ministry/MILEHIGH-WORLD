@@ -175,6 +175,8 @@ namespace Milehigh.Editor
                 // 3. Replace whitespaces with underscores.
 
                 // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
+                // Required sequence: replace Path.GetInvalidFileNameChars() with underscores, then use Path.GetFileName(), then replace whitespace.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 string sanitizedName = charProfile.name ?? "unnamed_character";
                 string safeFileName = sanitizedName;
                 string baseName = string.IsNullOrEmpty(charProfile.name) ? "unnamed_character" : charProfile.name;
