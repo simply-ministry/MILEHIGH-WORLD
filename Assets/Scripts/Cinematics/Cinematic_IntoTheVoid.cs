@@ -167,6 +167,44 @@ namespace Milehigh.Cinematics
     // ====================================================================
 
     // Protagonist: Sky.ix the The Bionic Goddess
+    // Description: A 45-year-old Caucasian cyborg woman with short white hair. She has humanoid features but her face and body have visible cybernetic enhancements that allow her to traverse the Void. She was a brilliant xenolinguist who, along with her family, was part of the research team at the Onalym Nexus.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/skyix.png
+    // Ability Script: Ability_Skyix.cs
+    /* VOICE PROFILE:
+     * Pitch: Mid-Range Mezzo-Shorano
+     * Tempo: Steady and Precise (130-140 WPM)
+     * Texture & Effects: Clean, Clear, and Articulated. Subtle Digital/Synthetic Filter (low chorus).
+     * Projection: Medium-High, Direct
+     * Tone & Style: Driven, Loving, Determined. Underlying sorrow/weariness.
+     * Keywords: Digital, Bionic, Precise, Loving, Clear Articulation, Subtle Filter.
+    */
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+
+
+    // Protagonist: Kai the The Child of Prophecy
+    // Description: Sky.ix's child, lost and now found. Holds the key to the Prophecy.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/characters/kai.png
+    // Ability Script: Ability_Kai.cs
+    /* VOICE PROFILE:
+     * Pitch: Gender Neutral/Mid-Range
+     * Tempo: Slow and Paused (70-90 WPM)
+     * Texture & Effects: Aged, Weathered, and Layered. Subtle Temporal Echo/Layering effect.
+     * Projection: Soft, but Infinitely Resonant
+     * Tone & Style: Cryptic, Calm, Profound, and Fatalistic. Speaks in metaphor.
+     * Keywords: Ancient, Layered, Slow, Resonant, Cryptic, Contemplative.
+    */
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
+
+
+    // Antagonist: Delilah the The Desolate
+    // Description: A corrupted form of Ingris, wielding Voidfire.
+    // Image URL: https://storage.googleapis.com/aistudio-e-i-internal-proctoring-prod.appspot.com/public-assets/antagonists/delilah.png
+    // Ability Script: Ability_Delilah.cs
+    /* VOICE PROFILE:
+     * Not available.
+    */
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
 
