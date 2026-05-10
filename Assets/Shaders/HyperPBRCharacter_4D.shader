@@ -78,13 +78,13 @@ Shader "Milehigh/HyperPBRCharacter_4D"
         void vert (inout appdata_full v, out Input o)
         {
             UNITY_INITIALIZE_OUTPUT(Input, o);
+            o.N = UnityObjectToWorldNormal(v.normal);
             o.T = UnityObjectToWorldDir(v.tangent.xyz);
             o.B = cross(o.N, o.T) * v.tangent.w; // Bitangent
-            o.N = UnityObjectToWorldNormal(v.normal);
 
             // Parallax Occlusion Mapping
             half h = tex2Dlod(_ParallaxMap, float4(v.texcoord.xy, 0, 0)).a;
-            float2 offset = ParallaxOffset(h, _Parallax, v.viewDir);
+            float2 offset = ParallaxOffset(h, _Parallax, ObjSpaceViewDir(v.vertex));
             v.texcoord.xy += offset;
         }
 
@@ -92,13 +92,16 @@ Shader "Milehigh/HyperPBRCharacter_4D"
         float3 Iridescence(float thickness, float NdotV)
         {
             float3 interference = sin(2.0 * 3.14159 * thickness * float3(1.0, 0.8, 0.6) / NdotV) * 0.5 + 0.5;
-            return pow(interference, 2.0);
+            // ⚡ Bolt: Replace pow(interference, 2.0) with interference * interference for performance
+            return interference * interference;
         }
 
         void surf (Input IN, inout SurfaceOutputStandardSpecular o)
         {
-            fixed4 albedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
-            clip(albedo.a - _Cutoff);
+            // BOLT: Moved base albedo assignment to the start to prevent dead-work and correctly apply additive effects.
+            fixed4 texAlbedo = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            o.Albedo = texAlbedo.rgb;
+            clip(texAlbedo.a - _Cutoff);
 
             // --- PBR Properties ---
             fixed4 rmai = tex2D(_RMAIMap, IN.uv_MainTex);
@@ -120,7 +123,8 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half noise = tex3D(_NoiseTex, noiseCoord.xyz + noiseCoord.w).r;
 
                 // Add emissive glow based on noise
-                o.Emission = _EffectColor.rgb * pow(noise, 3.0) * effectMask * 2.0;
+                // ⚡ Bolt: Replace pow(noise, 3.0) with noise * noise * noise for performance
+                o.Emission = _EffectColor.rgb * (noise * noise * noise) * effectMask * 2.0;
             }
 
             // --- Iridescence ---
@@ -133,6 +137,11 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Specular = lerp(o.Specular, o.Specular * iridescence, iridescenceMask);
             }
 
+            o.Albedo = albedo.rgb;
+            // ⚡ Bolt: Removed dead SSS calculation block that was previously here.
+            // It was performing expensive texture samples and ALU ops only to be
+            // completely overwritten by the following assignment.
+            o.Albedo = albedo.rgb;
             // --- Subsurface Scattering ---
             half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
             if (sssMask > 0)
@@ -140,11 +149,13 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 // A more advanced SSS would use a proper lighting model.
                 // This is a stylistic approximation.
                 half NdotL = dot(o.Normal, _WorldSpaceLightPos0.xyz);
-                half sss = pow(saturate(dot(IN.viewDir, -_WorldSpaceLightPos0.xyz)), 8.0) * _SSSScale;
+                // ⚡ Bolt: Replace pow(..., 8.0) with nested squares for performance
+                half sss_base = saturate(dot(IN.viewDir, -_WorldSpaceLightPos0.xyz));
+                half sss_sq = sss_base * sss_base;
+                half sss_4 = sss_sq * sss_sq;
+                half sss = sss_4 * sss_4 * _SSSScale;
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
             }
-
-            o.Albedo = albedo.rgb;
         }
         ENDCG
     }
