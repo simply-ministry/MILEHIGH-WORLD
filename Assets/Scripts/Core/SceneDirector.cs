@@ -1132,6 +1132,14 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Hardening against potential DoS via expensive GameObject.Find.
+            // Limit the length of the name and validate allowed characters.
+            if (objectName.Length > 128 || !System.Text.RegularExpressions.Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious or oversized object name: {objectName}");
+                return null;
+            }
+
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             {
