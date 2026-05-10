@@ -678,6 +678,9 @@ namespace Milehigh.Cinematics
     void Update()
     void Start()
     {
+        // ⚡ Bolt: Precise skip detection for refined UX.
+        // We focus on primary confirmation keys to prevent accidental skips from accidental key presses.
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
         // Poll for skip input to ensure responsiveness (anyKeyDown covers mouse/keyboard/gamepad)
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
@@ -2434,6 +2437,9 @@ namespace Milehigh.Cinematics
     }
 
     /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
+    public void ShowDialogue(string speaker, string message)
     /// Yields until the specified time has passed or the user requests a skip.
     /// </summary>
     private IEnumerator WaitForSecondsOrSkip(float time)
@@ -2477,6 +2483,14 @@ namespace Milehigh.Cinematics
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
         DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
+
+        // BOLT: Optimized single loop for typewriter effect.
+        // We use GetWait(float) to ensure zero-allocation yields.
+        for (int i = 0; i < totalVisibleCharacters; i++)
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
 
@@ -2492,15 +2506,58 @@ namespace Milehigh.Cinematics
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
 
+            // Reveal character at index i
+            DialogueText.maxVisibleCharacters = i + 1;
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
         yield return WaitForSecondsOrSkip(7.5f);
 
+            // Base reveal delay
+            yield return GetWait(currentTypingSpeed);
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // Note: Delay occurs *after* character reveal for natural rhythm.
             char c = textInfo.characterInfo[i].character;
+            float extraDelay = 0f;
             float delay = currentTypingSpeed;
 
             // UX Enhancement: Rhythmic punctuation pauses for natural reading
             if (c == '.' || c == '!' || c == '?')
             {
+                // Smart Punctuation: Check for ellipsis or mid-word periods (e.g., Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < totalVisibleCharacters)
+                {
+                    char nextChar = textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    extraDelay = currentTypingSpeed * 14f;
+                }
+                else if (c == '.' && i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.')
+                {
+                    extraDelay = currentTypingSpeed * 4f; // Faster dot-dot-dot
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                extraDelay = currentTypingSpeed * 7f;
+            }
+
+            if (extraDelay > 0 && !skipRequested)
+            {
+                yield return GetWait(extraDelay);
+            }
+        }
+
+        // Ensure all characters (including completion cue) are visible
+        DialogueText.maxVisibleCharacters = textInfo.characterCount;
+
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
+        typingCoroutine = null;
+        yield break;
+    }
                 // Refined ellipsis detection
                 bool isEllipsis = (i > 0 && textInfo.characterInfo[i - 1].character == '.') ||
                                  (i < totalCharacters - 2 && textInfo.characterInfo[i + 1].character == '.');

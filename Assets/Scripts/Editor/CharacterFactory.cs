@@ -35,6 +35,11 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking absolute paths.
+                Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
+            }
+            catch (System.Exception ex)
+            {
                 // 🛡️ Sentinel: Security enhancement - Avoid leaking absolute paths or stack traces in logs.
                 Debug.LogError($"Failed to load campaign data: {ex.Message}");
             }
@@ -71,6 +76,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            // NRT Pattern: Captured local 'data' ensures safety.
             if (!data.IsValid())
             // 🛡️ Sentinel: Security validation of deserialized data.            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to ensure integrity
@@ -83,7 +89,7 @@ namespace Milehigh.Editor
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent resource exhaustion.
             if (data == null || !data.IsValid())
             {
-                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
+                Debug.LogError($"[Security] Character import aborted: Campaign data from {fileName} failed validation.");
                 return;
             }
 
@@ -96,6 +102,24 @@ namespace Milehigh.Editor
                 }
                 AssetDatabase.CreateFolder("Assets/Data", "Characters");
             }
+
+            // NRT Pattern: Capture property in local variable before iteration
+            var characters = data.characters;
+            if (characters != null)
+            {
+                foreach (var charProfile in characters)
+                {
+                    if (charProfile == null) continue;
+
+                    CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
+                    asset.characterName = charProfile.name;
+                    asset.role = charProfile.role;
+                    asset.traits = charProfile.traits;
+                    asset.behaviorScript = charProfile.behaviorScript;
+
+                    // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                    string safeFileName = GetSafeFileName(charProfile.name);
+                    string assetPath = $"{folderPath}/{safeFileName}.asset";
 
             if (data.characters != null)
             {
@@ -183,6 +207,22 @@ namespace Milehigh.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Robust path sanitization helper.
+        /// Uses a strict whitelist to prevent directory traversal and hidden files.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Whitelist: Allow only alphanumeric, underscores, and hyphens.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Strip leading dots/underscores to prevent hidden files or traversal.
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized))
 
         /// <summary>
         /// 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
@@ -299,6 +339,7 @@ namespace Milehigh.Editor
                 return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
             }
 
+            return sanitized;
             // 3. Replace whitespaces with underscores.
             safeName = safeName.Replace(" ", "_");
 

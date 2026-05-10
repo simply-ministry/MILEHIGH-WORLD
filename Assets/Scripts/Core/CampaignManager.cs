@@ -71,12 +71,18 @@ namespace Milehigh.Core
                 try
                 {
                     string json = File.ReadAllText(filePath);
-                    currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
+                    var data = JsonUtility.FromJson<HorizonGameData>(json);
 
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
                     var data = currentCampaignData;
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
+                    // NRT Pattern: Use local variable 'data' for consistent flow analysis.
+                    if (data != null && data.IsValid())
+                    {
+                        currentCampaignData = data;
+                        currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     if (data != null && data.IsValid())
                     {
                         currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
