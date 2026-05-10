@@ -11,5 +11,6 @@ namespace Milehigh.Data
         public string[] traits;
         [TextArea(10, 20)]
         public string behaviorScript;
+        public float vanguardMultiplier = 1.0f;
     }
 }
