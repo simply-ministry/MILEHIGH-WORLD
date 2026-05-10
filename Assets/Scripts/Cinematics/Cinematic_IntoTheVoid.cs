@@ -534,10 +534,23 @@ namespace Milehigh.Cinematics
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
                     if (c == '.' || c == '!' || c == '?')
                     {
+                        delay = currentTypingSpeed * 15f;
+
+                        // Look-ahead: avoid pauses for mid-word periods (e.g., Sky.ix)
+                        if (c == '.' && i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            if (!char.IsWhiteSpace(nextChar)) delay = currentTypingSpeed;
+                        }
+
+                        // Ellipsis detection: 5x delay for dots in '...'
                         bool isEllipsis = false;
                         if (c == '.')
                         {
                             if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                            else if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        }
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
                             if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
                         }
 
@@ -635,6 +648,8 @@ namespace Milehigh.Cinematics
         }
 
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // The completion character '▽' is color-coded to match the speaker's theme.
+        DialogueText.text = message + $" <color={currentSpeakerHex}>▽</color>";
         DialogueText.text = message + " V";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         private IEnumerator WaitForSecondsOrSkip(float duration)
