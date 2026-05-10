@@ -50,6 +50,8 @@ namespace Milehigh.Editor
                 return;
             }
 
+            // 🛡️ Sentinel: Security validation of deserialized data.
+            if (data == null || data.characters == null || !data.IsValid())
             if (!data.IsValid())
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"Failed to load or parse campaign data: {ex.Message}");
@@ -95,6 +97,8 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                 string safeFileName = charProfile.name;
                 string safeFileName = GetSafeFileName(charProfile.name);
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.

@@ -20,6 +20,8 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
+        public bool IsValid()
+        {
         /// <summary>
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and resource limits.
         /// </summary>
@@ -40,6 +42,7 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Metadata validation failed: environment is null or exceeds 128 characters.");
                 return false;
             }
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
 
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
@@ -47,7 +50,6 @@ namespace Milehigh.Data
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
-
             return true;
         }
     }
@@ -80,6 +82,7 @@ namespace Milehigh.Data
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
             if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             // SECURITY: behaviorScript limit increased to 2048 to support complex AI behaviors while maintaining DoS protection.
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
@@ -132,6 +135,8 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
+        public string objectId = null!;
+        public string action = null!;
         public string objectId = string.Empty;
         public string action = string.Empty;
 
@@ -220,6 +225,16 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
+            if (dialogue != null && dialogue.Count > 50) return false;
+            if (interactiveObjects != null)
+            {
+                foreach (var i in interactiveObjects) if (i == null || !i.IsValid()) return false;
+            }
+            if (dialogue != null)
+            {
+                foreach (var d in dialogue) if (d == null || !d.IsValid()) return false;
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
             {
                 Debug.LogError("[Security] Scenario validation failed: scenarioId is missing or too long (max 128).");
@@ -266,6 +281,13 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters = new List<CharacterProfile>();
         public List<SceneScenario> scenarios = new List<SceneScenario>();
 
+        public bool IsValid()
+        {
+            if (metadata == null || !metadata.IsValid()) return false;
+            if (characters == null || characters.Count == 0 || characters.Count > 50) return false;
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100) return false;
+            foreach (var c in characters) if (c == null || !c.IsValid()) return false;
+            foreach (var s in scenarios) if (s == null || !s.IsValid()) return false;
         /// <summary>
         /// 🛡️ Sentinel: Performs hierarchical integrity and security validation on the entire campaign dataset.
         /// </summary>

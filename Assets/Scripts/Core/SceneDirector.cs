@@ -13,6 +13,10 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+        private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
+
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
@@ -379,6 +383,10 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj))
+            {
+                if (System.Object.ReferenceEquals(obj, null)) return null;
+                if (obj == null)
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
@@ -627,6 +635,11 @@ namespace Milehigh.Core
                 }
             }
 
+            GameObject? foundObj = GameObject.Find(objectName);
+            _objectCache[objectName] = foundObj;
+            return foundObj;
+            }
+
             GameObject foundObj = GameObject.Find(objectName);
             _objectCache[objectName] = foundObj; // negative cache if not found
             return foundObj;
@@ -664,6 +677,10 @@ namespace Milehigh.Core
 
         private GameObject? GetPrefab(string profileName)
         {
+            if (string.IsNullOrEmpty(profileName)) return null;
+            if (_prefabCache.TryGetValue(profileName, out GameObject prefab)) return prefab;
+
+            prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profileName))!;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
@@ -730,6 +747,9 @@ namespace Milehigh.Core
             {
                 _prefabCache[profileName] = prefab;
             }
+            return prefab;
+        }
+
             return prefab;
         }
 
@@ -917,6 +937,8 @@ namespace Milehigh.Core
                 }
             }
 
+            if (CampaignManager.Instance.currentCampaignData != null && CampaignManager.Instance.currentCampaignData.scenarios.Count > 0)
+            {
             // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
             var campaignManager = CampaignManager.Instance;
             if (campaignManager != null)
@@ -977,6 +999,9 @@ namespace Milehigh.Core
         {
             if (scenario == null) return;
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
+
+            _objectCache.Clear();
+            _controllerCache.Clear();
 
             _objectCache.Clear();
             _controllerCache.Clear();
@@ -1051,6 +1076,7 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                GameObject? prefab = GetPrefab(profile.name);
                 // BOLT: Optimized prefab lookup using dictionary instead of linear search
                 _prefabCache.TryGetValue(profile.name, out GameObject prefab);
 
@@ -1338,6 +1364,13 @@ namespace Milehigh.Core
                     target.transform.localScale = Vector3.one * interaction.floatValue;
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            _objectCache.Clear();
+            _prefabCache.Clear();
+            _controllerCache.Clear();
         }
     }
 }
