@@ -114,12 +114,8 @@ namespace Milehigh.Cinematics
     public TextMeshProUGUI DialogueText;
 
     [Header("UX Settings")]
-    [FormerlySerializedAs("typingSpeed")]
-    [Tooltip("Base delay in seconds between each character being revealed.")]
     public float baseTypingSpeed = 0.03f;
-    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
     public float kaiSpeedMultiplier = 3.0f;
-    [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine typingCoroutine;
@@ -131,6 +127,7 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
     private Vector3 _originalSpeakerScale;
     private string _lastSpeaker;
     private Coroutine _popCoroutine;
@@ -226,6 +223,20 @@ namespace Milehigh.Cinematics
             return wait;
         }
 
+    void Start()
+    {
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
+            return;
+        }
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
     private IEnumerator WaitForSecondsOrSkip(float time)
     {
         // UX: Support all input types (keyboard, mouse, gamepad) for cinematic skipping
@@ -388,6 +399,9 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+
+        Color speakerColor;
+        switch (speaker)
         idleTimer = 0;
         playerInteracted = false;
         if (SkipHint != null) SkipHint.gameObject.SetActive(false);
@@ -431,6 +445,7 @@ namespace Milehigh.Cinematics
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        SpeakerNameText.color = speakerColor;
         currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         typingCoroutine = StartCoroutine(TypeDialogue(message));
             SpeakerNameText.text = speaker;
@@ -500,6 +515,23 @@ namespace Milehigh.Cinematics
             if (i > 0 && i <= totalVisibleCharacters)
             {
                 float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i].character;
+
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    else delay = currentTypingSpeed * 5f; // Potential mid-word or ellipsis
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
@@ -839,6 +871,27 @@ namespace Milehigh.Cinematics
 
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
+
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        yield return WaitForSecondsOrSkip(7.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        yield return WaitForSecondsOrSkip(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        yield return WaitForSecondsOrSkip(8.0f);
+
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        yield return WaitForSecondsOrSkip(7.0f);
+
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        yield return WaitForSecondsOrSkip(4.5f);
+
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
+
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return WaitForSecondsOrSkip(5.5f);
 
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]

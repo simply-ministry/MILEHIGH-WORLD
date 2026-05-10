@@ -24,6 +24,11 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range.
+            // Consolidated multiple redundant checks into one.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // SECURITY: Limit environment string length to prevent DoS via memory exhaustion
             if (string.IsNullOrEmpty(environment) || environment.Length > 128)
             {
@@ -45,6 +50,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
         public string name = "";
         public string role = "";
         public string[] traits = Array.Empty<string>();
@@ -59,6 +68,10 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
+            if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             // SECURITY: Enforce string length limits to prevent resource exhaustion (DoS)
             if (string.IsNullOrEmpty(name) || name.Length > 128)
             {
@@ -136,6 +149,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker = "";
         public string text = "";
         public string trigger = "";
@@ -167,6 +183,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
         public string scenarioId = "";
         public string description = "";
         public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
