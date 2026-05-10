@@ -705,6 +705,8 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
     {
+        // Accessibility: any key down skips the typewriter effect
+        if (Input.anyKeyDown) skipRequested = true;
         if (DialogueCanvasGroup == null) yield break;
 
         float startAlpha = DialogueCanvasGroup.alpha;
@@ -2643,6 +2645,38 @@ namespace Milehigh.Cinematics
             // UX Enhancement: Rhythmic punctuation pauses for natural reading.
             // Note: Delay occurs *after* character reveal for natural rhythm.
             char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // Rhythmic typewriter effect: longer pauses for punctuation to mimic natural speech
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Refined ellipsis detection and mid-word period avoidance (e.g., Sky.ix)
+                bool isEllipsis = false;
+                if (c == '.')
+                {
+                    if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                    if (i < totalCharacters - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                }
+
+                if (isEllipsis) delay = currentTypingSpeed * 5f;
+                else if (c == '.' && i < totalCharacters - 1 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
+                {
+                    delay = currentTypingSpeed;
+                }
+                else
+                {
+                    delay = currentTypingSpeed * 15f;
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
             float extraDelay = 0f;
             float delay = currentTypingSpeed;
 
@@ -2769,7 +2803,6 @@ namespace Milehigh.Cinematics
         skipRequested = false;
         typingCoroutine = null;
     }
-
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         // Set initial alpha and enable dialogue box
