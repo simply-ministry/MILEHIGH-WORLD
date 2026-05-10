@@ -245,6 +245,7 @@ namespace Milehigh.Cinematics
     private Vector3 originalSpeakerNameScale;
     private Coroutine? typingCoroutine;
     private float currentTypingSpeed;
+    private string speakerHexColor;
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
@@ -434,6 +435,7 @@ namespace Milehigh.Cinematics
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
+        Color speakerColor = Color.white;
         // Apply character-specific colors
         // Apply character-specific colors for better speaker identification
         Color speakerColor;
@@ -447,6 +449,22 @@ namespace Milehigh.Cinematics
         switch (speaker)
         {
             case "Sky.ix":
+                speakerColor = Color.cyan;
+                break;
+            case "Kai":
+                speakerColor = new Color(1f, 0.84f, 0f); // Gold
+                break;
+            case "Delilah":
+                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                break;
+            default:
+                speakerColor = Color.white;
+                break;
+        }
+
+        SpeakerNameText.color = speakerColor;
+        speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
+
                 SpeakerNameText.color = Color.cyan;
                 currentSpeakerColorTag = "<color=#00FFFF>";
                 break;
@@ -475,7 +493,9 @@ namespace Milehigh.Cinematics
     /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
-        DialogueText.text = message;
+        // UX Enhancement: Reveal with completion cue already appended to prevent layout shifts.
+        // The cue is color-coded to match the speaker for a subtle touch of polish.
+        DialogueText.text = $"{message} <color=#{speakerHexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
         int totalCharacters = DialogueText.textInfo.characterCount;
@@ -637,6 +657,22 @@ namespace Milehigh.Cinematics
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Advanced Rhythmic Pacing: Natural speech patterns via punctuation pauses.
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        delay = currentTypingSpeed * 15f;
+
+                        // Look-ahead logic: Avoid long pauses for mid-word periods (e.g., Sky.ix)
+                        if (i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            if (!char.IsWhiteSpace(nextChar)) delay = currentTypingSpeed;
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
+                    // Detect ellipsis by checking previous characters
+                    else if (c == '.' && i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') delay = currentTypingSpeed * 5f;
                     bool isEllipsis = i > 1 && c == '.' && DialogueText.textInfo.characterInfo[i - 2].character == '.';
 
                     if (isEllipsis)
@@ -789,6 +825,7 @@ namespace Milehigh.Cinematics
             }
         }
 
+        skipRequested = false;
         DialogueText.text = message + " ▽";
             }
             else
