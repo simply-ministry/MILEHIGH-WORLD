@@ -3176,6 +3176,9 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // UX Enhancement: Visual progression cue themed to the speaker.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // Color-coded to match the speaker's theme.
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
