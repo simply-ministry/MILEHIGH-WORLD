@@ -80,6 +80,8 @@ namespace Milehigh.Core
                     else
                     {
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
+                        currentCampaignData = null; // Ensure we don't use invalid data
+                    }
                     // UNITY NRT Flow Analysis Pattern: Capture singleton property in local variable
                     var data = currentCampaignData;
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.

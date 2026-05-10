@@ -103,6 +103,7 @@ namespace Milehigh.Editor
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent resource exhaustion.
             if (data == null || !data.IsValid())
             {
+                Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
                 Debug.LogError($"[Security] Character import aborted: Campaign data from {fileName} failed validation.");
                 return;
             }
@@ -223,6 +224,9 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+
+                // Ensure no directory traversal sequences remain and replace spaces
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
                 // Ensure no directory traversal sequences remain and replace spaces
                 safeFileName = safeFileName.Replace(" ", "_");
                 // Ensure no directory traversal sequences remain by using Path.GetFileName
