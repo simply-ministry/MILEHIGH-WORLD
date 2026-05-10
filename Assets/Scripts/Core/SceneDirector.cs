@@ -768,6 +768,16 @@ namespace Milehigh.Core
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
             if (string.IsNullOrEmpty(profileName)) return null;
 
+        // 🛡️ Sentinel: Exact-match blacklist of critical system objects to prevent IDOR-like tampering
+        private readonly HashSet<string> _restrictedSystemObjects = new HashSet<string>
+        {
+            "CampaignManager",
+            "SceneDirector",
+            "CameraManager",
+            "AlliancePowerManager"
+        };
+
+        private GameObject GetCachedObject(string objectName)
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
             {
                 if (prefab != null) return prefab;
@@ -1513,6 +1523,14 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Validate that the requested object ID is not a restricted system object.
+            // SECURITY: Prevents IDOR-like tampering where untrusted JSON data manipulates critical singletons.
+            if (_restrictedSystemObjects.Contains(interaction.objectId))
+            {
+                Debug.LogWarning($"[Security] Attempted to apply interaction to restricted system object: {interaction.objectId}. Action blocked.");
+                return;
+            }
+
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
             {
