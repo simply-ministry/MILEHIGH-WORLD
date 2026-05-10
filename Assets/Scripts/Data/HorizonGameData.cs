@@ -86,6 +86,10 @@ namespace Milehigh.Data
     [Serializable]
     public class CharacterProfile
     {
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
         public string name;
         public string role;
         public string[] traits;
@@ -104,6 +108,9 @@ namespace Milehigh.Data
             }
 
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
+            if (traits != null && traits.Length > 10) return false;
+            // SECURITY: behaviorScript can be long (it's code) but we still enforce a maximum for DoS prevention.
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 64) return false;
 
             // SECURITY: Limit traits collection size
@@ -163,6 +170,9 @@ namespace Milehigh.Data
     [Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker;
         public string text;
         public string trigger;
@@ -183,6 +193,10 @@ namespace Milehigh.Data
     [Serializable]
     public class SceneScenario
     {
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
         public string scenarioId;
         public string description;
         public List<ObjectInteraction> interactiveObjects;

@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 
 namespace Milehigh.Editor
@@ -17,9 +18,7 @@ namespace Milehigh.Editor
                 return;
             }
 
-            string json = File.ReadAllText(path);
-            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
-            HorizonGameData data = null;
+            HorizonGameData? data = null;
             try
             {
                 string json = File.ReadAllText(path);
@@ -48,6 +47,9 @@ namespace Milehigh.Editor
             {
                 // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError("Failed to load or parse campaign data. Error parsing file.");
+                return;
+            }
+
             // 🛡️ Sentinel: Security validation of deserialized data.
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent DoS.
             // SECURITY: Always validate data after deserialization
@@ -61,7 +63,7 @@ namespace Milehigh.Editor
 
             string folderPath = "Assets/Data/Characters";
             if (!AssetDatabase.IsValidFolder(folderPath))
-            {2w33 f. 
+            {
                 if (!AssetDatabase.IsValidFolder("Assets/Data"))
                 {
                     AssetDatabase.CreateFolder("Assets", "Data");
@@ -69,8 +71,15 @@ namespace Milehigh.Editor
                 AssetDatabase.CreateFolder("Assets/Data", "Characters");
             }
 
-            foreach (var charProfile in data.characters)
+            if (data.characters != null)
             {
+                foreach (var charProfile in data.characters)
+                {
+                    CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
+                    asset.characterName = charProfile.name;
+                    asset.role = charProfile.role;
+                    asset.traits = charProfile.traits;
+                    asset.behaviorScript = charProfile.behaviorScript;
                 if (charProfile == null) continue;
 
                 CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
@@ -101,13 +110,23 @@ namespace Milehigh.Editor
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
 
-                string sanitizedName = charProfile.name;
+                    // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                    string safeFileName = GetSafeFileName(charProfile.name);
+                    string assetPath = $"{folderPath}/{safeFileName}.asset";
 
-                foreach (char c in Path.GetInvalidFileNameChars())
-                {
-                    safeFileName = safeFileName.Replace(c, '_');
+                    AssetDatabase.CreateAsset(asset, assetPath);
+                    // SECURITY: Log relative asset path to avoid absolute path disclosure.
+                    Debug.Log($"Created character asset: {assetPath}");
                 }
+            }
 
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 // Ensure no directory traversal sequences remain and replace whitespace
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
@@ -133,11 +152,16 @@ namespace Milehigh.Editor
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
 
-                string assetPath = $"{folderPath}/{safeFileName}.asset";
-                AssetDatabase.CreateAsset(asset, assetPath);
+            // 🛡️ Sentinel: Use a strict whitelist-based regex to strip dangerous characters and prevent path traversal.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+            sanitized = sanitized.TrimStart('.', '_'); // Strip leading dots/underscores
 
-                // SECURITY: Log relative asset path to avoid absolute path disclosure
+            // Ensure no directory traversal remains
+            string safeName = Path.GetFileName(sanitized);
 
+            if (string.IsNullOrEmpty(safeName))
+            {
+                return "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
 
@@ -145,8 +169,7 @@ namespace Milehigh.Editor
                 Debug.Log($"Created character asset: {assetPath}");
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            return safeName;
         }
     }
 }

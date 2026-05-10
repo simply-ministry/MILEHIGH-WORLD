@@ -68,6 +68,7 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        // SECURITY: Fail securely and don't use invalid data. Mask runtime exception details and avoid leaking absolute paths.
                         Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
                         currentCampaignData = null; // Ensure we don't use invalid data
                     }
@@ -78,11 +79,12 @@ namespace Milehigh.Core
                         currentCampaignData = null;
                         // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
-                        currentCampaignData = null; // Ensure we don't use invalid data
+                        currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)
                 {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
                     else
                     {
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");
