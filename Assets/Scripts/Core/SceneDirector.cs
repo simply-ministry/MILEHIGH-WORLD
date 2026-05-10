@@ -2072,6 +2072,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR by blocking manipulation of core system managers.
             // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
@@ -2164,6 +2165,10 @@ namespace Milehigh.Core
                 interaction.objectId == "CameraManager" ||
                 interaction.objectId == "AlliancePowerManager")
             {
+                Debug.LogWarning($"Security Block: Unauthorized interaction attempt with protected system object: {interaction.objectId}");
+                return;
+            }
+
                 Debug.LogError($"[Security] Blocked unauthorized interaction with core system object: {interaction.objectId}");
                 Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected system object: {interaction.objectId}");
                 Debug.LogWarning("Security: Blocked unauthorized interaction with core system manager.");
