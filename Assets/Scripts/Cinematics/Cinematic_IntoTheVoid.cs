@@ -242,6 +242,7 @@ namespace Milehigh.Cinematics
     public float skyixSpeedMultiplier = 1.2f;
 
     private Coroutine? typingCoroutine;
+    private Coroutine? scalingCoroutine;
     private Coroutine? speakerPopCoroutine;
     private Coroutine typingCoroutine;
     private Coroutine popCoroutine;
@@ -252,6 +253,7 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private Vector3 originalSpeakerScale;
     private string cachedHexColor = "FFFFFF";
     private string currentSpeakerHex;
     private Vector3 speakerNameOriginalScale;
@@ -399,6 +401,14 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        originalSpeakerScale = SpeakerNameText.transform.localScale;
+
+        // 🎨 Palette: Accessibility - Text outline for better contrast in dark scenes
+        SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
@@ -473,6 +483,7 @@ namespace Milehigh.Cinematics
     void Start()
     void Update()
     {
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
         if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
@@ -531,6 +542,13 @@ namespace Milehigh.Cinematics
         skipRequested = false;
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
         if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
+
+        // 🎨 Palette: PopScale animation for speaker name changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (scalingCoroutine != null) StopCoroutine(scalingCoroutine);
+            scalingCoroutine = StartCoroutine(PopScaleSpeaker());
+        }
 
         // UI Juice: Apply a pop animation to the speaker name when it changes
         if (SpeakerNameText.text != speaker)
@@ -622,6 +640,36 @@ namespace Milehigh.Cinematics
         StartCoroutine(PopScale(SpeakerNameText.rectTransform));
     }
 
+    private IEnumerator PopScaleSpeaker()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        float targetScale = 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            // Simple bounce-out curve
+            float s = 1f + Mathf.Sin(t * Mathf.PI) * (targetScale - 1f);
+            SpeakerNameText.transform.localScale = originalSpeakerScale * s;
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalSpeakerScale;
+        scalingCoroutine = null;
+    }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
     /// <summary>
     /// Unified typewriter effect that handles rich text, rhythmic pauses, and skip logic.
     /// </summary>
@@ -667,6 +715,17 @@ namespace Milehigh.Cinematics
             // Rhythmic punctuation pauses to mimic natural speech cadence
             if (c == '.' || c == '!' || c == '?')
             {
+                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
                 // Look ahead to distinguish sentence endings from mid-word periods (e.g., Sky.ix)
                 bool isEndOfSentence = true;
                 if (i + 1 < mainMessageLength)
@@ -905,6 +964,16 @@ namespace Milehigh.Cinematics
                     else if (c == '.' && i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') delay = currentTypingSpeed * 5f;
                     bool isEllipsis = i > 1 && c == '.' && DialogueText.textInfo.characterInfo[i - 2].character == '.';
 
+                    if (isEndOfSentence)
+                    {
+                        bool isEllipsis = (i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.') ||
+                                         (i > 0 && textInfo.characterInfo[i - 1].character == '.');
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                     delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                 }
             }
@@ -1096,6 +1165,8 @@ namespace Milehigh.Cinematics
             }
         }
 
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        skipRequested = false;
         // UX Enhancement: Visual progression cue color-coded to the speaker's theme.
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         skipRequested = false;
