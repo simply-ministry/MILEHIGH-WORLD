@@ -145,7 +145,7 @@ namespace Milehigh.Core
                         currentCampaignData = null;
                     }
                 }
-                catch (System.Exception ex)
+                catch (System.Exception)
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely.
                     // Mask runtime exception stack traces and avoid leaking absolute paths in logs.
@@ -166,6 +166,7 @@ namespace Milehigh.Core
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
                     Debug.LogError($"Failed to load or parse campaign data from {fileName}: {ex.Message}");
                     // SECURITY: Mask runtime exception stack traces and avoid leaking absolute paths in logs
+                    Debug.LogError($"Error loading campaign data from {fileName}. Verify file integrity.");
                     Debug.LogError("Error loading campaign data from " + fileName + ": " + ex.Message);
                     Debug.LogError($"Error loading or parsing campaign data from {fileName}: {ex.Message}");
                     Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");

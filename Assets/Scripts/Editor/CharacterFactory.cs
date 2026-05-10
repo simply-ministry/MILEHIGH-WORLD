@@ -18,6 +18,7 @@ namespace Milehigh.Editor
                 return;
             }
 
+            HorizonGameData? data = null;
             HorizonGameData data = null;
             try
             {
@@ -73,6 +74,7 @@ namespace Milehigh.Editor
             }
 
             // 🛡️ Sentinel: Security validation of deserialized data.
+            if (!data.IsValid())
             // SECURITY: Always validate data after deserialization to ensure integrity and prevent DoS.
             // SECURITY: Always validate data after deserialization
             // SECURITY: Always validate data after deserialization to ensure integrity
@@ -115,6 +117,7 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = charProfile.name ?? "unnamed_character";
                 // Malicious JSON could use directory traversal sequences (e.g., "../") to write assets outside the intended directory.
                 string baseName = charProfile.name ?? "unnamed_character";
                 string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
