@@ -25,7 +25,7 @@ namespace Milehigh.Core
             }
         }
 
-        public HorizonGameData currentCampaignData;
+        public HorizonGameData currentCampaignData = null!;
         public float currentVoidSaturationLevel;
 
         private void Awake()
