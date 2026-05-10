@@ -57,6 +57,13 @@
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion cue (like '▽') provides essential feedback that a dialogue block is finished and the user can proceed.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
+**Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
+**Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2026-03-26 - [Discoverable Dialogue Skip Hint]
+**Learning:** Implementing a "discoverable" skip hint that only appears after a short period of inactivity (e.g., 2 seconds) during dialogue provides essential guidance for new or struggling users without cluttering the UI or breaking immersion for experienced players. This "just-in-time" assistance balances accessibility with cinematic aesthetics.
+**Action:** Use an 'idleTimer' and 'playerInteracted' flag pattern in cinematic scripts to show skip prompts only when needed.
 ## 2026-03-25 - [Robust Cinematic UI Animations]
 **Learning:** Scale-based "pop" effects for speaker identification in Unity should use 'Time.unscaledDeltaTime' to ensure consistent behavior regardless of game pauses or time-scale shifts during cinematics. Capturing the initial 'localScale' in 'Start' is critical to ensure compatibility with dynamic layouts and prevent permanent scale drift when stopping and starting overlapping animations.
 **Action:** Always use 'Time.unscaledDeltaTime' for UI juice effects and capture base transform states before starting lerp-based coroutines.

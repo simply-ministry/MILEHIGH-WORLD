@@ -92,6 +92,10 @@ namespace Milehigh.Cinematics
     public AudioSource Delilah_VoiceSource;
 
     [Header("UI Components")]
+    public GameObject DialogueBox = null!;
+    public TextMeshProUGUI SpeakerNameText = null!;
+    public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI SkipHint = null!;
     public GameObject DialogueBox;
     public TextMeshProUGUI SpeakerNameText;
     public TextMeshProUGUI DialogueText;
@@ -109,6 +113,8 @@ namespace Milehigh.Cinematics
     private float currentTypingSpeed;
     private string currentSpeakerHex;
     private bool skipRequested;
+    private float idleTimer;
+    private bool playerInteracted;
 
     private Vector3 _originalSpeakerScale;
     private string _lastSpeaker;
@@ -165,6 +171,32 @@ namespace Milehigh.Cinematics
 
     private IEnumerator WaitForSecondsOrSkip(float time)
     {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+
+        // UX Enhancement: Show "[Space] Skip" hint after 2 seconds of idleness during dialogue.
+        // This makes the skip feature discoverable without cluttering the UI for experienced players.
+        if (DialogueBox.activeInHierarchy && !playerInteracted && !skipRequested)
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2.0f && SkipHint != null && !SkipHint.gameObject.activeSelf)
+            {
+                SkipHint.text = "[Space] Skip";
+                SkipHint.gameObject.SetActive(true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
         float startTime = Time.time;
         while (Time.time - startTime < time && !skipRequested)
         {
@@ -201,6 +233,16 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // Programmatic fallback for SkipHint to ensure UX feature works even if not assigned in inspector.
+        if (SkipHint == null)
+        {
+            SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>()!;
+        }
+
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
         // Palette UX: Apply subtle outlines to dialogue text for improved accessibility and legibility.
         SpeakerNameText.outlineWidth = 0.2f;
         SpeakerNameText.outlineColor = Color.black;
@@ -238,6 +280,11 @@ namespace Milehigh.Cinematics
         // Palette UX: Visual pop feedback for speaker transition.
         if (SpeakerNameText.text != speaker) StartCoroutine(PopScale(SpeakerNameText.transform));
         SpeakerNameText.text = speaker;
+
+        // Reset idle timer and hint state for each new dialogue line
+        idleTimer = 0;
+        playerInteracted = false;
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         // Apply speaker-specific speed multipliers based on voice profiles
         float multiplier = 1.0f;
@@ -289,6 +336,22 @@ namespace Milehigh.Cinematics
 
     private IEnumerator TypeDialogue(string message)
     {
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 0; i <= totalVisibleCharacters; i++)
+        {
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                break;
+            }
+
+            DialogueText.maxVisibleCharacters = i;
         DialogueText.text = message;
         DialogueText.maxVisibleCharacters = 0;
         DialogueText.ForceMeshUpdate();
@@ -338,6 +401,28 @@ namespace Milehigh.Cinematics
 
             while (elapsed < duration)
             {
+                float delay = currentTypingSpeed;
+
+                if (i > 0)
+                {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEllipsis = false;
+                        if (c == '.')
+                        {
+                            if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                            if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                        }
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                        {
+                            delay = currentTypingSpeed;
+                        }
+                        else delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
                 target.localScale = Vector3.Lerp(originalSpeakerScale, peakScale, Mathf.Sin(t * Mathf.PI));
@@ -424,6 +509,7 @@ namespace Milehigh.Cinematics
             skipRequested = false; // Reset skip state after the pause
         }
 
+        skipRequested = false;
         // UX Enhancement: Color-coded visual progression cue indicating text reveal is complete.
         DialogueText.text = $"{message} <color={currentSpeakerHex}>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
