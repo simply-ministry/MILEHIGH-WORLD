@@ -9,6 +9,20 @@ namespace Milehigh.Characters
 
         public override void ExecuteBehavior()
         {
+            // Base behavior override required by CharacterControllerBase
+        }
+
+        public void UpdateBehavior(float incomingForce, string attackType)
+        {
+            if (attackType == "rigid")
+            {
+                RedirectKineticForce(incomingForce);
+            }
+        }
+
+        private void RedirectKineticForce(float force)
+        {
+            Debug.Log($"Micah: Redirecting {force} kinetic force.");
         }
     }
 }
