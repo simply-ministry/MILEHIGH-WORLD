@@ -80,6 +80,10 @@ namespace Milehigh.Editor
                 asset.behaviorScript = charProfile.behaviorScript;
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                string safeFileName = GetSafeFileName(charProfile.name ?? "unnamed_character");
+                string assetPath = $"{folderPath}/{safeFileName}.asset";
+
+                AssetDatabase.CreateAsset(asset, assetPath);
                 string safeFileName = GetSafeFileName(charProfile.name);
                 if (string.IsNullOrEmpty(safeFileName))
                 {
@@ -234,6 +238,24 @@ namespace Milehigh.Editor
             }
 
             return sanitized;
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            // BOLT: Optimized path sanitization using a whitelist approach
+            string safeName = input.Replace(" ", "_");
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                safeName = safeName.Replace(c, '_');
+            }
+            // Strip leading dots or underscores to prevent hidden files/traversal
+            safeName = safeName.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(safeName))
+            {
+                safeName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+            return safeName;
         }
     }
 }

@@ -24,6 +24,7 @@ namespace Milehigh.Cinematics
 public class Cinematic_IntoTheVoid : MonoBehaviour
 namespace Milehigh.Cinematics
 {
+    [Header("Character Assets")]
 
     [Header("Character References")]
     public GameObject Skyix_Character = null!;
@@ -107,6 +108,7 @@ namespace Milehigh.Cinematics
     public TextMeshProUGUI DialogueText;
 
     [Header("UX Settings")]
+    [Tooltip("Base delay in seconds between each character being revealed.")]
     [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
@@ -124,6 +126,7 @@ namespace Milehigh.Cinematics
     private float idleTimer;
     private bool playerInteracted;
 
+    // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations
     private void Update()
     {
         // UX Enhancement: Standardized skip logic for both keyboard and mouse
@@ -336,6 +339,18 @@ namespace Milehigh.Cinematics
         }
     }
 
+    void Start()
+    {
+        // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException
+        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
+        {
+            Debug.LogError("Missing UI components required for cinematic. Aborting.");
+            return;
+        }
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
     void Update()
     {
         if (Input.anyKeyDown) skipRequested = true;
@@ -396,6 +411,8 @@ namespace Milehigh.Cinematics
             if (SpeakerNameText != null)
                 originalSpeakerScale = SpeakerNameText.transform.localScale;
         }
+    }
+
 
     }
 
@@ -442,6 +459,9 @@ namespace Milehigh.Cinematics
             DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
             yield return null;
         }
+        // Note: skipRequested is NOT reset here to allow skipping both the reveal and the subsequent pause
+    }
+
 
         DialogueCanvasGroup.alpha = targetAlpha;
         if (targetAlpha <= 0) DialogueBox.SetActive(false);
@@ -619,6 +639,7 @@ namespace Milehigh.Cinematics
             case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
             default: speakerColor = Color.white; break;
         }
+        }
         SpeakerNameText.color = speakerColor;
         public void ShowDialogue(string speaker, string message)
         {
@@ -707,6 +728,9 @@ namespace Milehigh.Cinematics
 
     private IEnumerator TypeDialogue(string message, Color color)
     {
+        // BOLT: Efficient typewriter reveal using maxVisibleCharacters
+        DialogueText.text = message;
+        DialogueText.maxVisibleCharacters = 0;
         string hexColor = ColorUtility.ToHtmlStringRGB(color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
         DialogueText.maxVisibleCharacters = 0;
@@ -725,11 +749,16 @@ namespace Milehigh.Cinematics
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
+
         TMP_TextInfo textInfo = DialogueText.textInfo;
         int totalCharacters = textInfo.characterCount;
 
-        for (int i = 0; i < totalCharacters; i++)
+        for (int i = 0; i <= totalCharacters; i++)
         {
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = totalCharacters;
+                break;
             if (skipRequested) break;
 
         int totalCharacters = DialogueText.textInfo.characterCount;
@@ -779,6 +808,7 @@ namespace Milehigh.Cinematics
                 if (idleTimer >= 2.0f && SkipHint != null && !SkipHint.gameObject.activeSelf)
             DialogueText.maxVisibleCharacters = i + 1;
 
+            if (i < totalCharacters)
             if (i > 0 && i < totalVisibleCharacters)
             {
                 char c = DialogueText.textInfo.characterInfo[i - 1].character;
@@ -788,6 +818,20 @@ namespace Milehigh.Cinematics
             {
                 char c = textInfo.characterInfo[i].character;
                 float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalCharacters && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
+                        isEndOfSentence = false;
+
+                    delay = currentTypingSpeed * (isEndOfSentence ? 15f : 1f);
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                 char c = DialogueText.textInfo.characterInfo[i].character;
 
                 // UX Enhancement: Rhythmic punctuation pauses for natural reading
@@ -1081,6 +1125,12 @@ namespace Milehigh.Cinematics
             typingCoroutine = null;
         }
 
+        // UX Enhancement: Visual progression cue
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = message + $" <color=#{hexColor}>▽</color>";
+        DialogueText.ForceMeshUpdate();
+        DialogueText.maxVisibleCharacters = DialogueText.textInfo.characterCount;
+
         private IEnumerator PopScale(Transform target, float duration, float multiplier)
         {
             Vector3 initialScale = originalSpeakerScale;
@@ -1308,6 +1358,9 @@ namespace Milehigh.Cinematics
 
         // --- ACTION: Sky.ix dashes towards the conduit ---
         yield return WaitForSecondsOrSkip(2.0f);
+
+        // --- Dialogue Line 6: Kai ---
+        yield return WaitForSecondsOrSkip(0.5f);
         // [ANIMATION: Skyix_Character.GetComponent<Animator>().SetTrigger("Dash_Forward");]
         // [VFX: Play glitchy dash particle trail from Sky.ix's starting position to the conduit.]
         // [CAMERA: Fast dolly track, following Sky.ix's movement. Add motion blur.]
