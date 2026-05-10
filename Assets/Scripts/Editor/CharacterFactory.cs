@@ -20,6 +20,8 @@ namespace Milehigh.Editor
                 return;
             }
 
+            string json = File.ReadAllText(path);
+            HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
             // NRT Pattern: Explicitly mark deserialized object as nullable
             HorizonGameData? data = null;
             try
@@ -127,12 +129,14 @@ namespace Milehigh.Editor
                 // Malicious JSON could use "../" to attempt writing assets outside the intended directory.
                 // We sanitize by replacing invalid chars and ensuring only the filename component is used.
                 string baseName = charProfile.name ?? "unnamed_character";
+                string safeFileName = Path.GetFileName(baseName);
                 string safeFileName = baseName;
 
                 foreach (char c in Path.GetInvalidFileNameChars())
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                safeFileName = safeFileName.Replace(" ", "_");
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
