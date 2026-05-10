@@ -1745,6 +1745,13 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects using exact matching
+            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
+            {
+                Debug.LogError($"[Security] Blocked unauthorized interaction with system object: {interaction.objectId}");
+                return;
+            }
+
             GameObject target = GetCachedGameObject(interaction.objectId);
             // 🛡️ Sentinel: Security validation to prevent IDOR via external JSON mapping to core managers.
             string[] protectedManagers = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
