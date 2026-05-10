@@ -647,6 +647,31 @@ namespace Milehigh.Cinematics
         public GameObject Delilah_Character = null!;
         public AudioSource Delilah_VoiceSource = null!;
 
+        currentTypingSpeed = baseTypingSpeed * multiplier;
+        skipRequested = false;
+
+        // Apply character-specific colors for better speaker identification
+        switch (speaker)
+        {
+            case "Sky.ix":
+                SpeakerNameText.color = Color.cyan;
+                break;
+            case "Kai":
+                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
+                break;
+            case "Delilah":
+                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                break;
+            default:
+                SpeakerNameText.color = Color.white;
+                break;
+        }
+
+        // Capture hex for color-coded UI cues
+        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
         [Header("UI Components")]
         public GameObject DialogueBox = null!;
         public TextMeshProUGUI SpeakerNameText = null!;
@@ -694,6 +719,38 @@ namespace Milehigh.Cinematics
             // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
             if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
             {
+                float delay = currentTypingSpeed;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // We check the previous character (i-1) to pause *after* it has been revealed.
+                if (i > 0)
+                {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    if (c == '.')
+                    {
+                        // Look ahead to see if it's a mid-word period (like Sky.ix)
+                        bool isMidWord = false;
+                        if (i < totalVisibleCharacters)
+                        {
+                            char nextC = DialogueText.textInfo.characterInfo[i].character;
+                            if (!char.IsWhiteSpace(nextC)) isMidWord = true;
+                        }
+
+                        // Check if it's part of an ellipsis (...)
+                        bool isEllipsis = false;
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+
+                        if (isMidWord && !isEllipsis) delay = currentTypingSpeed;
+                        else if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == '!' || c == '?') delay = currentTypingSpeed * 15f;
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
+                }
+
+                yield return GetWait(delay);
                 Debug.LogError("[Security] Missing UI components required for cinematic. Aborting to prevent errors.");
                 return;
             }
@@ -701,6 +758,17 @@ namespace Milehigh.Cinematics
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
 
+        // UX Enhancement: Final pause for punctuation before completion cue.
+        if (totalVisibleCharacters > 0)
+        {
+            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
+                yield return GetWait(currentTypingSpeed * 15f);
+        }
+
+        // UX Enhancement: Visual progression cue color-coded to speaker theme.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         private void Update()
         {
             // UX: Support any key or mouse click to skip typewriter or pauses.
