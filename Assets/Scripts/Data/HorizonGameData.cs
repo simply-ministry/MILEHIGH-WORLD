@@ -57,6 +57,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
         public string name;
         public string role;
         public string[] traits;
@@ -223,6 +227,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string scenarioId = null!;
+        public string description = null!;
+        public List<ObjectInteraction> interactiveObjects = null!;
+        public List<Dialogue> dialogue = null!;
         public string scenarioId;
         public string description;
         public List<ObjectInteraction> interactiveObjects;

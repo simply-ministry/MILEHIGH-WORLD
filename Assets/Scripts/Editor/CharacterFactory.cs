@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Milehigh.Data;
 using System.Text.RegularExpressions;
@@ -13,10 +14,11 @@ namespace Milehigh.Editor
         [MenuItem("Milehigh/Import Campaign Data")]
         public static void ImportCampaignData()
         {
-            string path = "Assets/Scripts/Data/campaign_master.json";
+            string fileName = "campaign_master.json";
+            string path = Path.Combine("Assets/Scripts/Data", fileName);
             if (!File.Exists(path))
             {
-                Debug.LogError("Campaign master JSON not found at " + path);
+                Debug.LogError($"Campaign master JSON not found at {path}");
                 return;
             }
 
@@ -417,6 +419,26 @@ namespace Milehigh.Editor
 
             // SECURITY: Strip leading dots or underscores to prevent hidden files or other OS-level exploits.
             sanitized = sanitized.TrimStart('.', '_');
+
+            return sanitized;
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Sanitizes a string for use as a file name to prevent Path Traversal vulnerabilities.
+        /// Uses a strict whitelist regex and strips directory traversal sequences.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character";
+
+            // Strip leading dots and underscores to prevent hidden files or traversal
+            string sanitized = input.TrimStart('.', '_', ' ');
+
+            // Use whitelist regex: only alphanumeric, underscores, and hyphens
+            sanitized = Regex.Replace(sanitized, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Ensure we only have a filename, no path segments
+            sanitized = Path.GetFileName(sanitized);
 
             return sanitized;
         }
