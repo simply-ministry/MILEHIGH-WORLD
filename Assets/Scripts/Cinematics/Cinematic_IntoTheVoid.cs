@@ -144,6 +144,8 @@ namespace Milehigh.Cinematics
     public float fadeDuration = 0.5f;
     public float idleHintThreshold = 2.0f;
 
+    public TextMeshProUGUI SkipHint = null!;
+
     private Coroutine? typingCoroutine;
     private CanvasGroup? dialogueCanvasGroup;
     private Coroutine typingCoroutine;
@@ -333,6 +335,22 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        // Poll for skip input to ensure responsiveness across keyboard and mouse
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            idleTimer = 0f;
+            playerInteracted = true;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else if (DialogueBox != null && DialogueBox.activeInHierarchy)
+        {
+            idleTimer += Time.deltaTime;
+            // Palette UX: Show skip hint after 2 seconds of inactivity
+            if (idleTimer > 2f && !playerInteracted && SkipHint != null)
+            {
+                SkipHint.gameObject.SetActive(true);
+            }
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
         {
             Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
@@ -367,6 +385,15 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        // Palette UX: Programmatically find SkipHint if not assigned
+        if (SkipHint == null)
+        {
+            var hintObj = DialogueBox.transform.Find("SkipHint");
+            if (hintObj != null) SkipHint = hintObj.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
         // Initialize UI state
         if (DialogueCanvasGroup != null) DialogueCanvasGroup.alpha = 0;
         DialogueBox.SetActive(false);
@@ -387,6 +414,9 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+        idleTimer = 0f; // Reset idle timer for new dialogue
+
+        // Apply character-specific colors for better speaker identification
 
         Color speakerColor;
         switch (speaker)
@@ -409,6 +439,17 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
+        DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
+
+        for (int i = 0; i < totalVisibleCharacters; i++)
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
 
@@ -425,6 +466,39 @@ namespace Milehigh.Cinematics
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // Check for sentence endings
+            bool isEndOfSentence = (c == '.' || c == '!' || c == '?');
+            if (isEndOfSentence)
+            {
+                // Refined ellipsis detection
+                bool isEllipsis = false;
+                if (c == '.')
+                {
+                    if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                    if (i < totalVisibleCharacters - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                }
+
+                // Mid-word period detection (e.g. Sky.ix)
+                bool isMidWord = false;
+                if (c == '.' && i < totalVisibleCharacters - 1 && !char.IsWhiteSpace(textInfo.characterInfo[i + 1].character))
+                {
+                    isMidWord = true;
+                }
+
+                if (isEllipsis) delay = currentTypingSpeed * 5f;
+                else if (isMidWord) delay = currentTypingSpeed;
+                else delay = currentTypingSpeed * 15f;
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
     void Start()
     {
         if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
@@ -576,6 +650,7 @@ namespace Milehigh.Cinematics
         dialogueCanvasGroup.alpha = targetAlpha;
     }
 
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
     private IEnumerator WaitForSecondsOrSkip(float duration)
     {
         float start = Time.time;
