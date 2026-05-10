@@ -27,6 +27,11 @@
 **Vulnerability:** Untrusted external data (JSON) was being used directly by the application without validation, potentially leading to out-of-bounds values or corrupted application state.
 **Learning:** Even if data is "local", it should be treated as untrusted input once it crosses the boundary from a file into the application.
 **Prevention:** Implement an `IsValid()` pattern in data models to perform security and integrity checks immediately after deserialization. This ensures the application fails fast and securely when encountering malicious or corrupted data.
+
+## 2024-05-24 - IDOR in Data-Driven Scene Construction
+**Vulnerability:** `GameObject.Find` was used directly on unsanitized external strings from JSON, granting uncontrolled access to any scene hierarchy object.
+**Learning:** External data targeting interactive objects can specify core singletons (like `CampaignManager` or `SceneDirector`), allowing attackers to manipulate or destroy critical game components. Broad heuristics like `.Contains("Manager")` break legitimate objects.
+**Prevention:** Use exact string matching or specific tagging to block unauthorized access to core architectural singletons when performing dynamic object lookups.
 ## 2025-01-24 - Security Logic Consolidation and Sanitization
 **Vulnerability:** Redundant and malformed security validation logic in `CampaignManager.cs` and `HorizonGameData.cs` caused compilation errors and inconsistent data integrity checks. Additionally, `CharacterFactory.cs` had duplicate sanitization logic that was partially ineffective against path traversal.
 **Learning:** Security fixes applied in isolation or without full verification can lead to "code rot" where multiple versions of the same check exist, potentially conflicting or breaking the build. Sanitization for path traversal must be robust and happen at the final step of path construction.

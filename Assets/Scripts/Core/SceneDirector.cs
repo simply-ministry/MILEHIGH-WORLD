@@ -1438,6 +1438,19 @@ namespace Milehigh.Core
             _prefabCache?.Clear();
         }
 
+            // 🛡️ Sentinel: Prevent IDOR vulnerability. Block external access to core managers.
+            if (objectName == "CampaignManager" ||
+                objectName == "SceneDirector" ||
+                objectName == "CameraManager" ||
+                objectName == "AlliancePowerManager")
+            {
+                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt with core manager: {objectName}");
+                return null;
+            }
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out GameObject obj) && obj != null)
         private void OnDestroy()
         {
             // BOLT: Clear caches to release Unity object references for GC
