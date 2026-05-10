@@ -190,6 +190,13 @@ namespace Milehigh.Core
         private Dictionary<int, CharacterControllerBase> _controllerCache = new Dictionary<int, CharacterControllerBase>();
         // BOLT: Consolidated caches for GameObjects, prefabs, and controllers to prevent expensive searches and GetComponent calls
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+        private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear caches to release Unity object references and prevent memory leaks.
+            _objectCache.Clear();
+            _prefabCache.Clear();
         // BOLT: Cache for character prefabs to prevent expensive O(N) List.Find calls
         private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
         // BOLT: Cache for prefab lookups to avoid O(N) list searches
@@ -1863,6 +1870,16 @@ namespace Milehigh.Core
 
             if (characterObj == null)
             {
+                // BOLT: Use a prefab cache to avoid O(P) linear searches through the prefab list.
+                if (!_prefabCache.TryGetValue(profile.name, out GameObject prefab))
+                {
+                    prefab = characterPrefabs?.Find(p => p.name.Contains(profile.name));
+                    if (prefab != null)
+                    {
+                        _prefabCache[profile.name] = prefab;
+                    }
+                }
+
                 // BOLT: O(1) exact match lookup from prefab cache.
                 GameObject prefab = null;
                 if (!_prefabCache.TryGetValue(profile.name, out prefab))
