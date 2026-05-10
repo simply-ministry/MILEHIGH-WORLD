@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -13,6 +14,29 @@ namespace Milehigh.Core
 
         // ⚡ Bolt: Cache game objects to prevent expensive O(N) GameObject.Find() calls.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+
+        // BOLT: Prefab lookup cache for O(1) retrieval instead of O(P) linear search
+        private Dictionary<string, GameObject> _prefabLookupCache = new Dictionary<string, GameObject>();
+
+        // BOLT: Simple object pool to reduce GC pressure and instantiation overhead
+        private Dictionary<string, Stack<GameObject>> _characterPool = new Dictionary<string, Stack<GameObject>>();
+
+        private void Awake()
+        {
+            PopulatePrefabCache();
+        }
+
+        private void PopulatePrefabCache()
+        {
+            if (characterPrefabs == null) return;
+            foreach (var prefab in characterPrefabs)
+            {
+                if (prefab != null && !_prefabLookupCache.ContainsKey(prefab.name))
+                {
+                    _prefabLookupCache[prefab.name] = prefab;
+                }
+            }
+        }
 
         private void Start()
         {
@@ -103,6 +127,7 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
             // BOLT: Perform an O(1) dictionary lookup first.
             if (_objectCache.TryGetValue(objectName, out GameObject obj))
             // 🛡️ Sentinel: Input validation to prevent DoS attacks using extremely long or malformed strings in GameObject.Find.
@@ -121,6 +146,12 @@ namespace Milehigh.Core
                 if (ReferenceEquals(obj, null)) return null;
             }
 
+            GameObject? foundObj = GameObject.Find(objectName);
+            if (foundObj != null)
+            {
+                _objectCache[objectName] = foundObj;
+            }
+            return foundObj;
             // BOLT: Fallback to O(N) scene traversal only if not cached or destroyed.
             // BOLT: Fallback to O(N) scene traversal only if not in cache or if the cached object was destroyed.
             obj = GameObject.Find(objectName);
@@ -353,6 +384,7 @@ namespace Milehigh.Core
 
         private void Start()
         {
+            if (CampaignManager.Instance != null && CampaignManager.Instance.currentCampaignData != null)
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups during scene setup
             // BOLT: Pre-populate prefab cache to ensure O(1) lookups
             if (characterPrefabs != null)
@@ -387,6 +419,30 @@ namespace Milehigh.Core
 
         public void SetupScene(SceneScenario scenario)
         {
+            StartCoroutine(SetupSceneCoroutine(scenario));
+        }
+
+        private IEnumerator SetupSceneCoroutine(SceneScenario scenario)
+        {
+            Debug.Log($"⚡ Bolt: Setting up scenario asynchronously: {scenario.scenarioId}");
+
+            if (CampaignManager.Instance.currentCampaignData == null) yield break;
+
+            // Instantiate characters across multiple frames if needed to prevent spikes
+            var characters = CampaignManager.Instance.currentCampaignData.characters;
+            for (int i = 0; i < characters.Count; i++)
+            {
+                SpawnOrUpdateCharacter(characters[i]);
+                // Yield every 2 characters to balance speed and framerate
+                if (i % 2 == 1) yield return null;
+            }
+
+            // Execute interactive objects logic
+            if (scenario.interactiveObjects != null)
+            {
+                foreach (var interaction in scenario.interactiveObjects)
+                {
+                    ApplyInteraction(interaction);
             if (scenario == null) return;
             Debug.Log($"⚡ Bolt: Setting up scenario: {scenario.scenarioId}");
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
@@ -535,6 +591,15 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            GameObject? characterObj = GetCachedObject(profile.name);
+
+            if (characterObj == null)
+            {
+                // BOLT: Try to get from pool first
+                if (_characterPool.TryGetValue(profile.name, out Stack<GameObject>? pool) && pool != null && pool.Count > 0)
+                {
+                    characterObj = pool.Pop();
+                    characterObj.SetActive(true);
             GameObject? characterObj = GetCachedGameObject(profile.name);
 
             if (characterObj == null)
@@ -622,10 +687,29 @@ namespace Milehigh.Core
                     // BOLT: Immediately cache the newly instantiated object to avoid subsequent searches
                     _objectCache[profile.name] = characterObj;
                 }
+                else
+                {
+                    // BOLT: Use O(1) prefab lookup cache
+                    _prefabLookupCache.TryGetValue(profile.name, out GameObject? prefab);
+
+                    // Fallback to partial match if exact match fails (legacy behavior)
+                    if (prefab == null && characterPrefabs != null)
+                    {
+                        prefab = characterPrefabs.Find(p => p != null && p.name.Contains(profile.name));
+                    }
+
+                    if (prefab != null)
+                    {
+                        characterObj = Instantiate(prefab, characterSpawnRoot);
+                        characterObj.name = profile.name;
+                        _objectCache[profile.name] = characterObj;
+                    }
+                }
             }
 
             if (characterObj != null)
             {
+                var controller = characterObj.GetComponent<CharacterControllerBase>();
                 // Assign data to controllers
                 var controller = characterObj.GetComponent<MonoBehaviour>();
                 if (controller is CharacterControllerBase charController)
@@ -653,6 +737,22 @@ namespace Milehigh.Core
             }
         }
 
+        // BOLT: Public method to return characters to pool
+        public void DespawnCharacter(string characterName)
+        {
+            if (_objectCache.TryGetValue(characterName, out GameObject? obj) && obj != null)
+            {
+                obj.SetActive(false);
+                _objectCache.Remove(characterName);
+
+                if (!_characterPool.ContainsKey(characterName))
+                {
+                    _characterPool[characterName] = new Stack<GameObject>();
+                }
+                _characterPool[characterName].Push(obj);
+            }
+        }
+
         private void ApplyInteraction(ObjectInteraction interaction)
         {
             GameObject? target = GetCachedGameObject(interaction.objectId);
@@ -673,6 +773,16 @@ namespace Milehigh.Core
             }
         }
 
+        private void OnDestroy()
+        {
+            // BOLT: Explicitly clear caches to release Unity object references
+            _objectCache.Clear();
+            _prefabLookupCache.Clear();
+            foreach (var pool in _characterPool.Values)
+            {
+                pool.Clear();
+            }
+            _characterPool.Clear();
         // BOLT: Explicitly clear caches on destroy to prevent memory leaks in the Unity Editor
         private void OnDestroy()
         {

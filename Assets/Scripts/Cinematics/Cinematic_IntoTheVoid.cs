@@ -77,6 +77,8 @@ namespace Milehigh.Cinematics
             typingCoroutine = StartCoroutine(TypeDialogue(speaker, message));
         }
 
+public class Cinematic_IntoTheVoid : MonoBehaviour
+{
 /// <summary>
 /// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
 /// </summary>
@@ -258,6 +260,7 @@ namespace Milehigh.Cinematics
 
     private WaitForSeconds GetWait(float time)
     {
+        if (!_waitForSecondsCache.TryGetValue(time, out WaitForSeconds? wait) || wait == null)
         int key = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
@@ -477,6 +480,9 @@ namespace Milehigh.Cinematics
         DialogueText.ForceMeshUpdate();
         int totalCharacters = DialogueText.textInfo.characterCount;
 
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+
+        for (int i = 0; i <= totalVisibleCharacters; i++)
         for (int i = 0; i <= message.Length; i++)
         for (int i = 0; i <= totalCharacters; i++)
         {
@@ -779,6 +785,11 @@ namespace Milehigh.Cinematics
                 {
                     yield return null;
                 }
+                yield return GetWait(delay);
+            }
+        }
+
+        DialogueText.text = message + " ▽";
             }
             else
             {
@@ -954,6 +965,31 @@ namespace Milehigh.Cinematics
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         yield return GetWait(5.5f);
 
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        yield return GetWait(7.5f);
+
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        yield return GetWait(6.0f);
+
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        yield return GetWait(8.0f);
+
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        yield return GetWait(7.0f);
+
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        yield return GetWait(4.5f);
+
+        yield return GetWait(2.0f);
+
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return GetWait(3.5f);
+
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return GetWait(5.5f);
+
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        yield return GetWait(7.5f);
         yield return GetWait(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         yield return GetWait(7.5f);

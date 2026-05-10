@@ -17,6 +17,9 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // 🛡️ Sentinel: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
@@ -111,6 +114,9 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
         public string speaker = "";
         public string text = "";
         public string trigger = "";
