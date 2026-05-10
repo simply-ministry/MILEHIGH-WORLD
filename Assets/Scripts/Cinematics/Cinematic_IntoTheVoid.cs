@@ -3010,6 +3010,17 @@ namespace Milehigh.Cinematics
                 bool isEndOfSentence = true;
                 if (i + 1 < totalVisibleCharacters)
                 {
+                    char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                    // Ellipsis detection: dot with dot neighbors
+                    bool isEllipsis = c == '.' && (
+                        (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') ||
+                        (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.')
+                    );
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (c == '.' || c == '!' || c == '?') delay = currentTypingSpeed * 15f;
+                    else if (c == ',' || c == ';' || c == ':') delay = currentTypingSpeed * 8f;
                     char nextChar = textInfo.characterInfo[i + 1].character;
                     if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
                 }
@@ -3034,6 +3045,20 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // UX Enhancement: Post-reveal pause for final punctuation
+        if (totalVisibleCharacters > 0 && !skipRequested)
+        {
+            char lastChar = DialogueText.textInfo.characterInfo[totalVisibleCharacters - 1].character;
+            if (lastChar == '.' || lastChar == '!' || lastChar == '?')
+            {
+                yield return GetWait(currentTypingSpeed * 15f);
+            }
+        }
+
+        // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        // Color-coded to match the speaker's theme.
+        DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         // Ensure all characters (including completion cue) are visible
         DialogueText.maxVisibleCharacters = textInfo.characterCount;
 
