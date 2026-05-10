@@ -125,6 +125,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
     private WaitForSeconds GetWait(float time)
     {
+        int key = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(key, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[key] = wait;
         int ms = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
         {
