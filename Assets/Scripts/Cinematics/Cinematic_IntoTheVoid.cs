@@ -107,6 +107,7 @@ namespace Milehigh.Cinematics
     public CanvasGroup? DialogueCanvasGroup;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI? SkipHint;
     public TextMeshProUGUI SkipHint = null!;
     public GameObject DialogueBox;
     public TextMeshProUGUI SpeakerNameText;
@@ -223,6 +224,18 @@ namespace Milehigh.Cinematics
         // UX: Support all input types (keyboard, mouse, gamepad) for cinematic skipping
         if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            idleTimer = 0;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= 2f && !playerInteracted && SkipHint != null)
+            {
         if (Input.anyKeyDown)
         {
             skipRequested = true;
@@ -284,6 +297,8 @@ namespace Milehigh.Cinematics
                 skipRequested = true;
             }
         }
+
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         // Palette UX: Improve text contrast in the dark "Void" environment via outlines.
         DialogueText.fontMaterial.EnableKeyword("OUTLINE_ON");
@@ -366,6 +381,9 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+        idleTimer = 0;
+        playerInteracted = false;
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         // Apply character-specific colors for better speaker identification
         Color speakerColor = speaker switch
@@ -456,39 +474,6 @@ namespace Milehigh.Cinematics
 
         // Ensure TMP is updated to get accurate character info
         DialogueText.ForceMeshUpdate();
-
-        for (int i = 0; i < totalCharacters; i++)
-        {
-            // BOLT: Check for skip request to instantly finish the typewriter reveal
-            if (skipRequested) break;
-
-            DialogueText.maxVisibleCharacters = i + 1;
-
-            char c = textInfo.characterInfo[i].character;
-            float delay = currentTypingSpeed;
-
-            // UX Enhancement: Rhythmic punctuation pauses for natural reading
-            if (c == '.' || c == '!' || c == '?')
-            {
-                // Refined ellipsis detection
-                bool isEllipsis = false;
-                if (c == '.')
-                {
-                    if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
-                    if (i + 1 < totalCharacters && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
-                }
-
-                // Special case: mid-word period (e.g., Sky.ix) should have no extra delay
-                bool isEndOfSentence = true;
-                if (i + 1 < totalCharacters)
-                {
-                    char nextChar = textInfo.characterInfo[i + 1].character;
-                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = 0;
-        DialogueText.ForceMeshUpdate();
-
         int totalVisibleCharacters = DialogueText.textInfo.characterCount;
         // Calculation: characterCount includes the completion cue '▽'.
         // We only want to apply rhythmic pacing to the message itself.
@@ -505,6 +490,24 @@ namespace Milehigh.Cinematics
 
             DialogueText.maxVisibleCharacters = i + 1;
 
+            if (i > 0 && i <= totalVisibleCharacters)
+            {
+                float delay = currentTypingSpeed;
+                char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                     (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+
+                    if (isEllipsis) delay = currentTypingSpeed * 5f;
+                    else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character)) delay = currentTypingSpeed;
+                    else delay = currentTypingSpeed * 15f;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
             if (i < totalCharacters)
             {
                 float delay = currentTypingSpeed;
@@ -742,6 +745,7 @@ namespace Milehigh.Cinematics
             }
         }
 
+        skipRequested = false;
         // Note: skipRequested is NOT reset here to allow skipping the subsequent pause.
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // Color-coded to the current speaker for a subtle touch of delight.
