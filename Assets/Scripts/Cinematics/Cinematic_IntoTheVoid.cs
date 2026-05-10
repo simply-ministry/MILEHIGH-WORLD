@@ -201,6 +201,11 @@ namespace Milehigh.Cinematics
             _waitForSecondsCache[key] = wait;
         }
 
+    void Update()
+    {
+        // ⚡ Bolt: Precise skip detection for refined UX.
+        // We focus on primary confirmation keys to prevent accidental skips from accidental key presses.
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
         private void Update()
         {
             // UX Enhancement: Allow skipping dialogue reveal with Space or Left Click.
@@ -209,6 +214,16 @@ namespace Milehigh.Cinematics
                 skipRequested = true;
             }
         }
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time - start < duration && !skipRequested)
 
         private WaitForSeconds GetWait(float seconds)
         {
@@ -231,6 +246,17 @@ namespace Milehigh.Cinematics
             skipRequested = false;
         }
 
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
+    /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
+    public void ShowDialogue(string speaker, string message)
+    {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
+        SpeakerNameText.text = speaker;
         public void ShowDialogue(string speaker, string message)
         {
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -239,6 +265,7 @@ namespace Milehigh.Cinematics
 
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
+
         // Apply character-specific colors for better speaker identification
         switch (speaker)
         {
@@ -260,9 +287,67 @@ namespace Milehigh.Cinematics
                 break;
         }
 
+        SpeakerNameText.color = speakerColor;
         typingCoroutine = StartCoroutine(TypeDialogue(message));
         StartCoroutine(PopScale(SpeakerNameText.rectTransform));
     }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
+
+        // BOLT: Optimized single loop for typewriter effect.
+        // We use GetWait(float) to ensure zero-allocation yields.
+        for (int i = 0; i < totalVisibleCharacters; i++)
+        {
+            if (skipRequested) break;
+
+            // Reveal character at index i
+            DialogueText.maxVisibleCharacters = i + 1;
+
+            // Base reveal delay
+            yield return GetWait(currentTypingSpeed);
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            // Note: Delay occurs *after* character reveal for natural rhythm.
+            char c = textInfo.characterInfo[i].character;
+            float extraDelay = 0f;
+
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Smart Punctuation: Check for ellipsis or mid-word periods (e.g., Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < totalVisibleCharacters)
+                {
+                    char nextChar = textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    extraDelay = currentTypingSpeed * 14f;
+                }
+                else if (c == '.' && i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.')
+                {
+                    extraDelay = currentTypingSpeed * 4f; // Faster dot-dot-dot
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                extraDelay = currentTypingSpeed * 7f;
+            }
+
+            if (extraDelay > 0 && !skipRequested)
+            {
+                yield return GetWait(extraDelay);
         private IEnumerator TypeDialogue(string message)
         {
             // UX Enhancement: Color-coded completion cue that matches speaker theme.
@@ -338,6 +423,12 @@ namespace Milehigh.Cinematics
 
         }
 
+        // Ensure all characters (including completion cue) are visible
+        DialogueText.maxVisibleCharacters = textInfo.characterCount;
+
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
+        typingCoroutine = null;
+        yield break;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
         // PALETTE: Color-coded cue to match the speaker's theme for a delightful touch.
         DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
@@ -480,7 +571,7 @@ namespace Milehigh.Cinematics
         DialogueBox.SetActive(false);
 
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
-        // Example: PlayerInput.Instance.EnableControls();
+        // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");

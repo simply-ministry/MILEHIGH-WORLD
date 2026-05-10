@@ -11,20 +11,23 @@ namespace Milehigh.Editor
         [MenuItem("Milehigh/Import Campaign Data")]
         public static void ImportCampaignData()
         {
-            string path = "Assets/Scripts/Data/campaign_master.json";
+            string fileName = "campaign_master.json";
+            string path = Path.Combine("Assets/Scripts/Data", fileName);
+
             if (!File.Exists(path))
             {
-                Debug.LogError("Campaign master JSON not found at " + path);
+                Debug.LogError($"Campaign master JSON not found at {path}");
                 return;
             }
 
+            // NRT Pattern: Explicitly mark deserialized object as nullable
             HorizonGameData? data = null;
             try
             {
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
                 Debug.LogError("Failed to load or parse campaign data.");
                 return;
@@ -59,8 +62,41 @@ namespace Milehigh.Editor
                 AssetDatabase.CreateFolder("Assets/Data", "Characters");
             }
 
-            foreach (var charProfile in data.characters)
+            // NRT Pattern: Capture property in local variable before iteration
+            var characters = data.characters;
+            if (characters != null)
             {
+                foreach (var charProfile in characters)
+                {
+                    if (charProfile == null) continue;
+
+                    CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
+                    asset.characterName = charProfile.name;
+                    asset.role = charProfile.role;
+                    asset.traits = charProfile.traits;
+                    asset.behaviorScript = charProfile.behaviorScript;
+
+                    // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                    string safeFileName = GetSafeFileName(charProfile.name);
+                    string assetPath = $"{folderPath}/{safeFileName}.asset";
+
+                    AssetDatabase.CreateAsset(asset, assetPath);
+                    // SECURITY: Log relative asset path to avoid absolute path disclosure.
+                    Debug.Log($"Created character asset: {assetPath}");
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        /// 🛡️ Sentinel: Robust path sanitization helper.
+        /// Uses a strict whitelist to prevent directory traversal and hidden files.
+        /// </summary>
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
                 asset.characterName = charProfile.name;
                 asset.role = charProfile.role;
@@ -89,10 +125,11 @@ namespace Milehigh.Editor
                 // Use Path.GetFileName to ensure only the final component is used, and replace spaces.
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
-                string assetPath = $"{folderPath}/{safeFileName}.asset";
-                AssetDatabase.CreateAsset(asset, assetPath);
+            // Whitelist: Allow only alphanumeric, underscores, and hyphens.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
 
-                // SECURITY: Log relative asset path to avoid absolute path disclosure
+            // Strip leading dots/underscores to prevent hidden files or traversal.
+            sanitized = sanitized.TrimStart('.', '_');
 
                 string assetPath = $"{folderPath}/{safeFileName}.asset";
                 AssetDatabase.CreateAsset(asset, assetPath);
@@ -105,8 +142,7 @@ namespace Milehigh.Editor
                 Debug.Log($"Created character asset: {assetPath}");
             }
 
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            return sanitized;
         }
 
         private static string GetSafeFileName(string input)

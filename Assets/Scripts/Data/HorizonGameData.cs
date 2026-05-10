@@ -49,6 +49,10 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
         public string name;
         public string role;
         public string[] traits;
@@ -204,6 +208,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid number of scenarios.");
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is missing.");

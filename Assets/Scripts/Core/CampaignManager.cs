@@ -55,8 +55,16 @@ namespace Milehigh.Core
                 try
                 {
                     string json = File.ReadAllText(filePath);
-                    currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
+                    // NRT Pattern: Explicitly mark deserialized object as nullable
+                    HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
+                    // NRT Pattern: Use local variable 'data' for consistent flow analysis.
+                    if (data != null && data.IsValid())
+                    {
+                        currentCampaignData = data;
+                        currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
@@ -65,11 +73,6 @@ namespace Milehigh.Core
                     }
                     else
                     {
-                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
-                        // SECURITY: Use generic error message for validation failure
-                        Debug.LogError($"Campaign data from {fileName} failed security validation or parsing.");
-                        Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
-                        currentCampaignData = null;
                         // SECURITY: Fail securely and don't use invalid data
                         Debug.LogError($"Failed to parse or security-validate campaign data from {fileName}.");
                         // 🛡️ Sentinel: Failed validation means we cannot trust the campaign data.
