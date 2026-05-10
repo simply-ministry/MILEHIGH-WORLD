@@ -57,6 +57,7 @@ namespace Milehigh.Core
                     string json = File.ReadAllText(filePath);
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
+                    // 🛡️ Sentinel: Security validation of deserialized data.
                     // 🛡️ Sentinel: Perform validation after deserialization to ensure data integrity.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {

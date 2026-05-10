@@ -81,6 +81,9 @@ namespace Milehigh.Editor
                     safeFileName = safeFileName.Replace(c, '_');
                 }
 
+                // Ensure no directory traversal sequences remain
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 // Ensure no directory separators or traversal sequences remain
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
