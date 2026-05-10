@@ -29,6 +29,7 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // Void saturation must be within a safe 0.0 to 1.0 range.
         /// 🛡️ Sentinel: Security validation to ensure deserialized data meets business constraints and resource limits.
         /// </summary>
         public bool IsValid()
@@ -325,6 +326,9 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
                 Debug.LogError("[Security] Game data validation failed: Invalid character count.");
