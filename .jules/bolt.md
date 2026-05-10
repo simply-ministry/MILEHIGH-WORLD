@@ -52,6 +52,32 @@
 ## 2026-03-25 - [Redundant Member Clutter Performance Impact]
 **Learning:** The 'SceneDirector.cs' file was severely cluttered with over a dozen redundant dictionary declarations and duplicate helper methods for GameObject caching. This not only increases memory overhead but also creates a "state fragmentation" risk where different parts of the initialization loop use different caches, leading to redundant O(N) traversals despite the caching intent.
 **Action:** Always audit caching implementations for redundancy. Consolidate into a single, unified caching pattern to ensure O(1) lookups are consistent across the entire system.
-## 2024-05-24 - Do not use `float` for Dictionary Keys (Caching `WaitForSeconds`)
-**Learning:** Attempting to cache `WaitForSeconds` in a `Dictionary<float, WaitForSeconds>` to prevent GC allocations is a flawed anti-pattern due to floating-point precision inaccuracies causing cache misses. Sequential coroutines should just allocate `new WaitForSeconds` inline since they happen once, while high-frequency loops (like typewriter effects) should pre-calculate the instances *outside* the loop and `yield return` the pre-calculated variable inside the loop.
-**Action:** When avoiding GC allocations in coroutines, use local variables to pre-calculate the instances outside the loops rather than trying to build a static global cache keyed by floats.
+
+## 2024-05-25 - Dictionary<float, WaitForSeconds> Anti-Pattern
+**Learning:** Using `Dictionary<float, WaitForSeconds>` to cache yield instructions is an anti-pattern due to floating-point precision inaccuracies, which can cause cache misses and still result in per-iteration GC allocations.
+**Action:** When variable wait times are needed in a tight loop (e.g., rhythmic punctuation delays in a typewriter effect), pre-calculate and cache the specific `WaitForSeconds` instances in local variables outside the loop instead of using a float-keyed dictionary.
+## 2024-05-24 - Dead Code in Shaders
+**Learning:** In 'HyperPBRCharacter_4D.shader', a Subsurface Scattering (SSS) block was performing expensive texture lookups and mathematical operations only for the result to be immediately overwritten by a subsequent albedo assignment. This "dead code" wastes GPU cycles and memory bandwidth without contributing to the final frame.
+**Action:** Always audit surface shaders for assignment overwrites. Removing high-cost logic that is logically unreachable or overwritten is a high-impact optimization for rendering performance.
+## 2024-05-25 - Unity WaitForSeconds GC Allocation in Loops vs Static Cache
+**Learning:** Using `new WaitForSeconds()` inside a tight loop (like a typewriter text effect in a Coroutine) creates a new object allocation on the heap for every single character typed, causing unnecessary GC pressure. However, using a `Dictionary<float, WaitForSeconds>` for caching is an anti-pattern due to floating-point precision inaccuracies, and it risks a static memory leak if typing speeds vary continuously.
+**Action:** Remove static `Dictionary<float, WaitForSeconds>` caches. Always safely cache `WaitForSeconds` objects in a local variable *outside* the loop (e.g., `var wait = new WaitForSeconds(time);`) instead of relying on unverified custom static dictionary caching methods.
+## 2026-03-28 - Unity Component and Prefab Caching in SceneDirector
+**Learning:** Even with GameObject caching, O(N) operations like `GetComponent` and O(P) operations like `List.Find` (especially with string operations like `Contains`) inside character setup loops create measurable initialization spikes.
+**Action:** Use `Dictionary<int, T>` (using `GetInstanceID`) for component caching and `Dictionary<string, GameObject>` for prefab lookups to ensure all repetitive setup operations are O(1).
+
+## 2026-03-28 - Performance vs. Correctness in Shader Logic
+**Learning:** Fixing a "dead code" bug (e.g., an albedo overwrite that discarded an expensive SSS calculation) can unintentionally decrease performance by enabling high-cost GPU operations that were previously optimized out by the compiler.
+**Action:** When optimizing, verify if a "fix" actually enables expensive paths. If performance is the priority, consider removing the unused logic entirely instead of enabling it.
+## 2024-05-25 - Unity WaitForSeconds float Dictionary Anti-Pattern
+**Learning:** While caching `WaitForSeconds` is necessary to avoid per-iteration Garbage Collection inside Unity coroutines, using a `Dictionary<float, WaitForSeconds>` is an anti-pattern. Floating-point precision inaccuracies make `float` unreliable as a dictionary key, potentially causing cache misses or unexpected behavior.
+**Action:** Instead of using a float-keyed dictionary, pre-calculate specific `WaitForSeconds` instances (e.g., normal delay, short pause, long pause) into local variables outside the coroutine loop, and yield those local variables directly inside the loop.
+## 2026-03-26 - [Advanced Unity Caching & Memory Efficiency]
+**Learning:** When caching Unity components, using `InstanceID` (int) as a dictionary key is significantly more efficient than strings or `ToString()` calls, as it avoids heap allocations during every lookup. Furthermore, robust negative caching for Unity objects (which override `== null`) requires using `ReferenceEquals(obj, null)` to distinguish between a legitimate `null` cache entry and a reference to a natively destroyed object (fake null).
+**Action:** Use `int` (GetInstanceID) for component cache keys and `ReferenceEquals` to manage the lifecycle of cached Unity objects correctly.
+## 2026-03-26 - Unity Negative Caching Pitfalls
+**Learning:** In Unity managers like `SceneDirector.cs` that both find and instantiate objects, "negative caching" (storing `null` in the dictionary when `GameObject.Find` fails) is a dangerous anti-pattern. If an object is instantiated later in the same frame or scenario, subsequent lookups will incorrectly return the cached `null` instead of the newly created object. Furthermore, Unity's `obj != null` check is essential even for cached references to detect if the native C++ object was destroyed.
+**Action:** When caching `GameObject.Find` results, always use the `if (_cache.TryGetValue(key, out obj) && obj != null)` pattern. Do not cache `null` results if there is any chance the object will be created later. Ensure the cache is updated immediately after any `Instantiate` calls.
+## 2024-05-26 - WaitForSeconds Float Dictionary Cache Misses
+**Learning:** Caching `WaitForSeconds` using a `float` as the dictionary key can lead to cache misses due to floating-point imprecision, causing unintended `WaitForSeconds` instantiations and unnecessary GC allocations.
+**Action:** Always use an integer key (e.g., representing milliseconds via `Mathf.RoundToInt(time * 1000f)`) instead of a `float` when caching `WaitForSeconds` instances in a dictionary.
