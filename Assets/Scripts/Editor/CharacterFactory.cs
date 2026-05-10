@@ -135,6 +135,8 @@ namespace Milehigh.Editor
                 // 3. Replace whitespaces with underscores.
 
                 // We use Path.GetFileName to ensure only the final component is used, and replace invalid chars.
+                string sanitizedName = charProfile.name ?? "unnamed_character";
+                string safeFileName = sanitizedName;
                 string baseName = string.IsNullOrEmpty(charProfile.name) ? "unnamed_character" : charProfile.name;
                 string safeFileName = baseName;
                 string baseName = charProfile.name ?? "unnamed_character";
@@ -161,6 +163,9 @@ namespace Milehigh.Editor
                     // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
+                // Ensure no directory traversal sequences remain and replace spaces
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
             }
 
             AssetDatabase.SaveAssets();

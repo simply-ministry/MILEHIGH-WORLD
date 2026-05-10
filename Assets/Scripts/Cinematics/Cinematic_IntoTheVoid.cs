@@ -137,6 +137,13 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         return wait;
     }
 
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float startTime = Time.time;
+        while (Time.time - startTime < duration && !skipRequested)
+        {
+            yield return null;
+        }
     /// <summary>
     /// Coroutine that waits for a specific duration or until a skip is requested.
     /// Resets the skip flag upon completion.
@@ -870,6 +877,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
         yield return WaitForSecondsOrSkip(7.5f);
 
         // --- Dialogue Line 2: Sky.ix ---
@@ -912,6 +920,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(6.0f));
         yield return new WaitForSeconds(6.0f);
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
@@ -963,6 +972,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(8.0f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(8.0f));
         yield return new WaitForSeconds(8.0f);
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
@@ -1021,6 +1031,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.0f));
         yield return WaitForSecondsOrSkip(7.0f);
 
         // --- Dialogue Line 5: Sky.ix ---
@@ -1064,6 +1075,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(4.5f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(4.5f));
         yield return new WaitForSeconds(4.5f);
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
@@ -1090,6 +1102,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(3.5f));
         yield return new WaitForSeconds(3.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         // Kai_VoiceSource.Play();
@@ -1177,6 +1190,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(5.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(5.5f));
         yield return new WaitForSeconds(5.5f);
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
@@ -1191,6 +1205,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return new WaitForSeconds(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
         yield return new WaitForSeconds(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
@@ -1234,6 +1249,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(7.5f);
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        skipRequested = false;
         SpeakerNameText.text = "";
         DialogueText.text = "";
         DialogueBox.SetActive(false);

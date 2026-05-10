@@ -334,6 +334,12 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Game data validation failed: Scenarios count out of range (1-100).");
                 return false;
             }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scene scenarios defined.");
+                return false;
+            }
             foreach (var scenario in scenarios)
             {
                 if (scenario != null && !scenario.IsValid()) return false;
