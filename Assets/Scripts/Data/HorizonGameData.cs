@@ -274,6 +274,7 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Scenario validation failed: interactiveObjects collection is null or too large (max 50).");
                 return false;
             }
+
             foreach (var obj in interactiveObjects)
             {
                 if (obj == null || !obj.IsValid()) return false;
@@ -337,26 +338,6 @@ namespace Milehigh.Data
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios list is null.");
                 return false;
-            }
-            if (scenarios == null || scenarios.Count == 0)
-            {
-                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
-                return false;
-            }
-            // 🛡️ Sentinel: Enforce list size limit to mitigate DoS
-            foreach (var character in characters)
-            {
-                if (character == null || !character.IsValid()) return false;
-            }
-
-            if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
-            {
-                Debug.LogError("[Security] Game data validation failed: Invalid scenario count (must be between 1 and 100).");
-                return false;
-            }
-            foreach (var scenario in scenarios)
-            {
-                if (scenario == null || !scenario.IsValid()) return false;
             }
 
             return true;

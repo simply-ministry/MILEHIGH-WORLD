@@ -146,6 +146,7 @@ namespace Milehigh.Editor
             return safeName;
                 string baseName = charProfile.name ?? "unnamed_character";
                 string safeFileName = baseName;
+
                 foreach (char c in Path.GetInvalidFileNameChars())
                 {
                     safeFileName = safeFileName.Replace(c, '_');
