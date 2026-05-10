@@ -136,7 +136,8 @@ namespace Milehigh.Cinematics
         // Poll for skip input to ensure responsiveness across multiple accessible inputs
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
-    private static readonly Dictionary<float, WaitForSeconds> _waitForSecondsCache = new Dictionary<float, WaitForSeconds>();
+    // ⚡ Bolt: Use int (milliseconds) for the key to avoid float imprecision cache misses
+    private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
     private WaitForSeconds GetWait(float time)
     /// <summary>
@@ -145,6 +146,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int timeMs = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeMs, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeMs] = wait;
         [Header("Characters")]
         public GameObject Skyix_Character;
         public AudioSource Skyix_VoiceSource;
