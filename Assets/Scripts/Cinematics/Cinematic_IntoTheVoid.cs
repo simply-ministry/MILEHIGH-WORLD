@@ -384,6 +384,12 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        // ⚡ Bolt: Use int key (milliseconds) to prevent dictionary cache misses from floating-point tolerance variations
+        int timeKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeKey] = wait;
         // ⚡ Bolt: Use integer key (milliseconds) to prevent float imprecision cache misses
         int msKey = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(msKey, out var wait))
