@@ -31,6 +31,9 @@ namespace Milehigh.Data
         /// Validates metadata integrity and safety bounds.
         public bool IsValid()
         {
+            // 🛡️ Sentinel: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0f || voidSaturationLevel > 1f)
+            {
             if (environment != null && environment.Length > 128)
             {
                 Debug.LogError($"[Security] Metadata validation failed: environment string exceeds 128 characters.");
@@ -311,6 +314,8 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            // 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
+            if (metadata == null)
             if (metadata == null || !metadata.IsValid())
             {
                 Debug.LogError("[Security] Game data validation failed: Metadata missing or invalid.");
@@ -318,6 +323,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (!metadata.IsValid()) return false;
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
                 Debug.LogError("[Security] Game data validation failed: Characters count out of range (1-50).");
@@ -335,6 +341,7 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null) return false;
             if (scenarios == null)
             {
                 Debug.LogError("[Security] Game data validation failed: Scenarios are missing.");
