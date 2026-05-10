@@ -32,3 +32,7 @@
 **Vulnerability:** Untrusted input from JSON was used in `GameObject.Find` in `SceneDirector.cs`. Maliciously long strings or path-traversal-like patterns (e.g., using `/`) could lead to expensive scene traversals or unexpected object access.
 **Learning:** `GameObject.Find` is an O(N) operation that can be abused. While caching helps, the initial lookup using unsanitized strings is a risk.
 **Prevention:** Implement strict string length limits (e.g., 128 chars) and character whitelists (alphanumeric, underscores, spaces, etc.) for any string passed to `GameObject.Find` or used as a key in object caches derived from external data.
+## 2025-05-14 - [Information Disclosure in Unity Logs]
+**Vulnerability:** Absolute file paths being logged during data loading.
+**Learning:** Hardcoded paths or `Application.dataPath` in logs can reveal developer filesystem structure.
+**Prevention:** Only log filenames or relative identifiers in production-facing logs.
