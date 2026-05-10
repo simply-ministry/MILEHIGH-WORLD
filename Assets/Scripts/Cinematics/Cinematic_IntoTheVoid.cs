@@ -625,6 +625,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
 
+                    // Handle rhythmic pauses while avoiding disruptions for mid-word punctuation (e.g., Sky.ix)
+                    // and maintaining a faster pace for ellipses ("...").
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
+                                         (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.');
+                        bool isMidWord = i < totalVisibleCharacters && !Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
+
+                        if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else if (isMidWord) delay = currentTypingSpeed;
+                        else delay = currentTypingSpeed * 15f;
                     // Improved punctuation logic: distinguish between sentence ends and mid-word periods (like Sky.ix)
                     // or ellipsis (...) by looking ahead.
                     if (c == '.' || c == '!' || c == '?')
