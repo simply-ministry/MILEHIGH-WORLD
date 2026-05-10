@@ -144,6 +144,18 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Security validation for object names from untrusted data
+            // SECURITY: Mitigate DoS via excessive GameObject.Find calls with long/malicious strings.
+            if (objectName.Length > 128) return null;
+
+            // SECURITY: Whitelist allowed characters to prevent exploitation of Find's path-like syntax.
+            string whitelist = "_ ()-.[ ]";
+            foreach (char c in objectName)
+            {
+                if (!char.IsLetterOrDigit(c) && whitelist.IndexOf(c) == -1)
+                {
+                    return null;
+                }
             // 🛡️ Sentinel: Input validation and DoS protection
             // SECURITY: Limit object name length and restrict characters to prevent DoS via GameObject.Find
             if (objectName.Length > 128)
