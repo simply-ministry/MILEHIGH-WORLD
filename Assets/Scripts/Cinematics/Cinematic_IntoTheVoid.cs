@@ -428,6 +428,9 @@ namespace Milehigh.Cinematics
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
     public float skyixSpeedMultiplier = 1.2f;
+    [Tooltip("Idle time before showing the skip hint.")]
+    public float idleHintThreshold = 2.0f;
+    public TextMeshProUGUI? SkipHint = null;
     [Tooltip("Duration of dialogue box fade transitions.")]
     public float fadeDuration = 0.5f;
     public float idleHintThreshold = 2.0f;
@@ -587,6 +590,27 @@ namespace Milehigh.Cinematics
 
     private IEnumerator PopSpeakerName()
     {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown)
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            idleTimer = 0f;
+            if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+        }
+        else
+        {
+            idleTimer += Time.deltaTime;
+            if (idleTimer >= idleHintThreshold && !playerInteracted && SkipHint != null)
+            {
+                SkipHint.gameObject.SetActive(true);
+            }
+        }
+    }
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion.
+    /// </summary>
         float duration = 0.25f;
         float elapsed = 0f;
         while (elapsed < duration)
@@ -656,6 +680,15 @@ namespace Milehigh.Cinematics
             yield return null;
         }
 
+        // Programmatically find SkipHint if not assigned
+        if (SkipHint == null && DialogueBox != null)
+        {
+            SkipHint = DialogueBox.transform.Find("SkipHint")?.GetComponent<TextMeshProUGUI>();
+        }
+        if (SkipHint != null) SkipHint.gameObject.SetActive(false);
+
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
         private void Start()
         {
             // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
@@ -3064,6 +3097,45 @@ namespace Milehigh.Cinematics
 
             // Reveal character at index i
             DialogueText.maxVisibleCharacters = i + 1;
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+
+            // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+            if (c == '.' || c == '!' || c == '?')
+            {
+                // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                bool isEllipsis = false;
+                if (c == '.')
+                {
+                    if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                    if (i < totalCharacters - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+                }
+
+                if (isEllipsis)
+                {
+                    delay = currentTypingSpeed * 5f;
+                }
+                else
+                {
+                    // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (i < totalCharacters - 1)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+                    delay = isEndOfSentence ? currentTypingSpeed * 15f : currentTypingSpeed;
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalCharacters;
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise.");
         yield return WaitForSecondsOrSkip(7.5f);
 
