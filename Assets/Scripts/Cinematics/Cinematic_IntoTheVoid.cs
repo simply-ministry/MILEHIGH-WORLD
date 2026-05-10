@@ -627,6 +627,32 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
                 if (i > 0)
                 {
                     char c = DialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Check for mid-word periods (e.g., Sky.ix)
+                        bool isMidWord = false;
+                        if (c == '.' && i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            if (!char.IsWhiteSpace(nextChar)) isMidWord = true;
+                        }
+
+                        // Check for ellipses (multiple dots)
+                        bool isEllipsis = false;
+                        if (c == '.' && i > 1)
+                        {
+                            char prevChar = DialogueText.textInfo.characterInfo[i - 2].character;
+                            if (prevChar == '.') isEllipsis = true;
+                        }
+                        if (c == '.' && i < totalVisibleCharacters)
+                        {
+                            char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                            if (nextChar == '.') isEllipsis = true;
+                        }
+
+                        if (isMidWord) delay = currentTypingSpeed;
+                        else if (isEllipsis) delay = currentTypingSpeed * 5f;
+                        else delay = currentTypingSpeed * 15f;
 
                     // Handle rhythmic pauses while avoiding disruptions for mid-word punctuation (e.g., Sky.ix)
                     // and maintaining a faster pace for ellipses ("...").
@@ -844,6 +870,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 
         skipRequested = false;
         // UX Enhancement: Visual progression cue indicating text reveal is complete.
+        DialogueText.text = message + $" <color={currentSpeakerColorTag}>▽</color>";
         // The cue is color-coded to match the speaker's theme for better visual consistency.
         DialogueText.text = message + " " + currentSpeakerColorTag + "▽</color>";
         // Color-coded to match the speaker's theme for better accessibility and polish.
