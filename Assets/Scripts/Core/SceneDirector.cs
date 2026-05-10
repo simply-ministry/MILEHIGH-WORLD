@@ -11,6 +11,13 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = null!; // Assign in Inspector
         public Transform characterSpawnRoot = null!;
 
+        // ⚡ Bolt: Cache game objects to prevent expensive O(N) GameObject.Find() calls.
+        private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
+
+        private void Start()
+        {
+            var data = CampaignManager.Instance.currentCampaignData;
+            if (data != null && data.scenarios.Count > 0)
         // BOLT: Consolidated caches to prevent expensive O(N) scene traversals and O(P) list searches.
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         private Dictionary<string, GameObject>? _prefabLookupCache = null;
@@ -367,7 +374,7 @@ namespace Milehigh.Core
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             {
-                SetupScene(CampaignManager.Instance.currentCampaignData.scenarios[0]);
+                SetupScene(data.scenarios[0]);
             }
         }
 
@@ -388,6 +395,15 @@ namespace Milehigh.Core
             InitializePrefabCache();
 
             // Clear cache at start of setup to avoid stale references across scenes
+            _objectCache.Clear();
+
+            // Instantiate characters if not already in scene
+            var data = CampaignManager.Instance.currentCampaignData;
+            if (data != null)
+            {
+                foreach (var charProfile in data.characters)
+                {
+                    SpawnOrUpdateCharacter(charProfile);
             // Clear caches at start of setup to avoid stale references across scenes
             _objectCache.Clear();
             _prefabCache.Clear();
@@ -443,6 +459,18 @@ namespace Milehigh.Core
                 }
             }
 
+        private GameObject? GetCachedGameObject(string objectName)
+        {
+            if (string.IsNullOrEmpty(objectName)) return null;
+
+            // Check cache first; safely handle natively destroyed objects via Unity's overloaded == operator
+            if (_objectCache.TryGetValue(objectName, out GameObject? obj) && obj != null)
+            {
+                return obj;
+            }
+
+            GameObject? foundObj = GameObject.Find(objectName);
+            if (foundObj != null)
             // Instantiate characters if not already in scene
             if (CampaignManager.Instance.currentCampaignData != null)
             // NRT Pattern: Capture singleton property in local variable
@@ -507,6 +535,17 @@ namespace Milehigh.Core
 
         private void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
+            GameObject? characterObj = GetCachedGameObject(profile.name);
+
+            if (characterObj == null)
+            {
+                // Try to find prefab
+                GameObject? prefab = characterPrefabs?.Find(p => p != null && p.name.Contains(profile.name));
+                if (prefab != null)
+                {
+                    characterObj = Instantiate(prefab, characterSpawnRoot);
+                    characterObj.name = profile.name;
+                    _objectCache[profile.name] = characterObj; // Cache newly spawned object
             if (profile == null || string.IsNullOrEmpty(profile.name)) return;
 
             GameObject? characterObj = GetCachedObject(profile.name);
@@ -587,6 +626,9 @@ namespace Milehigh.Core
 
             if (characterObj != null)
             {
+                // Assign data to controllers
+                var controller = characterObj.GetComponent<MonoBehaviour>();
+                if (controller is CharacterControllerBase charController)
                 // BOLT: O(1) controller lookup avoids redundant GetComponent calls
                 var controller = GetCharacterController(characterObj);
                 // BOLT: Optimized component access using GetInstanceID() to avoid redundant GetComponent calls
@@ -604,6 +646,8 @@ namespace Milehigh.Core
                     data.role = profile.role;
                     data.traits = profile.traits;
                     data.behaviorScript = profile.behaviorScript;
+
+                    charController.Initialize(data);
                     controller.Initialize(data);
                 }
             }
@@ -611,6 +655,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            GameObject? target = GetCachedGameObject(interaction.objectId);
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             GameObject? target = GetCachedObject(interaction.objectId);

@@ -77,6 +77,16 @@ namespace Milehigh.Cinematics
             typingCoroutine = StartCoroutine(TypeDialogue(speaker, message));
         }
 
+/// <summary>
+/// This script controls the cinematic sequence for the mission: "Deep within the anti-reality of ŤĤÊ VØĪĐ..."
+/// </summary>
+public class Cinematic_IntoTheVoid : MonoBehaviour
+{
+    [Header("Character References")]
+    public GameObject Skyix_Character = null!;
+    public AudioSource Skyix_VoiceSource = null!;
+    public GameObject Kai_Character = null!;
+    public AudioSource Kai_VoiceSource = null!;
         private IEnumerator WaitForSecondsOrSkip(float seconds)
         {
             float timer = 0;
@@ -222,6 +232,7 @@ namespace Milehigh.Cinematics
     public TextMeshProUGUI DialogueText = null!;
 
     [Header("UX Settings")]
+    [Tooltip("Base delay in seconds between each character being revealed.")]
     [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
@@ -411,6 +422,7 @@ namespace Milehigh.Cinematics
         {
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
 
+        // Apply speaker-specific speed multipliers
         float multiplier = 1.0f;
         if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
         else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
@@ -419,6 +431,7 @@ namespace Milehigh.Cinematics
         currentTypingSpeed = baseTypingSpeed * multiplier;
         skipRequested = false;
 
+        // Apply character-specific colors
         // Apply character-specific colors for better speaker identification
         Color speakerColor;
         switch (speaker)
@@ -464,6 +477,7 @@ namespace Milehigh.Cinematics
         DialogueText.ForceMeshUpdate();
         int totalCharacters = DialogueText.textInfo.characterCount;
 
+        for (int i = 0; i <= message.Length; i++)
         for (int i = 0; i <= totalCharacters; i++)
         {
             if (skipRequested)
@@ -479,6 +493,9 @@ namespace Milehigh.Cinematics
                 char c = DialogueText.textInfo.characterInfo[i - 1].character;
                 float delay = currentTypingSpeed;
 
+                // UX Enhancement: Rhythmic punctuation pauses
+                if (c == '.' || c == '!' || c == '?') delay += 0.4f;
+                else if (c == ',' || c == ';' || c == ':') delay += 0.2f;
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEllipsis = (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') ||
@@ -907,6 +924,39 @@ namespace Milehigh.Cinematics
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
 
+        yield return GetWait(1.5f);
+        ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
+        yield return GetWait(7.5f);
+
+        yield return GetWait(0.5f);
+        ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
+        yield return GetWait(6.0f);
+
+        yield return GetWait(0.7f);
+        ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
+        yield return GetWait(8.0f);
+
+        yield return GetWait(1.2f);
+        ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
+        yield return GetWait(7.0f);
+
+        yield return GetWait(0.8f);
+        ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
+        yield return GetWait(4.5f);
+
+        yield return GetWait(2.0f);
+
+        yield return GetWait(0.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return GetWait(3.5f);
+
+        yield return GetWait(1.5f);
+        ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
+        yield return GetWait(5.5f);
+
+        yield return GetWait(1.0f);
+        ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
+        yield return GetWait(7.5f);
         // --- Dialogue Line 1: Delilah ---
         // [ANIMATION: Delilah_Character.GetComponent<Animator>().SetTrigger("Channeling_Idle");]
         // [CAMERA: Slow dolly zoom towards Delilah, who is calmly observing the Memory Stream.]
@@ -1021,6 +1071,7 @@ namespace Milehigh.Cinematics
         DialogueBox.SetActive(false);
         Debug.Log("Cinematic Sequence Complete.");
 
+        Debug.Log("Cinematic Sequence Complete.");
         // [SCENE CLEANUP: Re-enable player controls, reset cameras, transition to gameplay/boss fight]
         // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);

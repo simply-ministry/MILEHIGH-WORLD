@@ -22,6 +22,8 @@ namespace Milehigh.Editor
 
             string json = File.ReadAllText(path);
             HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
+
+            // 🛡️ Sentinel: Security validation of deserialized data.
             // NRT Pattern: Explicitly mark deserialized object as nullable
             HorizonGameData? data = null;
             try
@@ -119,10 +121,10 @@ namespace Milehigh.Editor
         {
             if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
-                asset.characterName = charProfile.name;
-                asset.role = charProfile.role;
-                asset.traits = charProfile.traits;
-                asset.behaviorScript = charProfile.behaviorScript;
+                asset.characterName = charProfile.name ?? "unnamed";
+                asset.role = charProfile.role ?? "none";
+                asset.traits = charProfile.traits ?? System.Array.Empty<string>();
+                asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                 // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                 // We use Path.GetFileName to extract only the name part and replace OS-specific invalid characters.
@@ -155,6 +157,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                // Ensure no directory traversal sequences remain and replace spaces for cleanliness
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 // Ensure no directory separators or traversal sequences remain
 
                 // Ensure no directory traversal sequences remain and replace spaces
