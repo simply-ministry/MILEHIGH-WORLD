@@ -84,6 +84,15 @@ namespace Milehigh.Data
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+
+            if (environment != null && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment string too long.");
+                return false;
+            }
+
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
@@ -148,6 +157,8 @@ namespace Milehigh.Data
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (role != null && role.Length > 64) return false;
+            if (behaviorScript != null && behaviorScript.Length > 1024 * 10) return false; // Arbitrary but reasonable for script
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
             // Increased limit for behaviorScript to accommodate larger logic blocks
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 1024) return false;
@@ -294,6 +305,8 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (speaker != null && speaker.Length > 64) return false;
+            if (text != null && text.Length > 1024) return false;
             if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64) return false;
             if (!string.IsNullOrEmpty(text) && text.Length > 1024) return false;
             if (!string.IsNullOrEmpty(trigger) && trigger.Length > 128) return false;
@@ -518,6 +531,12 @@ namespace Milehigh.Data
             foreach (var character in characters)
             {
                 if (character != null && !character.IsValid()) return false;
+            }
+
+            if (characters == null || characters.Count == 0 || characters.Count > 50)
+            {
+                Debug.LogError("[Security] Game data validation failed: Invalid character count.");
+                return false;
             }
 
             if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
