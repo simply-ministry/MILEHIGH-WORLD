@@ -150,6 +150,14 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         return wait;
     }
 
+    /// <summary>
+    /// Wait for a specified duration, but return immediately if a skip is requested.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float start = Time.time;
+        while (Time.time < start + duration && !skipRequested)
+        {
     private IEnumerator PopScale(Transform target, float duration, float scaleFactor)
     {
         target.localScale = Vector3.one;
@@ -181,6 +189,27 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     }
 
     /// <summary>
+    /// Subtle scaling animation for UI elements to provide visual feedback during state changes.
+    /// </summary>
+    private IEnumerator PopScale(Transform target, float duration, float scaleFactor)
+    {
+        if (target == null) yield break;
+
+        Vector3 originalScale = Vector3.one;
+        Vector3 targetScale = originalScale * (1.0f + scaleFactor);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            float t = elapsed / duration;
+            // Simple sin wave for pop effect
+            float curve = Mathf.Sin(t * Mathf.PI);
+            target.localScale = Vector3.Lerp(originalScale, targetScale, curve);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        target.localScale = originalScale;
+        popCoroutine = null;
     /// Adds a "pop" scale animation to a UI element for visual juice.
     /// </summary>
     private IEnumerator PopScale(RectTransform target, float duration, float scaleFactor)
@@ -260,6 +289,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
         }
         SpeakerNameText.text = speaker;
+        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform, 0.2f, 0.15f));
         idleTimer = 0;
         popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
 
@@ -536,6 +566,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(0.7f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(8.0f));
         yield return WaitForSecondsOrSkip(8.0f);
 
         // --- Dialogue Line 4: Delilah ---
@@ -544,6 +575,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return WaitForSecondsOrSkip(1.2f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
+        yield return StartCoroutine(WaitForSecondsOrSkip(7.0f));
         yield return WaitForSecondsOrSkip(7.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(7.0f));
             ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
@@ -3469,6 +3501,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
 
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (popCoroutine != null) StopCoroutine(popCoroutine);
         SpeakerNameText.text = "";
         DialogueText.text = "";
         DialogueBox.SetActive(false);
