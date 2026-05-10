@@ -71,6 +71,11 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot;
 
         // BOLT: Consolidated cache for GameObjects to prevent expensive O(N) GameObject.Find calls
+        private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
+        // BOLT: Prefab cache to avoid O(P) list searches and delegate allocations
+        private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
+        // BOLT: Component cache to avoid redundant GetComponent calls. Key is InstanceID (int) to avoid string allocations.
+        private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
         private Dictionary<string, GameObject> _objectCache = new Dictionary<string, GameObject>();
         // BOLT: Unified caching system to replace multiple redundant/conflicting declarations.
         // Uses O(1) lookups to eliminate expensive O(N) scene traversals and linear list searches.
@@ -926,6 +931,11 @@ namespace Milehigh.Core
         {
             InitializePrefabCache();
 
+            GameObject? obj;
+
+            // BOLT: Perform an O(1) dictionary lookup first.
+            // Note: Unity overrides the == operator to check if the underlying native C++ object is destroyed.
+            if (_objectCache.TryGetValue(objectName, out obj))
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.scenarios != null && campaignData.scenarios.Count > 0)
             {
@@ -977,6 +987,9 @@ namespace Milehigh.Core
             return prefab;
         }
 
+        private GameObject? GetPrefab(string profileName)
+        {
+            if (_prefabCache.TryGetValue(profileName, out GameObject? prefab)) return prefab;
         private void OnDestroy()
         {
             // BOLT: Explicitly clear caches on destroy to release Unity engine object references.
