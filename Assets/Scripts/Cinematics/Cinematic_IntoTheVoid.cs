@@ -130,6 +130,17 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
     }
 
     /// <summary>
+    /// Coroutine that waits for a specified time or until the user requests to skip.
+    /// Resets the skipRequested flag upon completion.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
+    {
+        float timer = 0f;
+        while (timer < seconds && !skipRequested)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
     /// UX Enhancement: A skippable delay that allows players to bypass cinematic pauses.
     /// Returns early if skipRequested is true, then resets the flag.
     /// </summary>
@@ -195,6 +206,11 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
             return;
         }
 
+        // Palette: Accessibility enhancement - Improve text legibility against dynamic backgrounds.
+        SpeakerNameText.outlineWidth = 0.2f;
+        SpeakerNameText.outlineColor = Color.black;
+        DialogueText.outlineWidth = 0.2f;
+        DialogueText.outlineColor = Color.black;
         // UX Enhancement: Outline for better readability against Void background
         DialogueText.outlineWidth = 0.2f;
         DialogueText.outlineColor = Color.black;
@@ -569,6 +585,9 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
         DialogueText.text = message + " <color=#FFD700>▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+        // Palette: Skip management - unified skipping ensures a single input bypasses
+        // both the typewriter reveal and the following cinematic pause.
+        // We do NOT reset skipRequested here; it's handled by WaitForSecondsOrSkip.
         // Palette UX Enhancement: We don't reset skipRequested here.
         // This allows a single skip input to bypass both the typewriter AND the subsequent cinematic pause.
         // 🎨 Palette: We don't reset skipRequested here.
