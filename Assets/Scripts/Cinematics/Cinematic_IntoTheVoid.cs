@@ -164,6 +164,7 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Standardized skip logic for both keyboard and mouse
     // Cache for WaitForSeconds to eliminate GC allocations
     // Cache for WaitForSeconds to eliminate GC allocations during coroutine execution
+    // ⚡ Bolt: Use int key for milliseconds to prevent float imprecision dictionary misses
     private static readonly Dictionary<float, WaitForSeconds?> _waitForSecondsCache = new Dictionary<float, WaitForSeconds?>();
     // ⚡ Bolt: Using int keys (milliseconds) prevents float precision cache misses and redundant GC allocations.
     // ⚡ Bolt: Cache for WaitForSeconds using integer keys (milliseconds) to eliminate GC allocations and floating-point cache misses
@@ -193,6 +194,11 @@ namespace Milehigh.Cinematics
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
+        int timeKey = Mathf.RoundToInt(time * 1000f);
+        if (!_waitForSecondsCache.TryGetValue(timeKey, out var wait))
+        {
+            wait = new WaitForSeconds(time);
+            _waitForSecondsCache[timeKey] = wait;
         int key = Mathf.RoundToInt(time * 1000f);
         if (!_waitForSecondsCache.TryGetValue(key, out var wait))
         {
@@ -335,6 +341,8 @@ namespace Milehigh.Cinematics
 
     void Start()
     {
+        // Poll for skip input to ensure responsiveness
+        if (Input.anyKeyDown || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         // Poll for skip input to ensure responsiveness across keyboard and mouse
         if (Input.anyKeyDown)
         {
@@ -392,6 +400,9 @@ namespace Milehigh.Cinematics
             if (hintObj != null) SkipHint = hintObj.GetComponent<TextMeshProUGUI>();
         }
 
+    /// <summary>
+    /// Updates the speaker name and begins the typewriter effect for the dialogue message.
+    /// </summary>
         if (SkipHint != null) SkipHint.gameObject.SetActive(false);
 
         // Initialize UI state
