@@ -5,7 +5,8 @@ namespace Milehigh.Characters
 {
     public class DelilahAIController : CharacterControllerBase
     {
-        public GameObject shadowClonePrefab;
+        public GameObject? shadowClonePrefab;
+        public GameObject shadowClonePrefab = null!;
 
         public override void ExecuteBehavior()
         {
@@ -23,7 +24,7 @@ namespace Milehigh.Characters
             Debug.Log("Delilah: Spawning shadow clones...");
             if (shadowClonePrefab != null)
             {
-                Instantiate(shadowClonePrefab, transform.position + Random.insideUnitSphere * 5f, Quaternion.identity);
+                Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, Quaternion.identity);
             }
         }
 
