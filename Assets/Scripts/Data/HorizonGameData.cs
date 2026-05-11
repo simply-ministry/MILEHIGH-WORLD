@@ -19,19 +19,14 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation to ensure deserialized metadata meets business constraints and safety bounds.
-        /// </summary>
         public bool IsValid()
         {
-            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range to prevent out-of-bounds visual artifacts or logic errors.
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
 
-            // SECURITY: Input validation for environment string length (DoS mitigation)
             if (string.IsNullOrEmpty(environment))
             {
                 Debug.LogError("[Security] Metadata validation failed: environment is missing.");
@@ -61,7 +56,6 @@ namespace Milehigh.Data
             if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
             if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
             if (traits != null && traits.Length > 10) return false;
-            // BOLT: Increased behaviorScript length to 2048 to support complex AI behaviors
             if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             return true;
         }
@@ -148,21 +142,9 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters = null!;
         public List<SceneScenario> scenarios = null!;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset after deserialization.
-        /// </summary>
         public bool IsValid()
         {
-            if (metadata == null)
-            {
-                Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
-                return false;
-            }
-
-            if (!metadata.IsValid())
-            {
-                return false;
-            }
+            if (metadata == null || !metadata.IsValid()) return false;
 
             if (characters == null || characters.Count == 0)
             {
@@ -172,7 +154,7 @@ namespace Milehigh.Data
 
             foreach (var character in characters)
             {
-                if (!character.IsValid()) return false;
+                if (character == null || !character.IsValid()) return false;
             }
 
             if (scenarios == null || scenarios.Count == 0)
@@ -183,7 +165,7 @@ namespace Milehigh.Data
 
             foreach (var scenario in scenarios)
             {
-                if (!scenario.IsValid()) return false;
+                if (scenario == null || !scenario.IsValid()) return false;
             }
 
             return true;

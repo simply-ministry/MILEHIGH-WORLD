@@ -8,7 +8,7 @@ using TMPro;
 namespace Milehigh.Cinematics
 {
     /// <summary>
-    /// Manages the cinematic sequence "Into the Void", handling dialogue, character animations, and rhythmic text reveal.
+    /// Manages the cinematic sequence "Into the Void", handling dialogue, character animations, audio, and rhythmic text reveal.
     /// </summary>
     public class Cinematic_IntoTheVoid : MonoBehaviour
     {
@@ -44,7 +44,6 @@ namespace Milehigh.Cinematics
         private Vector3 originalSpeakerScale;
 
         // BOLT: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
-        // Using int key (milliseconds) to prevent float imprecision cache misses.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
         private WaitForSeconds GetWait(float time)
@@ -94,11 +93,10 @@ namespace Milehigh.Cinematics
             {
                 skipRequested = true;
                 playerInteracted = true;
-                idleTimer = 0f;
                 if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
             }
 
-            // UX Enhancement: Show skip hint after 2 seconds of idleness during dialogue.
+            // UX Enhancement: Show skip hint after 2 seconds of idleness.
             if (DialogueBox != null && DialogueBox.activeInHierarchy && !playerInteracted && !skipRequested)
             {
                 idleTimer += Time.deltaTime;
@@ -109,12 +107,12 @@ namespace Milehigh.Cinematics
             }
         }
 
-        /// <summary>
-        /// Starts the typewriter reveal.
-        /// </summary>
         public void ShowDialogue(string speaker, string message)
         {
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+
+            // UX Enhancement: Reset idle timer for each new dialogue line.
+            idleTimer = 0f;
 
             // UX Enhancement: Trigger a subtle "Pop" animation when the speaker changes.
             if (SpeakerNameText.text != speaker)
@@ -128,19 +126,23 @@ namespace Milehigh.Cinematics
             // Apply speaker-specific speed multipliers and colors.
             float multiplier = 1.0f;
             Color speakerColor = Color.white;
+            AudioSource? voiceSource = null;
 
             switch (speaker)
             {
                 case "Sky.ix":
                     multiplier = skyixSpeedMultiplier;
                     speakerColor = Color.cyan;
+                    voiceSource = Skyix_VoiceSource;
                     break;
                 case "Kai":
                     multiplier = kaiSpeedMultiplier;
                     speakerColor = new Color(1f, 0.84f, 0f); // Gold
+                    voiceSource = Kai_VoiceSource;
                     break;
                 case "Delilah":
                     speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                    voiceSource = Delilah_VoiceSource;
                     break;
             }
 
@@ -148,6 +150,9 @@ namespace Milehigh.Cinematics
             currentSpeakerHex = ColorUtility.ToHtmlStringRGB(speakerColor);
             currentTypingSpeed = baseTypingSpeed * multiplier;
             skipRequested = false;
+
+            // Audio: Play the character's voice line if assigned.
+            if (voiceSource != null) voiceSource.Play();
 
             typingCoroutine = StartCoroutine(TypeDialogue(message));
         }
@@ -173,15 +178,12 @@ namespace Milehigh.Cinematics
 
         private IEnumerator TypeDialogue(string message)
         {
-            // UX Enhancement: Color-coded completion cue that matches speaker theme.
-            // We append it upfront to prevent layout shifts.
             DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
             DialogueText.maxVisibleCharacters = 0;
             DialogueText.ForceMeshUpdate();
 
             TMP_TextInfo textInfo = DialogueText.textInfo;
             int totalCharacters = textInfo.characterCount;
-            // The cue character is at the end. We reveal characters up to the cue.
             int mainMessageLength = totalCharacters - 1;
 
             for (int i = 0; i <= mainMessageLength; i++)
@@ -195,10 +197,8 @@ namespace Milehigh.Cinematics
                     char c = textInfo.characterInfo[i - 1].character;
                     float delay = currentTypingSpeed;
 
-                    // UX Enhancement: Rhythmic punctuation pauses for natural reading.
                     if (c == '.' || c == '!' || c == '?')
                     {
-                        // Look-ahead to avoid sentence-end delays for mid-word periods (e.g., Sky.ix).
                         bool isEndOfSentence = true;
                         if (i < mainMessageLength)
                         {
@@ -208,10 +208,8 @@ namespace Milehigh.Cinematics
 
                         if (isEndOfSentence)
                         {
-                            // Ellipsis detection: dot with dot neighbors.
                             bool isEllipsis = (i > 1 && textInfo.characterInfo[i - 2].character == '.') ||
                                              (i < mainMessageLength && textInfo.characterInfo[i].character == '.');
-
                             delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
                         }
                     }
@@ -240,15 +238,10 @@ namespace Milehigh.Cinematics
             skipRequested = false;
         }
 
-        /// <summary>
-        /// Unified helper to play a dialogue line and wait for it to finish reveal plus a reading pause.
-        /// </summary>
         private IEnumerator PlayDialogueLine(string speaker, string message, float readingPause)
         {
             ShowDialogue(speaker, message);
-            // Wait for typing to complete (or be skipped)
             while (typingCoroutine != null) yield return null;
-            // Now wait for the reading pause (also skippable)
             yield return WaitForSecondsOrSkip(readingPause);
         }
 
@@ -257,39 +250,40 @@ namespace Milehigh.Cinematics
             DialogueBox.SetActive(true);
             yield return WaitForSecondsOrSkip(1.0f);
 
-            // --- Dialogue Line 1: Delilah ---
-            yield return WaitForSecondsOrSkip(1.5f);
+            // Line 1: Delilah
+            if (Delilah_Character != null) Delilah_Character.GetComponent<Animator>()?.SetTrigger("Channeling_Idle");
             yield return PlayDialogueLine("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.", 2.5f);
 
-            // --- Dialogue Line 2: Sky.ix ---
-            yield return WaitForSecondsOrSkip(0.5f);
+            // Line 2: Sky.ix
+            if (Skyix_Character != null) Skyix_Character.GetComponent<Animator>()?.SetTrigger("React_Furious");
             yield return PlayDialogueLine("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.", 1.5f);
 
-            // --- Dialogue Line 3: Kai ---
-            yield return WaitForSecondsOrSkip(0.7f);
+            // Line 3: Kai
+            if (Kai_Character != null) Kai_Character.GetComponent<Animator>()?.SetTrigger("Point_Urgent");
             yield return PlayDialogueLine("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!", 2.0f);
 
-            // --- Dialogue Line 4: Delilah ---
-            yield return WaitForSecondsOrSkip(1.2f);
+            // Line 4: Delilah
+            if (Delilah_Character != null) Delilah_Character.GetComponent<Animator>()?.SetTrigger("Smirk_Dismissive");
             yield return PlayDialogueLine("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.", 2.0f);
 
-            // --- Dialogue Line 5: Sky.ix ---
-            yield return WaitForSecondsOrSkip(0.8f);
+            // Line 5: Sky.ix
+            if (Skyix_Character != null) Skyix_Character.GetComponent<Animator>()?.SetTrigger("Action_Ready");
             yield return PlayDialogueLine("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!", 1.0f);
 
-            // --- ACTION: Sky.ix dashes towards the conduit ---
+            // ACTION: Sky.ix dashes
+            if (Skyix_Character != null) Skyix_Character.GetComponent<Animator>()?.SetTrigger("Dash_Forward");
             yield return WaitForSecondsOrSkip(2.0f);
 
-            // --- Dialogue Line 6: Kai ---
-            yield return WaitForSecondsOrSkip(0.5f);
+            // Line 6: Kai
+            if (Kai_Character != null) Kai_Character.GetComponent<Animator>()?.SetTrigger("React_Alarmed");
             yield return PlayDialogueLine("Kai", "The energy spike is massive! Your shields won't hold for long!", 1.0f);
 
-            // --- Dialogue Line 7: Delilah ---
-            yield return WaitForSecondsOrSkip(1.5f);
+            // Line 7: Delilah
+            if (Delilah_Character != null) Delilah_Character.GetComponent<Animator>()?.SetTrigger("Taunt_OpenArms");
             yield return PlayDialogueLine("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.", 1.5f);
 
-            // --- Dialogue Line 8: Sky.ix ---
-            yield return WaitForSecondsOrSkip(1.0f);
+            // Line 8: Sky.ix
+            if (Skyix_Character != null) Skyix_Character.GetComponent<Animator>()?.SetTrigger("Determined_Resolve");
             yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 3.0f);
 
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
