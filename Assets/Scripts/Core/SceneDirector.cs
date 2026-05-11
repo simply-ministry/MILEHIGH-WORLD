@@ -2057,30 +2057,10 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            if (interaction == null) return;
-            // 🛡️ Sentinel: Prevent IDOR by blocking manipulation of core system managers.
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
-            GameObject? target = GetCachedObject(interaction.objectId);
-            // 🛡️ Sentinel: Prevent IDOR tampering with core architectural managers
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogWarning($"[Security] Blocked attempt to manipulate critical system object: {interaction.objectId}");
-                return;
-            }
-
-            GameObject? target = GetCachedObject(interaction.objectId);
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects using exact matching
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogError($"[Security] Blocked unauthorized interaction with system object: {interaction.objectId}");
-                return;
-            }
-
-            GameObject target = GetCachedGameObject(interaction.objectId);
-            // 🛡️ Sentinel: Security validation to prevent IDOR via external JSON mapping to core managers.
+            // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference)
+            // Block external data from manipulating core architectural managers.
             string[] protectedManagers = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
             if (System.Array.Exists(protectedManagers, m => m == interaction.objectId))
             {
@@ -2088,105 +2068,6 @@ namespace Milehigh.Core
                 return;
             }
 
-            // SECURITY: Prevent IDOR (Insecure Direct Object Reference) tampering with core systems.
-            // Block direct interactions with architectural singletons.
-            if (interaction.objectId == "CampaignManager" ||
-                interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" ||
-                interaction.objectId == "AlliancePowerManager")
-            {
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on core system: {interaction.objectId}");
-                return;
-            }
-
-            if (interaction == null) return;
-            GameObject? target = GetCachedObject(interaction.objectId);
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogWarning($"[Security] Blocked attempt to interact with critical system object: {interaction.objectId}");
-                return;
-            }
-
-            // 🛡️ Sentinel: Validate that the requested object ID is not a restricted system object.
-            // SECURITY: Prevents IDOR-like tampering where untrusted JSON data manipulates critical singletons.
-            if (_restrictedSystemObjects.Contains(interaction.objectId))
-            {
-                Debug.LogWarning($"[Security] Attempted to apply interaction to restricted system object: {interaction.objectId}. Action blocked.");
-                return;
-            }
-
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogWarning($"[Security] Blocked interaction attempt on critical system object: {interaction.objectId}");
-                return;
-            }
-            if (interaction == null) return;
-            // 🛡️ Sentinel: Prevent IDOR vulnerabilities by blocking untrusted external data from targeting core architectural singletons.
-            // SECURITY: Prevent IDOR tampering with core system managers via untrusted JSON data
-            // 🛡️ Sentinel: Prevent IDOR by blocking manipulation of critical system managers
-            if (interaction == null) return;
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR)
-            // Block external data from manipulating core architectural managers.
-            string[] protectedObjects = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
-            foreach (string protectedObj in protectedObjects)
-            {
-                if (interaction.objectId == protectedObj)
-                {
-                    Debug.LogError($"[Security] Blocked unauthorized interaction attempt on protected object: {interaction.objectId}");
-                    return;
-                }
-            // SENTINEL: Prevent IDOR vulnerabilities by blocking untrusted external interactions
-            // from manipulating core architectural singletons and managers.
-            // SENTINEL: Prevent IDOR by blocking access to core architectural singletons.
-            // External JSON data should not be able to manipulate these critical managers.
-            // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference)
-            // Block external modification of core architectural singletons.
-            // SECURITY: Prevent IDOR (Insecure Direct Object Reference). Block external JSON from manipulating core managers.
-            // 🛡️ Sentinel: Prevent IDOR-like tampering of critical system objects.
-            // External JSON could attempt to manipulate core managers by passing their exact names.
-            if (interaction.objectId == "CampaignManager" ||
-                interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" ||
-                interaction.objectId == "AlliancePowerManager")
-            {
-                Debug.LogWarning($"Security Block: Unauthorized interaction attempt with protected system object: {interaction.objectId}");
-                return;
-            }
-
-                Debug.LogError($"[Security] Blocked unauthorized interaction with core system object: {interaction.objectId}");
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected system object: {interaction.objectId}");
-                Debug.LogWarning("Security: Blocked unauthorized interaction with core system manager.");
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction with protected system object: {interaction.objectId}");
-                Debug.LogWarning($"[Security] Blocked unauthorized attempt to interact with protected core system: {interaction.objectId}");
-                Debug.LogWarning($"Security Block: Unauthorized interaction attempt on protected object {interaction.objectId}");
-                Debug.LogWarning($"[Security] Blocked unauthorized attempt to manipulate protected object: {interaction.objectId}");
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on protected object: {interaction.objectId}");
-                return;
-            }
-
-            GameObject? target = GetCachedObject(interaction.objectId);
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on system object: {interaction.objectId}");
-                return;
-            }
-
-            // SECURITY: Exact string matching to prevent IDOR-like tampering of critical system objects
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on critical system object: {interaction.objectId}");
-                return;
-            }
-
-            // 🛡️ Sentinel: Security enhancement to prevent IDOR-like manipulation of core objects
-            // Do not allow external JSON data to manipulate critical system objects
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector")
-            {
-                Debug.LogWarning($"[Security] Blocked attempt to manipulate protected object: {interaction.objectId}");
-                return;
-            }
-
-            if (interaction == null) return;
             GameObject target = GetCachedObject(interaction.objectId);
 
             if (target != null)
