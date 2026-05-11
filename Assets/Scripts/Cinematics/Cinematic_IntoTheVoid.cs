@@ -233,9 +233,16 @@ namespace Milehigh.Cinematics
     public GameObject DialogueBox = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI? SkipHintText;
 
     [Header("UX Settings")]
     [Tooltip("Base delay in seconds between each character being revealed.")]
+    public float typingSpeed = 0.03f;
+    [Tooltip("Delay in seconds after punctuation (., !, ?).")]
+    public float punctuationPause = 0.5f;
+    [Tooltip("Delay in seconds after a comma.")]
+    public float commaPause = 0.2f;
+    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
     [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
@@ -254,6 +261,7 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private bool playerInteracted;
     private Vector3 originalScale;
     private Vector3 originalSpeakerScale;
     private string cachedHexColor = "FFFFFF";
@@ -410,6 +418,15 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        // Palette: Find SkipHint programmatically if not assigned
+        if (SkipHintText == null && DialogueBox != null)
+        {
+            Transform hintTransform = DialogueBox.transform.Find("SkipHint");
+            if (hintTransform != null) SkipHintText = hintTransform.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+
         // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
         originalScale = SpeakerNameText.transform.localScale;
 
@@ -495,6 +512,12 @@ namespace Milehigh.Cinematics
     void Start()
     void Update()
     {
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+        }
         if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
         if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
@@ -596,7 +619,7 @@ namespace Milehigh.Cinematics
         else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
             SpeakerNameText.text = speaker;
 
-        currentTypingSpeed = baseTypingSpeed * multiplier;
+        currentTypingSpeed = typingSpeed * multiplier;
         skipRequested = false;
 
         Color speakerColor = Color.white;
@@ -704,6 +727,7 @@ namespace Milehigh.Cinematics
         // UX Enhancement: Color-coded completion cue that matches speaker theme.
         string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
         DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
         DialogueText.maxVisibleCharacters = 0;
 
         // Ensure TMP is updated to get accurate character info
@@ -725,6 +749,10 @@ namespace Milehigh.Cinematics
         // The message length excluding the cue (▽ is 1 char)
         int messageChars = totalCharacters - 1;
 
+        float startTime = Time.time;
+        bool hintShown = false;
+
+        for (int i = 0; i < totalCharacters; i++)
         for (int i = 0; i <= messageChars; i++)
         {
             // UX Enhancement: Robust skip logic using persistent flag
@@ -732,6 +760,19 @@ namespace Milehigh.Cinematics
 
             DialogueText.maxVisibleCharacters = i;
 
+            // Palette: Show skip hint if player is idle for 2 seconds
+            if (!playerInteracted && !hintShown && Time.time - startTime > 2f)
+            {
+                if (SkipHintText != null)
+                {
+                    SkipHintText.text = "[Space] Skip";
+                    SkipHintText.gameObject.SetActive(true);
+                    hintShown = true;
+                }
+            }
+
+            char c = textInfo.characterInfo[i].character;
+            float delay = typingSpeed;
             if (i < messageChars)
             {
                 char c = textInfo.characterInfo[i].character;
