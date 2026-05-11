@@ -14,14 +14,14 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Metadata
     {
-        [UnityEngine.TooltipAttribute("The lighting state for the scene.")]
+        [UnityEngine.Tooltip("The lighting state for the scene.")]
         public LightingState lighting;
-        [UnityEngine.TooltipAttribute("The name of the environment.")]
+        [UnityEngine.Tooltip("The name of the environment.")]
         public string environment = null!;
-        [UnityEngine.TooltipAttribute("System parity level for synchronization.")]
+        [UnityEngine.Tooltip("System parity level for synchronization.")]
         public int systemParity;
-        [UnityEngine.TooltipAttribute("The saturation level of the Void effect (0 to 1).")]
-        [UnityEngine.RangeAttribute(0.0f, 1.0f)]
+        [UnityEngine.Tooltip("The saturation level of the Void effect (0 to 1).")]
+        [UnityEngine.Range(0.0f, 1.0f)]
         public float voidSaturationLevel;
 
         /// <summary>
@@ -47,14 +47,14 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
-        [UnityEngine.TooltipAttribute("The name of the character.")]
+        [UnityEngine.Tooltip("The name of the character.")]
         public string name = null!;
-        [UnityEngine.TooltipAttribute("The role or class of the character.")]
+        [UnityEngine.Tooltip("The role or class of the character.")]
         public string role = null!;
-        [UnityEngine.TooltipAttribute("A list of traits defining the character's abilities or attributes.")]
+        [UnityEngine.Tooltip("A list of traits defining the character's abilities or attributes.")]
         public string[] traits = null!;
-        [UnityEngine.TooltipAttribute("The script defining the character's AI behavior.")]
-        [UnityEngine.TextAreaAttribute(3, 10)]
+        [UnityEngine.Tooltip("The script defining the character's AI behavior.")]
+        [UnityEngine.TextArea(3, 10)]
         public string behaviorScript = null!;
 
         public bool IsValid()
@@ -86,20 +86,20 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
-        [UnityEngine.TooltipAttribute("The ID of the object to interact with.")]
+        [UnityEngine.Tooltip("The ID of the object to interact with.")]
         public string objectId = null!;
-        [UnityEngine.TooltipAttribute("The action to perform on the object.")]
+        [UnityEngine.Tooltip("The action to perform on the object.")]
         public string action = null!;
 
-        [UnityEngine.TooltipAttribute("Whether the interaction uses a vector or a float value.")]
+        [UnityEngine.Tooltip("Whether the interaction uses a vector or a float value.")]
         public bool isVector;
-        [UnityEngine.TooltipAttribute("The float value for the interaction.")]
+        [UnityEngine.Tooltip("The float value for the interaction.")]
         public float floatValue;
-        [UnityEngine.TooltipAttribute("The X component of the vector value.")]
+        [UnityEngine.Tooltip("The X component of the vector value.")]
         public float x;
-        [UnityEngine.TooltipAttribute("The Y component of the vector value.")]
+        [UnityEngine.Tooltip("The Y component of the vector value.")]
         public float y;
-        [UnityEngine.TooltipAttribute("The Z component of the vector value.")]
+        [UnityEngine.Tooltip("The Z component of the vector value.")]
         public float z;
 
         public Vector3 GetVectorValue()
@@ -126,12 +126,12 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
-        [UnityEngine.TooltipAttribute("The name of the speaker.")]
+        [UnityEngine.Tooltip("The name of the speaker.")]
         public string speaker = null!;
-        [UnityEngine.TooltipAttribute("The dialogue text content.")]
-        [UnityEngine.TextAreaAttribute(2, 5)]
+        [UnityEngine.Tooltip("The dialogue text content.")]
+        [UnityEngine.TextArea(2, 5)]
         public string text = null!;
-        [UnityEngine.TooltipAttribute("The event trigger for this dialogue.")]
+        [UnityEngine.Tooltip("The event trigger for this dialogue.")]
         public string trigger = null!;
 
         public bool IsValid()
@@ -153,14 +153,14 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
-        [UnityEngine.TooltipAttribute("Unique ID for the scenario.")]
+        [UnityEngine.Tooltip("Unique ID for the scenario.")]
         public string scenarioId = null!;
-        [UnityEngine.TooltipAttribute("Description of the scenario.")]
-        [UnityEngine.TextAreaAttribute(2, 5)]
+        [UnityEngine.Tooltip("Description of the scenario.")]
+        [UnityEngine.TextArea(2, 5)]
         public string description = null!;
-        [UnityEngine.TooltipAttribute("List of interactive objects in this scenario.")]
+        [UnityEngine.Tooltip("List of interactive objects in this scenario.")]
         public List<ObjectInteraction> interactiveObjects = null!;
-        [UnityEngine.TooltipAttribute("List of dialogue lines in this scenario.")]
+        [UnityEngine.Tooltip("List of dialogue lines in this scenario.")]
         public List<Dialogue> dialogue = null!;
 
         public bool IsValid()
@@ -203,13 +203,13 @@ namespace Milehigh.Data
     [System.Serializable]
     public class HorizonGameData
     {
-        [UnityEngine.TooltipAttribute("Unique ID for the scene.")]
+        [UnityEngine.Tooltip("Unique ID for the scene.")]
         public string sceneId = null!;
-        [UnityEngine.TooltipAttribute("Metadata for the scene.")]
+        [UnityEngine.Tooltip("Metadata for the scene.")]
         public Metadata metadata = null!;
-        [UnityEngine.TooltipAttribute("List of character profiles in this campaign.")]
+        [UnityEngine.Tooltip("List of character profiles in this campaign.")]
         public List<CharacterProfile> characters = null!;
-        [UnityEngine.TooltipAttribute("List of scenarios in this campaign.")]
+        [UnityEngine.Tooltip("List of scenarios in this campaign.")]
         public List<SceneScenario> scenarios = null!;
 
         /// <summary>
