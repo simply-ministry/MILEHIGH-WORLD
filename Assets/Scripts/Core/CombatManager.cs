@@ -19,12 +19,19 @@ namespace Milehigh.World.Core
             return (baseDamage * attacker.vanguardMultiplier) * integrityMult;
         }
 
+        private static readonly int GlitchIntensityId = Shader.PropertyToID("_GlitchIntensity");
+        private static MaterialPropertyBlock? _glitchPropertyBlock;
+
         public void TriggerEnemyGlitch(GameObject target)
         {
             if (target.TryGetComponent<Renderer>(out Renderer ren))
             {
-                // Error 14 Fix: Null check handled via TryGetComponent
-                ren.material.SetFloat("_GlitchIntensity", 1.0f);
+                // ⚡ Bolt: Use MaterialPropertyBlock to prevent material instantiation and preserve draw call batching.
+                if (_glitchPropertyBlock == null) _glitchPropertyBlock = new MaterialPropertyBlock();
+
+                ren.GetPropertyBlock(_glitchPropertyBlock);
+                _glitchPropertyBlock.SetFloat(GlitchIntensityId, 1.0f);
+                ren.SetPropertyBlock(_glitchPropertyBlock);
             }
         }
     }

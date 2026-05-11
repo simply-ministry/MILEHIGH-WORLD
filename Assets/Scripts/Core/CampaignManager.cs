@@ -15,7 +15,7 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = FindObjectOfType<CampaignManager>();
+                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
@@ -32,13 +32,13 @@ namespace Milehigh.Core
 
         private void Awake()
         {
-            if (_instance != null && _instance != this)
+            if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
             {
-                Destroy(gameObject);
+                UnityEngine.Object.Destroy(gameObject);
                 return;
             }
             _instance = this;
-            DontDestroyOnLoad(gameObject);
+            UnityEngine.Object.DontDestroyOnLoad(gameObject);
             LoadCampaignData();
         }
 
@@ -78,6 +78,9 @@ namespace Milehigh.Core
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     // SECURITY: Perform validation after deserialization to ensure data integrity
+                    if (currentCampaignData == null)
+                    {
+                        Debug.LogError($"Failed to parse campaign data from {fileName}.");
                     if (currentCampaignData != null)
                     {
                         if (currentCampaignData.IsValid())
@@ -101,8 +104,29 @@ namespace Milehigh.Core
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
+                    else if (!currentCampaignData.IsValid())
+                    {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        currentCampaignData = null;
+                    }
                     else
                     {
+                        currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                        Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
+                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                        UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Campaign data from {fileName} failed security validation.");
+                        UnityEngine.Debug.LogError($"Failed to parse or validate campaign data from {fileName}.");
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    }
+                    else
+                    {
+                        // SECURITY: Fail securely and don't use invalid data
                         Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
                         currentCampaignData = null; // Prevent use of invalid data.
                         Debug.LogError($"Campaign data from {fileName} failed security validation.");
@@ -127,6 +151,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    Debug.LogError($"Error loading campaign data from {fileName}: {ex.Message}");
                     currentCampaignData = null; // Ensure we don't use partially loaded or invalid data
                     // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
                     Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
@@ -145,6 +170,8 @@ namespace Milehigh.Core
             }
             else
             {
+                // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure
+                UnityEngine.Debug.LogError($"Campaign master JSON not found: {fileName}");
                 // SECURITY: Log only the filename to prevent information disclosure.
                 Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
@@ -153,7 +180,7 @@ namespace Milehigh.Core
         public void IncreaseVoidSaturation(float amount)
         {
             currentVoidSaturationLevel = Mathf.Clamp01(currentVoidSaturationLevel + amount);
-            Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
+            UnityEngine.Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
         }
     }
 }

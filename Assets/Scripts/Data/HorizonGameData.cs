@@ -15,9 +15,40 @@ namespace Milehigh.Data
         public float voidSaturationLevel;
 
         /// <summary>
+        /// 🛡️ Sentinel: Security validation to ensure deserialized metadata meets business constraints.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                return false;
+            }
+            if (string.IsNullOrEmpty(environment))
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment is missing.");
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
         /// 🛡️ Sentinel: Validates metadata integrity and safety bounds.
         public bool IsValid()
         {
+            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                UnityEngine.Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+            // SECURITY: Input validation for environment string length (DoS mitigation)
+            if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
+                return false;
+            }
+
+            // Void saturation must be within a safe 0.0 to 1.0 range.
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
@@ -48,6 +79,7 @@ namespace Milehigh.Data
             // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 Debug.LogError($"[Security] Invalid voidSaturationLevel detected: {voidSaturationLevel}. Must be between 0.0 and 1.0.");
                 return false;
             }
@@ -72,11 +104,20 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
-        public string name;
-        public string role;
-        public string[] traits;
-        public string behaviorScript;
+        public string name = null!;
+        public string role = null!;
+        public string[] traits = null!;
+        public string behaviorScript = null!;
 
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for character profile data.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Enforce string length limits to prevent memory exhaustion/DoS
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (role != null && role.Length > 128) return false;
+            if (behaviorScript != null && behaviorScript.Length > 128) return false;
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(name) || name.Length > 128)
@@ -143,6 +184,9 @@ namespace Milehigh.Data
         public float y;
         public float z;
 
+        public UnityEngine.Vector3 GetVectorValue()
+        {
+            return new UnityEngine.Vector3(x, y, z);
         public Vector3 GetVectorValue() => new Vector3(x, y, z);
 
         public bool IsValid()
@@ -174,9 +218,6 @@ namespace Milehigh.Data
         public string speaker = null!;
         public string text = null!;
         public string trigger = null!;
-        public string speaker;
-        public string text;
-        public string trigger;
 
         public bool IsValid()
         {
@@ -254,6 +295,15 @@ namespace Milehigh.Data
         public List<ObjectInteraction> interactiveObjects;
         public List<Dialogue> dialogue;
 
+        /// <summary>
+        /// 🛡️ Sentinel: Security validation for scenario data.
+        /// </summary>
+        public bool IsValid()
+        {
+            // SECURITY: Enforce string length limits
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
+            return true;
+        }
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
@@ -337,6 +387,16 @@ namespace Milehigh.Data
         /// </summary>
         public bool IsValid()
         {
+            if (metadata == null || !metadata.IsValid()) return false;
+            if (characters == null || characters.Count == 0) return false;
+            if (scenarios == null || scenarios.Count == 0) return false;
+            if (metadata == null) return false;
+            if (!metadata.IsValid()) return false;
+            if (characters == null || scenarios == null) return false;
+            // SECURITY: Enforce global campaign limits to prevent resource exhaustion attacks
+            if (sceneId != null && sceneId.Length > 128) return false;
+            if (characters != null && characters.Count > 50) return false;
+            if (scenarios != null && scenarios.Count > 100) return false;
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
             {
                 Debug.LogError("[Security] Game data validation failed: sceneId is null, empty or exceeds 128 characters.");
@@ -364,6 +424,7 @@ namespace Milehigh.Data
             if (scenarios == null || scenarios.Count == 0) return false;
             if (characters == null || characters.Count == 0)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing.");
                 Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
                 return false;
             }
@@ -382,6 +443,18 @@ namespace Milehigh.Data
 
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
                 Debug.LogError("[Security] Game data validation failed: Character profiles count invalid.");
                 return false;
             }

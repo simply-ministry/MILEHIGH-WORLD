@@ -84,6 +84,7 @@ public class Cinematic_IntoTheVoid : MonoBehaviour
 /// </summary>
 public class Cinematic_IntoTheVoid : MonoBehaviour
 {
+    [Header("Characters")]
     [Header("Character References")]
     public GameObject Skyix_Character = null!;
     public AudioSource Skyix_VoiceSource = null!;
@@ -232,14 +233,25 @@ namespace Milehigh.Cinematics
     public GameObject DialogueBox = null!;
     public TextMeshProUGUI SpeakerNameText = null!;
     public TextMeshProUGUI DialogueText = null!;
+    public TextMeshProUGUI? SkipHintText;
 
     [Header("UX Settings")]
     [Tooltip("Base delay in seconds between each character being revealed.")]
+    public float typingSpeed = 0.03f;
+    [Tooltip("Delay in seconds after punctuation (., !, ?).")]
+    public float punctuationPause = 0.5f;
+    [Tooltip("Delay in seconds after a comma.")]
+    public float commaPause = 0.2f;
+    [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
     [FormerlySerializedAs("typingSpeed")]
     public float baseTypingSpeed = 0.03f;
     public float kaiSpeedMultiplier = 3.0f;
     public float skyixSpeedMultiplier = 1.2f;
 
+    private Coroutine? typingCoroutine;
+    private Coroutine? popScaleCoroutine;
+    private Coroutine? scalingCoroutine;
+    private Coroutine? speakerPopCoroutine;
     private Coroutine typingCoroutine;
     private Coroutine popCoroutine;
     private Vector3 originalSpeakerNameScale;
@@ -249,6 +261,10 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private bool playerInteracted;
+    private Vector3 originalScale;
+    private Vector3 originalSpeakerScale;
+    private string cachedHexColor = "FFFFFF";
     private string currentSpeakerHex;
     private Vector3 speakerNameOriginalScale;
     private Coroutine popCoroutine;
@@ -285,6 +301,110 @@ namespace Milehigh.Cinematics
         SpeakerNameText.transform.localScale = speakerNameOriginalScale;
     }
 
+    private IEnumerator PopEffect(RectTransform rect)
+    {
+        // Poll for skip input to ensure responsiveness across all input types
+        if (Input.anyKeyDown)
+        // Poll for skip input to ensure responsiveness across keyboard and mouse
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        if (rect == null) yield break;
+
+        Vector3 initialScale = Vector3.one;
+        rect.localScale = initialScale;
+
+        float duration = 0.2f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float percent = elapsed / duration;
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            rect.localScale = initialScale + Vector3.one * (curve * 0.1f);
+            yield return null;
+        }
+
+        rect.localScale = initialScale;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
+    {
+        float timer = 0f;
+        while (timer < seconds && !skipRequested)
+        {
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    private IEnumerator PopEffect(Transform target)
+    {
+        target.localScale = Vector3.one;
+        float duration = 0.2f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float scale = 1f + Mathf.Sin((elapsed / duration) * Mathf.PI) * 0.15f;
+            target.localScale = Vector3.one * scale;
+            yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Yields for the specified duration but returns immediately if a skip is requested.
+    /// Resets the skip flag upon completion to ensure it doesn't bleed into the next reveal.
+        target.localScale = Vector3.one;
+    }
+
+    /// <summary>
+    /// Wait for a specified duration, but allow the user to skip the wait by pressing any key.
+    /// </summary>
+    private IEnumerator WaitForSecondsOrSkip(float duration)
+    {
+        float timer = 0f;
+        while (timer < duration && !skipRequested)
+        {
+            timer += Time.deltaTime;
+            yield return null;
+        }
+        skipRequested = false;
+    }
+
+    /// <summary>
+    /// Adds a "pop" scale animation to a UI element for visual juice.
+    /// </summary>
+    private IEnumerator PopScale(RectTransform target, float duration, float scaleFactor)
+    {
+        if (target == null) yield break;
+
+        target.localScale = Vector3.one;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            // Use a sine wave for a smooth pop out and back in
+            float scale = 1f + Mathf.Sin(percent * Mathf.PI) * scaleFactor;
+            target.localScale = new Vector3(scale, scale, 1f);
+            yield return null;
+        }
+        target.localScale = Vector3.one;
+    }
+
+    void Start()
     private void Start()
     {
         // Cache original scale to prevent scale drift during interrupted animations
@@ -298,11 +418,34 @@ namespace Milehigh.Cinematics
             return;
         }
 
+        // Palette: Find SkipHint programmatically if not assigned
+        if (SkipHintText == null && DialogueBox != null)
+        {
+            Transform hintTransform = DialogueBox.transform.Find("SkipHint");
+            if (hintTransform != null) SkipHintText = hintTransform.GetComponent<TextMeshProUGUI>();
+        }
+
+        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+
+        // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
+        originalScale = SpeakerNameText.transform.localScale;
+
+        originalSpeakerScale = SpeakerNameText.transform.localScale;
+
+        // 🎨 Palette: Accessibility - Text outline for better contrast in dark scenes
+        SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+        DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+
         StartCoroutine(Cinematic_IntoTheVoid_Sequence());
     }
 
     private void Update()
     {
+        if (Input.anyKeyDown) skipRequested = true;
+    }
+
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
     private IEnumerator WaitForSecondsOrSkip(float duration)
@@ -312,6 +455,8 @@ namespace Milehigh.Cinematics
         {
             yield return null;
         }
+    }
+
         skipRequested = false;
     }
 
@@ -342,6 +487,12 @@ namespace Milehigh.Cinematics
         float elapsed = 0f;
         while (elapsed < duration / 2f)
         {
+            Debug.LogError("Missing UI components required for cinematic.");
+            return;
+        }
+        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+    }
+
             target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
             elapsed += Time.deltaTime;
             yield return null;
@@ -361,6 +512,13 @@ namespace Milehigh.Cinematics
     void Start()
     void Update()
     {
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        {
+            skipRequested = true;
+            playerInteracted = true;
+            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+        }
+        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
         if (Input.anyKeyDown) skipRequested = true;
         // Poll for skip input to ensure responsiveness
         if (Input.anyKeyDown)
@@ -418,8 +576,36 @@ namespace Milehigh.Cinematics
     {
         skipRequested = false;
         if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
+
+        // 🎨 Palette: PopScale animation for speaker name changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (scalingCoroutine != null) StopCoroutine(scalingCoroutine);
+            scalingCoroutine = StartCoroutine(PopScaleSpeaker());
+        }
+
+        // UI Juice: Apply a pop animation to the speaker name when it changes
+        if (SpeakerNameText.text != speaker)
+        {
+            StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 0.15f));
+        }
+
+        // UX Enhancement: Trigger a subtle "Pop" animation when the speaker changes
+        if (SpeakerNameText.text != speaker)
+        {
+            if (popScaleCoroutine != null) StopCoroutine(popScaleCoroutine);
+            popScaleCoroutine = StartCoroutine(PopScaleEffect());
+        }
+
+        bool speakerChanged = SpeakerNameText.text != speaker;
+        SpeakerNameText.text = speaker;
+        speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
+        if (speakerChanged) StartCoroutine(PopEffect(SpeakerNameText.transform));
+
+        // Apply speaker-specific speed multipliers based on voice profiles
         SpeakerNameText.text = speaker;
         popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
         popCoroutine = StartCoroutine(PopSpeakerName());
@@ -433,8 +619,14 @@ namespace Milehigh.Cinematics
         else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
             SpeakerNameText.text = speaker;
 
-        currentTypingSpeed = baseTypingSpeed * multiplier;
+        currentTypingSpeed = typingSpeed * multiplier;
         skipRequested = false;
+
+        Color speakerColor = Color.white;
+        if (speaker == "Sky.ix") speakerColor = Color.cyan;
+        else if (speaker == "Kai") speakerColor = new Color(1f, 0.84f, 0f);
+        else if (speaker == "Delilah") speakerColor = new Color(0.6f, 0.1f, 0.9f);
+
 
         Color speakerColor = Color.white;
         // Apply character-specific colors
@@ -462,8 +654,9 @@ namespace Milehigh.Cinematics
                 speakerColor = Color.white;
                 break;
         }
-
         SpeakerNameText.color = speakerColor;
+        // BOLT: Cache hex color to avoid per-character allocation in the reveal loop
+        cachedHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
         speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
 
                 SpeakerNameText.color = Color.cyan;
@@ -489,11 +682,203 @@ namespace Milehigh.Cinematics
         StartCoroutine(PopScale(SpeakerNameText.rectTransform));
     }
 
+    private IEnumerator PopScaleSpeaker()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        float targetScale = 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            // Simple bounce-out curve
+            float s = 1f + Mathf.Sin(t * Mathf.PI) * (targetScale - 1f);
+            SpeakerNameText.transform.localScale = originalSpeakerScale * s;
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalSpeakerScale;
+        scalingCoroutine = null;
+    }
+
+    private IEnumerator PopScaleEffect()
+    {
+        float elapsed = 0f;
+        float duration = 0.2f;
+        float targetScale = 1.15f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float percent = elapsed / duration;
+            // Simple ease-out curve using Sin
+            float curve = Mathf.Sin(percent * Mathf.PI);
+            SpeakerNameText.transform.localScale = originalScale * (1f + (targetScale - 1f) * curve);
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalScale;
+        popScaleCoroutine = null;
+    }
+
+    private IEnumerator TypeDialogue(string message)
+    {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        DialogueText.maxVisibleCharacters = 0;
+
+        // Ensure TMP is updated to get accurate character info
+
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalVisibleCharacters = textInfo.characterCount;
     /// <summary>
     /// Unified typewriter effect that handles rich text, rhythmic pauses, and skip logic.
     /// </summary>
     private IEnumerator TypeDialogue(string message)
     {
+        // UX Enhancement: Color-coded completion cue ('▽') that matches the current speaker.
+        // We append it immediately to ensure the full layout is calculated upfront, preventing layout shifts.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+
+        // The message length excluding the cue (▽ is 1 char)
+        int messageChars = totalCharacters - 1;
+
+        float startTime = Time.time;
+        bool hintShown = false;
+
+        for (int i = 0; i < totalCharacters; i++)
+        for (int i = 0; i <= messageChars; i++)
+        {
+            // UX Enhancement: Robust skip logic using persistent flag
+            if (skipRequested) break;
+
+            DialogueText.maxVisibleCharacters = i;
+
+            // Palette: Show skip hint if player is idle for 2 seconds
+            if (!playerInteracted && !hintShown && Time.time - startTime > 2f)
+            {
+                if (SkipHintText != null)
+                {
+                    SkipHintText.text = "[Space] Skip";
+                    SkipHintText.gameObject.SetActive(true);
+                    hintShown = true;
+                }
+            }
+
+            char c = textInfo.characterInfo[i].character;
+            float delay = typingSpeed;
+            if (i < messageChars)
+            {
+                char c = textInfo.characterInfo[i].character;
+                float delay = currentTypingSpeed;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                // Delay occurs after character reveal for natural rhythm.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i < messageChars - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        DialogueText.text = $"{message} <color=#{cachedHexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+        DialogueText.ForceMeshUpdate();
+
+        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
+        // The cue character is at the end. We reveal it only after the main message is typed.
+        int mainMessageLength = totalVisibleCharacters - 1;
+
+        for (int i = 0; i < mainMessageLength; i++)
+        {
+            if (skipRequested) break;
+
+        for (int i = 1; i <= totalVisibleCharacters; i++)
+        {
+            if (skipRequested)
+            {
+                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+                break;
+            }
+
+            char c = DialogueText.textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
+            DialogueText.maxVisibleCharacters = i;
+            float delay = currentTypingSpeed;
+            char c = DialogueText.textInfo.characterInfo[i - 1].character;
+
+            // Rhythmic punctuation pauses to mimic natural speech cadence
+            if (c == '.' || c == '!' || c == '?')
+            {
+                float delay = currentTypingSpeed;
+                char c = textInfo.characterInfo[i].character;
+
+                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < totalVisibleCharacters)
+                    {
+                        char nextChar = textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                // Look ahead to distinguish sentence endings from mid-word periods (e.g., Sky.ix)
+                bool isEndOfSentence = true;
+                if (i + 1 < mainMessageLength)
+                {
+                    char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    // Refined ellipsis detection
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
+                        if (i + 1 < mainMessageLength && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
+            {
+                bool isEndOfSentence = true;
+                if (i < totalVisibleCharacters)
+                {
+                    char nextChar = DialogueText.textInfo.characterInfo[i].character;
+                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                }
+
+                if (isEndOfSentence)
+                {
+                    bool isEllipsis = false;
+                    if (c == '.')
+                    {
+                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
+                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
+                    }
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        skipRequested = false;
         // UX Enhancement: Reveal with completion cue already appended to prevent layout shifts.
         // The cue is color-coded to match the speaker for a subtle touch of polish.
         DialogueText.text = $"{message} <color=#{speakerHexColor}>▽</color>";
@@ -690,15 +1075,59 @@ namespace Milehigh.Cinematics
                     if (isEllipsis)
                     {
                         delay = currentTypingSpeed * 5f;
+                    if (isEndOfSentence)
+                    {
+                        bool isEllipsis = (i + 1 < totalVisibleCharacters && textInfo.characterInfo[i + 1].character == '.') ||
+                                         (i > 0 && textInfo.characterInfo[i - 1].character == '.');
+                        delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
+                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                }
+            }
+            else if (c == ',' || c == ';' || c == ':')
+            {
+                delay = currentTypingSpeed * 8f;
+            }
+
+            yield return GetWait(delay);
+        }
+
+        // Finalize reveal
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+        skipRequested = false;
+                    if (isEllipsis)
+                    {
+                        delay = currentTypingSpeed * 5f;
                     }
                     else if (c == '.' || c == '!' || c == '?')
                     {
+                        // Check for ellipsis (consecutive dots)
+                        bool isEllipsis = false;
+                        if (c == '.')
                         // Look-ahead to avoid pausing on mid-word periods (e.g., Sky.ix)
                         bool isEndOfSentence = (i >= totalVisibleCharacters) || Char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character);
                         if (isEndOfSentence) delay = currentTypingSpeed * 15f;
                     }
-                    else if (c == ',' || c == ';' || c == ':')
+                    else
                     {
+                        // Smart Punctuation: Look ahead to avoid pauses in middle of words (like Sky.ix)
+                        bool isEndOfSentence = true;
+                        if (i < messageChars - 1)
+                        {
+                            char nextChar = textInfo.characterInfo[i + 1].character;
+                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence) delay = currentTypingSpeed * 15f;
+                    }
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    delay = currentTypingSpeed * 8f;
                         delay = currentTypingSpeed * 8f;
                     }
                     if (c == '.' || c == '!' || c == '?')
@@ -710,6 +1139,17 @@ namespace Milehigh.Cinematics
                             if (nextC == '.' || nextC == '!' || nextC == '?') isEndOfCluster = false;
                         }
 
+                        if (isEllipsis)
+                            delay = currentTypingSpeed * 5f;
+                        else if (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character))
+                            delay = currentTypingSpeed; // Mid-word period (Sky.ix)
+                        else
+                            delay = currentTypingSpeed * 15f;
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
                         if (isEndOfCluster)
                         {
                             bool isEndOfSentence = true;
@@ -753,6 +1193,13 @@ namespace Milehigh.Cinematics
             yield return GetWait(delay);
         }
 
+                float timer = 0f;
+                while (timer < delay && !skipRequested)
+                {
+                    timer += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+                // BOLT: Zero-allocation yield via shared cache
         // Finalize text display
         DialogueText.maxVisibleCharacters = totalVisibleCharacters;
             }
@@ -817,6 +1264,7 @@ namespace Milehigh.Cinematics
 
                         bool isMidWord = (i < totalVisibleCharacters && !char.IsWhiteSpace(DialogueText.textInfo.characterInfo[i].character));
 
+                // ⚡ Bolt: Use cached WaitForSeconds to avoid GC allocations in the typewriter loop
                         if (isEllipsis) delay = currentTypingSpeed * 5f;
                         else if (isMidWord) delay = currentTypingSpeed; // No pause for mid-word abbreviations
                         else delay = currentTypingSpeed * 15f;
@@ -843,6 +1291,10 @@ namespace Milehigh.Cinematics
             }
         }
 
+        DialogueText.maxVisibleCharacters = totalCharacters;
+        // Note: skipRequested is NOT reset here to allow the subsequent WaitForSecondsOrSkip to also be skipped.
+        DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
+        skipRequested = false;
         // UX Enhancement: Visual progression cue color-coded to the speaker's theme.
         DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
         skipRequested = false;
@@ -903,6 +1355,8 @@ namespace Milehigh.Cinematics
         DialogueText.text = message + $" {currentSpeakerColorTag}▽</color>";
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
 
+        // We do NOT reset skipRequested here. We want the skip intent to carry
+        // over into the post-dialogue pause in Cinematic_IntoTheVoid_Sequence.
         skipRequested = false;
         typingCoroutine = null!;
         // Note: skipRequested is NOT reset here to allow 'fast skip' to carry over to the subsequent pause.
@@ -990,6 +1444,12 @@ namespace Milehigh.Cinematics
 
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
+        DialogueBox.SetActive(true);
+        yield return WaitForSecondsOrSkip(1.0f);
+
+        DialogueBox.SetActive(true);
+        yield return WaitForSecondsOrSkip(1.0f);
+
         // [SCENE SETUP: Disable player controls, position cameras, set initial character states]
         DialogueBox.SetActive(true);
         yield return WaitForSecondsOrSkip(1.0f);
@@ -1059,6 +1519,7 @@ namespace Milehigh.Cinematics
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.5f);
+        yield return WaitForSecondsOrSkip(7.5f);
         ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
         yield return WaitForSecondsOrSkip(7.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(7.5f));
@@ -1070,6 +1531,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.5f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(6.0f);
         yield return WaitForSecondsOrSkip(6.0f);
         ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
         yield return WaitForSecondsOrSkip(6.0f);
@@ -1083,6 +1545,7 @@ namespace Milehigh.Cinematics
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         // Kai_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(8.0f);
+        yield return WaitForSecondsOrSkip(8.0f);
         ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
         yield return WaitForSecondsOrSkip(8.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(8.0f));
@@ -1095,6 +1558,7 @@ namespace Milehigh.Cinematics
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         // Delilah_VoiceSource.Play();
         yield return WaitForSecondsOrSkip(7.0f);
+        yield return WaitForSecondsOrSkip(7.0f);
         ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
         yield return WaitForSecondsOrSkip(7.0f);
         yield return StartCoroutine(WaitForSecondsOrSkip(7.0f));
@@ -1106,6 +1570,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(0.8f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(4.5f);
         yield return WaitForSecondsOrSkip(4.5f);
         ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
         yield return WaitForSecondsOrSkip(4.5f);
@@ -1134,6 +1599,8 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(3.5f);
         ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
         yield return WaitForSecondsOrSkip(3.5f);
+        ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
+        yield return WaitForSecondsOrSkip(3.5f);
         yield return StartCoroutine(WaitForSecondsOrSkip(3.5f));
 
         // --- Dialogue Line 7: Delilah ---
@@ -1143,6 +1610,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         // Delilah_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(5.5f);
         yield return WaitForSecondsOrSkip(5.5f);
         ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
         yield return WaitForSecondsOrSkip(5.5f);
@@ -1155,6 +1623,7 @@ namespace Milehigh.Cinematics
         yield return WaitForSecondsOrSkip(1.0f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         // Skyix_VoiceSource.Play();
+        yield return WaitForSecondsOrSkip(7.5f);
         yield return WaitForSecondsOrSkip(7.5f);
         ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
         yield return WaitForSecondsOrSkip(7.5f);
