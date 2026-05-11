@@ -109,6 +109,9 @@ namespace Milehigh.Cinematics
             }
         }
 
+        /// <summary>
+        /// Starts the typewriter reveal.
+        /// </summary>
         public void ShowDialogue(string speaker, string message)
         {
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -237,6 +240,18 @@ namespace Milehigh.Cinematics
             skipRequested = false;
         }
 
+        /// <summary>
+        /// Unified helper to play a dialogue line and wait for it to finish reveal plus a reading pause.
+        /// </summary>
+        private IEnumerator PlayDialogueLine(string speaker, string message, float readingPause)
+        {
+            ShowDialogue(speaker, message);
+            // Wait for typing to complete (or be skipped)
+            while (typingCoroutine != null) yield return null;
+            // Now wait for the reading pause (also skippable)
+            yield return WaitForSecondsOrSkip(readingPause);
+        }
+
         private IEnumerator Cinematic_IntoTheVoid_Sequence()
         {
             DialogueBox.SetActive(true);
@@ -244,46 +259,38 @@ namespace Milehigh.Cinematics
 
             // --- Dialogue Line 1: Delilah ---
             yield return WaitForSecondsOrSkip(1.5f);
-            ShowDialogue("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.");
-            yield return WaitForSecondsOrSkip(7.5f);
+            yield return PlayDialogueLine("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.", 2.5f);
 
             // --- Dialogue Line 2: Sky.ix ---
             yield return WaitForSecondsOrSkip(0.5f);
-            ShowDialogue("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.");
-            yield return WaitForSecondsOrSkip(6.0f);
+            yield return PlayDialogueLine("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.", 1.5f);
 
             // --- Dialogue Line 3: Kai ---
             yield return WaitForSecondsOrSkip(0.7f);
-            ShowDialogue("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!");
-            yield return WaitForSecondsOrSkip(8.0f);
+            yield return PlayDialogueLine("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!", 2.0f);
 
             // --- Dialogue Line 4: Delilah ---
             yield return WaitForSecondsOrSkip(1.2f);
-            ShowDialogue("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.");
-            yield return WaitForSecondsOrSkip(7.0f);
+            yield return PlayDialogueLine("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.", 2.0f);
 
             // --- Dialogue Line 5: Sky.ix ---
             yield return WaitForSecondsOrSkip(0.8f);
-            ShowDialogue("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!");
-            yield return WaitForSecondsOrSkip(4.5f);
+            yield return PlayDialogueLine("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!", 1.0f);
 
             // --- ACTION: Sky.ix dashes towards the conduit ---
             yield return WaitForSecondsOrSkip(2.0f);
 
             // --- Dialogue Line 6: Kai ---
             yield return WaitForSecondsOrSkip(0.5f);
-            ShowDialogue("Kai", "The energy spike is massive! Your shields won't hold for long!");
-            yield return WaitForSecondsOrSkip(3.5f);
+            yield return PlayDialogueLine("Kai", "The energy spike is massive! Your shields won't hold for long!", 1.0f);
 
             // --- Dialogue Line 7: Delilah ---
             yield return WaitForSecondsOrSkip(1.5f);
-            ShowDialogue("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.");
-            yield return WaitForSecondsOrSkip(5.5f);
+            yield return PlayDialogueLine("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.", 1.5f);
 
             // --- Dialogue Line 8: Sky.ix ---
             yield return WaitForSecondsOrSkip(1.0f);
-            ShowDialogue("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.");
-            yield return WaitForSecondsOrSkip(7.5f);
+            yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 3.0f);
 
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             SpeakerNameText.text = "";
