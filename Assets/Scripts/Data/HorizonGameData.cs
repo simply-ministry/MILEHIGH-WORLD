@@ -14,14 +14,14 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Metadata
     {
-        [Tooltip("The lighting state for the scene.")]
+        [UnityEngine.TooltipAttribute("The lighting state for the scene.")]
         public LightingState lighting;
-        [Tooltip("The name of the environment.")]
+        [UnityEngine.TooltipAttribute("The name of the environment.")]
         public string environment = null!;
-        [Tooltip("System parity level for synchronization.")]
+        [UnityEngine.TooltipAttribute("System parity level for synchronization.")]
         public int systemParity;
-        [Tooltip("The saturation level of the Void effect (0 to 1).")]
-        [Range(0.0f, 1.0f)]
+        [UnityEngine.TooltipAttribute("The saturation level of the Void effect (0 to 1).")]
+        [UnityEngine.RangeAttribute(0.0f, 1.0f)]
         public float voidSaturationLevel;
 
         /// <summary>
@@ -31,13 +31,13 @@ namespace Milehigh.Data
         {
             if (string.IsNullOrEmpty(environment) || environment.Length > 128)
             {
-                Debug.LogError("[Security] Metadata validation failed: environment is missing or too long.");
+                UnityEngine.Debug.LogError("[Security] Metadata validation failed: environment is missing or too long.");
                 return false;
             }
 
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
-                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                UnityEngine.Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
             return true;
@@ -47,24 +47,38 @@ namespace Milehigh.Data
     [System.Serializable]
     public class CharacterProfile
     {
-        [Tooltip("The name of the character.")]
+        [UnityEngine.TooltipAttribute("The name of the character.")]
         public string name = null!;
-        [Tooltip("The role or class of the character.")]
+        [UnityEngine.TooltipAttribute("The role or class of the character.")]
         public string role = null!;
-        [Tooltip("A list of traits defining the character's abilities or attributes.")]
+        [UnityEngine.TooltipAttribute("A list of traits defining the character's abilities or attributes.")]
         public string[] traits = null!;
-        [Tooltip("The script defining the character's AI behavior.")]
-        [TextArea(3, 10)]
+        [UnityEngine.TooltipAttribute("The script defining the character's AI behavior.")]
+        [UnityEngine.TextAreaAttribute(3, 10)]
         public string behaviorScript = null!;
 
         public bool IsValid()
         {
-            if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
-            if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
-            if (traits != null && traits.Length > 10) return false;
-            // Palette: Increased behaviorScript limit to support richer AI descriptions while maintaining safety.
-            // BOLT: Increased behaviorScript length to 2048 to support complex AI behaviors
-            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
+            if (string.IsNullOrEmpty(name) || name.Length > 64)
+            {
+                UnityEngine.Debug.LogError("[Security] CharacterProfile validation failed: name is invalid.");
+                return false;
+            }
+            if (!string.IsNullOrEmpty(role) && role.Length > 64)
+            {
+                UnityEngine.Debug.LogError("[Security] CharacterProfile validation failed: role is too long.");
+                return false;
+            }
+            if (traits != null && traits.Length > 10)
+            {
+                UnityEngine.Debug.LogError("[Security] CharacterProfile validation failed: too many traits.");
+                return false;
+            }
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048)
+            {
+                UnityEngine.Debug.LogError("[Security] CharacterProfile validation failed: behaviorScript is too long.");
+                return false;
+            }
             return true;
         }
     }
@@ -72,20 +86,20 @@ namespace Milehigh.Data
     [System.Serializable]
     public class ObjectInteraction
     {
-        [Tooltip("The ID of the object to interact with.")]
+        [UnityEngine.TooltipAttribute("The ID of the object to interact with.")]
         public string objectId = null!;
-        [Tooltip("The action to perform on the object.")]
+        [UnityEngine.TooltipAttribute("The action to perform on the object.")]
         public string action = null!;
 
-        [Tooltip("Whether the interaction uses a vector or a float value.")]
+        [UnityEngine.TooltipAttribute("Whether the interaction uses a vector or a float value.")]
         public bool isVector;
-        [Tooltip("The float value for the interaction.")]
+        [UnityEngine.TooltipAttribute("The float value for the interaction.")]
         public float floatValue;
-        [Tooltip("The X component of the vector value.")]
+        [UnityEngine.TooltipAttribute("The X component of the vector value.")]
         public float x;
-        [Tooltip("The Y component of the vector value.")]
+        [UnityEngine.TooltipAttribute("The Y component of the vector value.")]
         public float y;
-        [Tooltip("The Z component of the vector value.")]
+        [UnityEngine.TooltipAttribute("The Z component of the vector value.")]
         public float z;
 
         public Vector3 GetVectorValue()
@@ -95,8 +109,16 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
-            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
-            if (string.IsNullOrEmpty(action) || action.Length > 128) return false;
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128)
+            {
+                UnityEngine.Debug.LogError("[Security] ObjectInteraction validation failed: objectId is invalid.");
+                return false;
+            }
+            if (string.IsNullOrEmpty(action) || action.Length > 128)
+            {
+                UnityEngine.Debug.LogError("[Security] ObjectInteraction validation failed: action is invalid.");
+                return false;
+            }
             return true;
         }
     }
@@ -104,18 +126,26 @@ namespace Milehigh.Data
     [System.Serializable]
     public class Dialogue
     {
-        [Tooltip("The name of the speaker.")]
+        [UnityEngine.TooltipAttribute("The name of the speaker.")]
         public string speaker = null!;
-        [Tooltip("The dialogue text content.")]
-        [TextArea(2, 5)]
+        [UnityEngine.TooltipAttribute("The dialogue text content.")]
+        [UnityEngine.TextAreaAttribute(2, 5)]
         public string text = null!;
-        [Tooltip("The event trigger for this dialogue.")]
+        [UnityEngine.TooltipAttribute("The event trigger for this dialogue.")]
         public string trigger = null!;
 
         public bool IsValid()
         {
-            if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64) return false;
-            if (string.IsNullOrEmpty(text) || text.Length > 1024) return false;
+            if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64)
+            {
+                UnityEngine.Debug.LogError("[Security] Dialogue validation failed: speaker name is too long.");
+                return false;
+            }
+            if (string.IsNullOrEmpty(text) || text.Length > 1024)
+            {
+                UnityEngine.Debug.LogError("[Security] Dialogue validation failed: text is invalid or too long.");
+                return false;
+            }
             return true;
         }
     }
@@ -123,21 +153,33 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
-        [Tooltip("Unique ID for the scenario.")]
+        [UnityEngine.TooltipAttribute("Unique ID for the scenario.")]
         public string scenarioId = null!;
-        [Tooltip("Description of the scenario.")]
-        [TextArea(2, 5)]
+        [UnityEngine.TooltipAttribute("Description of the scenario.")]
+        [UnityEngine.TextAreaAttribute(2, 5)]
         public string description = null!;
-        [Tooltip("List of interactive objects in this scenario.")]
+        [UnityEngine.TooltipAttribute("List of interactive objects in this scenario.")]
         public List<ObjectInteraction> interactiveObjects = null!;
-        [Tooltip("List of dialogue lines in this scenario.")]
+        [UnityEngine.TooltipAttribute("List of dialogue lines in this scenario.")]
         public List<Dialogue> dialogue = null!;
 
         public bool IsValid()
         {
-            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128) return false;
-            if (interactiveObjects != null && interactiveObjects.Count > 50) return false;
-            if (dialogue != null && dialogue.Count > 50) return false;
+            if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
+            {
+                UnityEngine.Debug.LogError("[Security] SceneScenario validation failed: scenarioId is invalid.");
+                return false;
+            }
+            if (interactiveObjects != null && interactiveObjects.Count > 50)
+            {
+                UnityEngine.Debug.LogError("[Security] SceneScenario validation failed: too many interactive objects.");
+                return false;
+            }
+            if (dialogue != null && dialogue.Count > 50)
+            {
+                UnityEngine.Debug.LogError("[Security] SceneScenario validation failed: too many dialogue lines.");
+                return false;
+            }
 
             if (interactiveObjects != null)
             {
@@ -161,13 +203,13 @@ namespace Milehigh.Data
     [System.Serializable]
     public class HorizonGameData
     {
-        [Tooltip("Unique ID for the scene.")]
+        [UnityEngine.TooltipAttribute("Unique ID for the scene.")]
         public string sceneId = null!;
-        [Tooltip("Metadata for the scene.")]
+        [UnityEngine.TooltipAttribute("Metadata for the scene.")]
         public Metadata metadata = null!;
-        [Tooltip("List of character profiles in this campaign.")]
+        [UnityEngine.TooltipAttribute("List of character profiles in this campaign.")]
         public List<CharacterProfile> characters = null!;
-        [Tooltip("List of scenarios in this campaign.")]
+        [UnityEngine.TooltipAttribute("List of scenarios in this campaign.")]
         public List<SceneScenario> scenarios = null!;
 
         /// <summary>
@@ -177,30 +219,38 @@ namespace Milehigh.Data
         {
             if (metadata == null || !metadata.IsValid())
             {
-                Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
                 return false;
             }
 
             if (characters == null || characters.Count == 0)
             {
-                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
                 return false;
             }
 
             if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             {
-                Debug.LogError("[Security] Game data validation failed: No scenarios defined or too many scenarios.");
+                UnityEngine.Debug.LogError("[Security] Game data validation failed: No scenarios defined or too many scenarios.");
                 return false;
             }
 
             foreach (var character in characters)
             {
-                if (character == null || !character.IsValid()) return false;
+                if (character == null || !character.IsValid())
+                {
+                    UnityEngine.Debug.LogError("[Security] Game data validation failed: A character profile is invalid.");
+                    return false;
+                }
             }
 
             foreach (var scenario in scenarios)
             {
-                if (scenario == null || !scenario.IsValid()) return false;
+                if (scenario == null || !scenario.IsValid())
+                {
+                    UnityEngine.Debug.LogError("[Security] Game data validation failed: A scenario is invalid.");
+                    return false;
+                }
             }
 
             return true;
