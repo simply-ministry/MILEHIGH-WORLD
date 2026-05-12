@@ -15,6 +15,14 @@ namespace Milehigh.World.Terminal
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
 
+        private void Start()
+        {
+            if (outputDisplay != null)
+            {
+                outputDisplay.text = "[SYSTEM]: OTIS Terminal Online. Type 'help' for commands.";
+            }
+        }
+
         private void OnEnable()
         {
             if (commandInput != null)
@@ -27,6 +35,10 @@ namespace Milehigh.World.Terminal
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
+            // 🛡️ Sentinel: Input validation and DoS protection
+            if (input.Length > MaxInputLength)
+            {
+                outputDisplay.text += "\n[SECURITY]: Input exceeds maximum length (256 characters).";
             // 🛡️ Sentinel: Input validation and DoS protection to prevent malicious command injection or resource exhaustion.
             if (input.Length > MaxInputLength)
             {
@@ -36,6 +48,13 @@ namespace Milehigh.World.Terminal
 
             if (!SafeCommandRegex.IsMatch(input))
             {
+                outputDisplay.text += "\n[SECURITY]: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.";
+                if (commandInput != null) StartCoroutine(ShakeInputField());
+                return;
+            }
+
+            string[] parts = input.Trim().Split(' ');
+            string command = parts[0].ToLower();
                 if (outputDisplay != null) outputDisplay.text += "\n[SECURITY]: Input contains invalid characters.";
                 return;
             }
@@ -47,6 +66,21 @@ namespace Milehigh.World.Terminal
                 commandInput.ActivateInputField();
             }
 
+            // Handle basic UX commands
+            if (command == "clear")
+            {
+                outputDisplay.text = "";
+                return;
+            }
+
+            if (command == "help")
+            {
+                outputDisplay.text += "\n[SYSTEM]: <color=#FFFF00>Available Commands:</color>";
+                outputDisplay.text += "\n - <color=#00FFFF>help</color>: Show this message.";
+                outputDisplay.text += "\n - <color=#00FFFF>clear</color>: Clear the terminal display.";
+                outputDisplay.text += "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands.";
+                return;
+            }
             string[] parts = input.Trim().Split(' ');
 
             // Error 12 Fix: Bounds checking before IndexOf/Substring
@@ -63,6 +97,7 @@ namespace Milehigh.World.Terminal
             else
             {
                 // UX Enhancement: Visual feedback for error
+                outputDisplay.text += $"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>";
                 if (outputDisplay != null) outputDisplay.text += "\n[SYSTEM]: <color=#FF0000>Invalid argument count.</color>";
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
