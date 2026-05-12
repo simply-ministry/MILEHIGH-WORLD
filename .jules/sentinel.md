@@ -36,3 +36,8 @@
 **Vulnerability:** Absolute file paths being logged during data loading.
 **Learning:** Hardcoded paths or `Application.dataPath` in logs can reveal developer filesystem structure.
 **Prevention:** Only log filenames or relative identifiers in production-facing logs.
+
+## 2026-05-12 - [Resource Exhaustion via Untrusted JSON Data]
+**Vulnerability:** Deserialized campaign data (`HorizonGameData.cs`) lacked uniform length and count constraints, making the application vulnerable to resource exhaustion (DoS) attacks if a malicious JSON with extremely large strings or lists was loaded. Additionally, severe code rot (redundant class definitions) masked these vulnerabilities and impeded security audits.
+**Learning:** Code rot and structural duplication not only degrade maintainability but also provide vectors for bypassing security controls or complicating audits. Centralized, hardened `IsValid()` methods are essential for defense-in-depth when dealing with untrusted external data.
+**Prevention:** Consolidate data structures to ensure a single source of truth and implement strict validation (length, range, count) for all fields in serializable models.
