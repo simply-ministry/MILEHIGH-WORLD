@@ -39,6 +39,10 @@ namespace Milehigh.World.Terminal
             if (input.Length > MaxInputLength)
             {
                 outputDisplay.text += "\n[SECURITY]: Input exceeds maximum length (256 characters).";
+            // 🛡️ Sentinel: Input validation and DoS protection to prevent malicious command injection or resource exhaustion.
+            if (input.Length > MaxInputLength)
+            {
+                if (outputDisplay != null) outputDisplay.text += "\n[SECURITY]: Input exceeds maximum length.";
                 return;
             }
 
@@ -51,6 +55,9 @@ namespace Milehigh.World.Terminal
 
             string[] parts = input.Trim().Split(' ');
             string command = parts[0].ToLower();
+                if (outputDisplay != null) outputDisplay.text += "\n[SECURITY]: Input contains invalid characters.";
+                return;
+            }
 
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
@@ -74,6 +81,7 @@ namespace Milehigh.World.Terminal
                 outputDisplay.text += "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands.";
                 return;
             }
+            string[] parts = input.Trim().Split(' ');
 
             // Error 12 Fix: Bounds checking before IndexOf/Substring
             if (parts.Length >= 3)
@@ -83,13 +91,14 @@ namespace Milehigh.World.Terminal
                 {
                     string argument = input.Substring(index);
                     ExecuteExtendedCommand(parts[0], argument);
-                    outputDisplay.text += $"\n[SYSTEM]: <color=#00FF00>Command '{parts[0]}' executed.</color>";
+                    if (outputDisplay != null) outputDisplay.text += $"\n[SYSTEM]: <color=#00FF00>Command '{parts[0]}' executed.</color>";
                 }
             }
             else
             {
                 // UX Enhancement: Visual feedback for error
                 outputDisplay.text += $"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>";
+                if (outputDisplay != null) outputDisplay.text += "\n[SYSTEM]: <color=#FF0000>Invalid argument count.</color>";
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
         }
