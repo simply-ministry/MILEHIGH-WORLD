@@ -39,10 +39,20 @@
 **Learning:** In Unity TextMeshPro, iterating over string length for typewriter reveals can break when rich text tags (like <color> or <b>) are present, as the tag characters are revealed one-by-one. Using 'TMP_Text.ForceMeshUpdate()' followed by iterating over 'TMP_Text.textInfo.characterCount' ensures only rendered characters are revealed, maintaining both accessibility (screen readers) and visual polish.
 **Action:** Always use 'textInfo.characterCount' and 'ForceMeshUpdate' for typewriter effects to ensure compatibility with rich text and accurate character-based pacing.
 
+## 2025-11-23 - [Carry-over Skip Intent in Dialogue Sequences]
+**Learning:** To create a truly responsive dialogue skip mechanic, avoid resetting the 'skipRequested' flag at the end of the typewriter reveal. Instead, allow the flag to persist into the subsequent 'WaitForSecondsOrSkip' pause. This enables a single user input to both instantly reveal text and skip the following wait period, aligning with common player expectations for high-speed dialogue navigation.
+**Action:** Move skip flag resets to the end of the post-dialogue pause coroutine rather than the end of the text reveal coroutine.
+
 ## 2026-03-24 - [Scaling Rhythmic Typewriter and Progression Cues]
 **Learning:** Rhythmic punctuation pauses in typewriter effects are most effective when they occur *after* the punctuation character is revealed (checking index `i-1`) and use multipliers (e.g., 15x, 8x) instead of fixed delays. This ensures the cadence remains natural even when base typing speeds vary by character. Additionally, appending a visual completion character after typewriter reveals to improve readability and interaction clarity.
 **Action:** Always use speed multipliers for rhythmic pauses and include a visual completion character after typewriter reveals to improve readability and interaction clarity.
 
+## 2026-04-16 - [Persistent Skip Intent in Cinematic Sequences]
+**Learning:** In dialogue-heavy cinematics, users expect a single "Skip" action to bypass both the text reveal and the subsequent post-dialogue pause. Carrying the 'skipRequested' flag through both the typewriter coroutine and a custom 'WaitForSecondsOrSkip' coroutine creates a much more responsive and intuitive feel than requiring multiple clicks per line.
+**Action:** Implement 'WaitForSecondsOrSkip' and ensure 'skipRequested' flags are not prematurely reset between typing and pausing phases.
+## 2026-03-25 - [Responsive Cinematic Skip & Speaker Pop Animation]
+**Learning:** In cinematic dialogue sequences, user experience is significantly enhanced by making "skip" actions feel snappy and persistent. By allowing a single skip intent to carry over from the typewriter reveal to the subsequent line pause, we reduce user frustration during replay or fast reading. Additionally, a subtle (200ms) Sin-wave scale "pop" on the speaker's name provides a clear, delightful visual anchor for character transitions.
+**Action:** Use a persistent `skipRequested` flag that is only reset at the end of a skippable wait cycle, and implement lightweight scale animations for UI state changes.
 ## 2026-03-25 - [Rhythmic Typewriter and Speaker-Themed Feedback]
 **Learning:** Cinematic dialogue feels significantly more natural when the typewriter effect respects the rhythm of speech by distinguishing between sentence endings, mid-word punctuation (like "Sky.ix"), and ellipses. Furthermore, color-coding visual feedback cues (like the completion symbol '▽') to the speaker's theme provides a subtle but effective way to maintain character identity throughout the dialogue reveal.
 **Action:** Implement rhythmic look-ahead logic in typewriter effects to handle edge-case punctuation and use speaker-specific hex colors for UI completion indicators to improve visual cohesion.
@@ -66,6 +76,9 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
+## 2026-03-26 - [Dynamic Speaker Feedback and Visual Flash Prevention]
+**Learning:** To provide subtle but effective feedback for speaker changes, a brief scaling animation ("PopScale") on the speaker's name text enhances presence without distraction. To ensure this remains stable over many interactions, caching the 'originalScale' in 'Start()' is necessary to prevent accumulation errors (drift) from interrupted animations. Additionally, to avoid a one-frame 'visual flash' of full text before a typewriter reveal starts, 'maxVisibleCharacters' must be set to 0 immediately after the text property is updated and before 'ForceMeshUpdate()' is called.
+**Action:** Use cached baseline values for UI animations to prevent drift, and ensure 'maxVisibleCharacters' is zeroed before mesh updates in typewriter implementations.
 ## 2026-03-26 - [Unified Rhythmic Typewriter and Smart Punctuation]
 **Learning:** Consolidating redundant dialogue logic into a single, robust typewriter coroutine prevents visual glitches and ensures consistent UX. Smart punctuation (detecting ellipses vs. end-of-sentence vs. mid-word periods) significantly improves the natural "breath" of digital dialogue, making it more readable and engaging.
 **Action:** Use look-ahead and look-behind logic in text reveal loops to apply context-sensitive delays, and always unify duplicate input/update logic to ensure responsiveness.

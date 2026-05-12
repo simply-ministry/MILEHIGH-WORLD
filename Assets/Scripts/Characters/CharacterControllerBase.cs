@@ -10,6 +10,7 @@ namespace Milehigh.Characters
         public virtual void Initialize(CharacterData data)
         {
             characterData = data;
+            UnityEngine.Debug.Log($"{gameObject.name} initialized with role: {data.role}");
             Debug.Log($"Initialized with role: {data.role}");
         }
 
