@@ -31,6 +31,7 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
+                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
                 Debug.LogError($"[Security] Failed to load or parse campaign data: {ex.Message}");
                 return;
             }
@@ -58,6 +59,17 @@ namespace Milehigh.Editor
                     // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
                     string baseName = charProfile.name ?? "unnamed_character";
                     string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
+                    // We use Path.GetInvalidFileNameChars to filter OS-level invalid characters and Path.GetFileName to strip traversal sequences.
+                    string baseName = charProfile.name ?? "unnamed_character";
+
+                    // 1. Replace invalid filename characters with underscores
+                    string sanitizedName = baseName;
+                    foreach (char c in Path.GetInvalidFileNameChars())
+                    {
+                        sanitizedName = sanitizedName.Replace(c, '_');
+                    }
+
+                    // 2. Ensure no directory separators or traversal sequences remain
                     string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");
 
                     if (string.IsNullOrEmpty(safeFileName))

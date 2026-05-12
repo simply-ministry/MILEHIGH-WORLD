@@ -26,16 +26,19 @@ namespace Milehigh.Data
                 Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
+
             if (string.IsNullOrEmpty(environment))
             {
                 Debug.LogError("[Security] Metadata validation failed: environment is missing.");
                 return false;
             }
+
             if (environment.Length > 128)
             {
                 Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
                 return false;
             }
+
             return true;
         }
     }
@@ -76,6 +79,21 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 64) return false;
+            if (string.IsNullOrEmpty(action) || action.Length > 64) return false;
+            return true;
+        }
+    }
+
+    [System.Serializable]
+    public class Dialogue
+    {
+        public string speaker = null!;
+        public string text = null!;
+        public string trigger = null!;
+
+        public bool IsValid()
+        {
             if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
             if (string.IsNullOrEmpty(action) || action.Length > 128) return false;
             return true;
@@ -113,11 +131,25 @@ namespace Milehigh.Data
         {
             if (metadata == null || !metadata.IsValid()) return false;
             if (characters == null) return false;
+
+            if (characters == null || characters.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
+                return false;
+            }
+
             foreach (var character in characters)
             {
                 if (character == null || !character.IsValid()) return false;
             }
             if (scenarios == null) return false;
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
+
             foreach (var scenario in scenarios)
             {
                 if (scenario == null || !scenario.IsValid()) return false;
