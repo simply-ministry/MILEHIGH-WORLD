@@ -15,24 +15,6 @@ namespace Milehigh.World.Terminal
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
 
-        public void ProcessCommand(string input)
-        {
-            if (string.IsNullOrEmpty(input)) return;
-
-            // 🛡️ Sentinel: Input validation and DoS protection
-            if (input.Length > MaxInputLength)
-            {
-                outputDisplay.text += "\n[SECURITY]: Input exceeds maximum length.";
-                return;
-            }
-
-            if (!SafeCommandRegex.IsMatch(input))
-            {
-                outputDisplay.text += "\n[SECURITY]: Input contains invalid characters.";
-                return;
-            }
-
-            string[] parts = input.Split(' ');
         private void OnEnable()
         {
             if (commandInput != null)
@@ -45,7 +27,18 @@ namespace Milehigh.World.Terminal
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
-            string[] parts = input.Trim().Split(' ');
+            // 🛡️ Sentinel: Input validation and DoS protection to prevent malicious command injection or resource exhaustion.
+            if (input.Length > MaxInputLength)
+            {
+                if (outputDisplay != null) outputDisplay.text += "\n[SECURITY]: Input exceeds maximum length.";
+                return;
+            }
+
+            if (!SafeCommandRegex.IsMatch(input))
+            {
+                if (outputDisplay != null) outputDisplay.text += "\n[SECURITY]: Input contains invalid characters.";
+                return;
+            }
 
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
@@ -53,6 +46,8 @@ namespace Milehigh.World.Terminal
                 commandInput.text = "";
                 commandInput.ActivateInputField();
             }
+
+            string[] parts = input.Trim().Split(' ');
 
             // Error 12 Fix: Bounds checking before IndexOf/Substring
             if (parts.Length >= 3)
@@ -62,13 +57,13 @@ namespace Milehigh.World.Terminal
                 {
                     string argument = input.Substring(index);
                     ExecuteExtendedCommand(parts[0], argument);
-                    outputDisplay.text += $"\n[SYSTEM]: <color=#00FF00>Command '{parts[0]}' executed.</color>";
+                    if (outputDisplay != null) outputDisplay.text += $"\n[SYSTEM]: <color=#00FF00>Command '{parts[0]}' executed.</color>";
                 }
             }
             else
             {
                 // UX Enhancement: Visual feedback for error
-                outputDisplay.text += "\n[SYSTEM]: <color=#FF0000>Invalid argument count.</color>";
+                if (outputDisplay != null) outputDisplay.text += "\n[SYSTEM]: <color=#FF0000>Invalid argument count.</color>";
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
         }
