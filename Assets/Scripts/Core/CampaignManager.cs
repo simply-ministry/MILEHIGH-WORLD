@@ -59,6 +59,7 @@ namespace Milehigh.Core
                     currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
 
                     // 🛡️ Sentinel: Security validation of deserialized data.
+                    // SECURITY: Perform validation after deserialization to ensure data integrity and fail securely.
                     if (currentCampaignData != null && currentCampaignData.IsValid())
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
@@ -67,6 +68,8 @@ namespace Milehigh.Core
                     }
                     else
                     {
+                        Debug.LogError($"[Security] Campaign data from {fileName} failed validation or parsing.");
+                        currentCampaignData = null!; // Ensure we don't use invalid data
                         // SECURITY: Fail securely and don't use invalid data.
                         Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
                         // SECURITY: Fail securely by nullifying corrupted data and logging the error without leaking internal paths.
@@ -76,6 +79,7 @@ namespace Milehigh.Core
                 }
                 catch (System.Exception ex)
                 {
+                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or paths.
                     // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs.
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces.
                     // Log only the file name, not the absolute path, to prevent information disclosure.
