@@ -144,6 +144,20 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
+            // 🛡️ Sentinel: Mitigate Denial of Service (DoS) attacks via expensive GameObject.Find calls.
+            // We restrict object names to a 128-character limit and a whitelist of safe characters.
+            if (objectName.Length > 128)
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: objectName exceeds 128 character limit.");
+                return null;
+            }
+
+            if (!Regex.IsMatch(objectName, @"^[a-zA-Z0-9_\s\(\)\-\.\[\]\/]+$"))
+            {
+                Debug.LogWarning($"[Security] GetCachedObject aborted: objectName contains illegal characters.");
+                return null;
+            }
+
             // 🛡️ Sentinel: Input validation and DoS protection
             // SECURITY: Limit object name length and restrict characters to prevent DoS via GameObject.Find
             if (objectName.Length > 128)
@@ -905,6 +919,8 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
+            // Clear caches to release references
+            _objectCache.Clear();
             // Clean up to prevent memory leaks if objects are held by the dictionary
             _objectCache.Clear();
             // BOLT: Clear the cache on destroy to release references and prevent memory leaks.

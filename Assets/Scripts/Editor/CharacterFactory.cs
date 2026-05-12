@@ -169,6 +169,9 @@ namespace Milehigh.Editor
                 {
                     safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
                 }
+                // Ensure no directory traversal sequences remain and normalize whitespace
+                safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
+
                 // Ensure no directory traversal sequences remain and replace spaces
                 safeFileName = Path.GetFileName(safeFileName).Replace(" ", "_");
 
