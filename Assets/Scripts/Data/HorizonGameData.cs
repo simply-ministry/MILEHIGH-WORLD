@@ -38,8 +38,26 @@ namespace Milehigh.Data
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 UnityEngine.Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+        public bool IsValid()
+        {
+            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            {
+                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
                 return false;
             }
+
+            if (string.IsNullOrEmpty(environment))
+            {
+                Debug.LogError("[Security] Metadata validation failed: environment is missing.");
+                return false;
+            }
+
+            if (environment.Length > 128)
+            {
+                Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
+                return false;
+            }
+
             return true;
         }
     }
@@ -79,6 +97,10 @@ namespace Milehigh.Data
                 UnityEngine.Debug.LogError("[Security] CharacterProfile validation failed: behaviorScript is too long.");
                 return false;
             }
+            if (string.IsNullOrEmpty(name) || name.Length > 64) return false;
+            if (!string.IsNullOrEmpty(role) && role.Length > 64) return false;
+            if (traits != null && traits.Length > 10) return false;
+            if (!string.IsNullOrEmpty(behaviorScript) && behaviorScript.Length > 2048) return false;
             return true;
         }
     }
@@ -119,6 +141,8 @@ namespace Milehigh.Data
                 UnityEngine.Debug.LogError("[Security] ObjectInteraction validation failed: action is invalid.");
                 return false;
             }
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 64) return false;
+            if (string.IsNullOrEmpty(action) || action.Length > 64) return false;
             return true;
         }
     }
@@ -212,18 +236,20 @@ namespace Milehigh.Data
         [UnityEngine.Tooltip("List of scenarios in this campaign.")]
         public List<SceneScenario> scenarios = null!;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset after deserialization.
-        /// </summary>
         public bool IsValid()
         {
             if (metadata == null || !metadata.IsValid())
             {
                 UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
+            if (metadata == null || !metadata.IsValid()) return false;
+
+            if (characters == null || characters.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
                 return false;
             }
 
-            if (characters == null || characters.Count == 0)
+            foreach (var character in characters)
             {
                 UnityEngine.Debug.LogError("[Security] Game data validation failed: No character profiles defined.");
                 return false;
@@ -251,6 +277,18 @@ namespace Milehigh.Data
                     UnityEngine.Debug.LogError("[Security] Game data validation failed: A scenario is invalid.");
                     return false;
                 }
+                if (character == null || !character.IsValid()) return false;
+            }
+
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
+            }
+
+            foreach (var scenario in scenarios)
+            {
+                if (scenario == null || !scenario.IsValid()) return false;
             }
 
             return true;

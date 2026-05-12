@@ -213,3 +213,8 @@
 **Vulnerability:** Massive "code rot" with multiple redundant, conflicting, and syntactically invalid 'IsValid()' methods and 'try-catch' blocks across core data and management scripts. This led to unpredictable security postures, potential information disclosure (absolute paths in logs), and vulnerability to Resource Exhaustion (DoS) via unconstrained JSON payloads.
 **Learning:** Overlapping and improperly merged security patches can create "syntax soup" that disables the very protections they intend to provide. High-frequency edits with automated tools without manual consolidation can lead to multiple method signatures and mismatched braces.
 **Prevention:** Always consolidate security validation into a single, robust 'IsValid()' framework. Enforce strict 'Sentinel Standard' resource limits (string lengths, collection counts) and range checks at the point of ingestion. Consistently use the 'fail secure' pattern by nulling data on validation failure and masking internal system details in logs.
+
+## 2024-05-24 - Consolidated IDOR protections in ApplyInteraction
+**Vulnerability:** ApplyInteraction had an excessive amount of duplicate and malformed IDOR checks, leading to a large block of unmaintainable code.
+**Learning:** When automated tools repeatedly apply patches, they can create duplicate logic. It is important to consolidate these checks into a single, clean validation step.
+**Prevention:** Use a single blocklist check for protected managers at the beginning of the interaction application.
