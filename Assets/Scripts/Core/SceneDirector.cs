@@ -237,6 +237,18 @@ namespace Milehigh.Core
         {
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
+            // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference)
+            // Block external data from manipulating core architectural managers.
+            string[] protectedManagers = { "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager" };
+            if (System.Array.Exists(protectedManagers, m => m == interaction.objectId))
+            {
+                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt with protected manager: {interaction.objectId}");
+                return;
+            }
+
+            GameObject target = GetCachedObject(interaction.objectId);
+
+            if (target != null)
             // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference) tampering with core systems.
             if (interaction.objectId == "CampaignManager" ||
                 interaction.objectId == "SceneDirector" ||
