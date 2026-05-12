@@ -1,11 +1,7 @@
-using UnityEngine;
-using System.IO;
-using Milehigh.Data;
-
 namespace Milehigh.Core
 {
-    [DefaultExecutionOrder(-100)]
-    public class CampaignManager : MonoBehaviour
+    [UnityEngine.DefaultExecutionOrder(-100)]
+    public class CampaignManager : UnityEngine.MonoBehaviour
     {
         private static CampaignManager? _instance;
         public static CampaignManager Instance
@@ -15,28 +11,28 @@ namespace Milehigh.Core
                 // BOLT: O(1) access in the common case after initialization
                 if (_instance != null) return _instance;
 
-                _instance = FindObjectOfType<CampaignManager>();
+                _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
                 if (_instance == null)
                 {
-                    GameObject go = new GameObject("CampaignManager");
+                    UnityEngine.GameObject go = new UnityEngine.GameObject("CampaignManager");
                     _instance = go.AddComponent<CampaignManager>();
                 }
                 return _instance!;
             }
         }
 
-        public HorizonGameData currentCampaignData = null!;
+        public Milehigh.Data.HorizonGameData currentCampaignData = null!;
         public float currentVoidSaturationLevel;
 
         private void Awake()
         {
             if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
             {
-                UnityEngine.Object.Destroy(gameObject);
+                UnityEngine.Object.Destroy(this.gameObject);
                 return;
             }
             _instance = this;
-            UnityEngine.Object.DontDestroyOnLoad(gameObject);
+            UnityEngine.Object.DontDestroyOnLoad(this.gameObject);
             LoadCampaignData();
         }
 
@@ -46,17 +42,17 @@ namespace Milehigh.Core
             string filePath;
 
 #if UNITY_EDITOR
-            filePath = Path.Combine(Application.dataPath, "Scripts/Data", fileName);
+            filePath = System.IO.Path.Combine(UnityEngine.Application.dataPath, "Scripts/Data", fileName);
 #else
-            filePath = Path.Combine(Application.streamingAssetsPath, fileName);
+            filePath = System.IO.Path.Combine(UnityEngine.Application.streamingAssetsPath, fileName);
 #endif
 
-            if (File.Exists(filePath))
+            if (System.IO.File.Exists(filePath))
             {
                 try
                 {
-                    string json = File.ReadAllText(filePath);
-                    currentCampaignData = JsonUtility.FromJson<HorizonGameData>(json);
+                    string json = System.IO.File.ReadAllText(filePath);
+                    currentCampaignData = UnityEngine.JsonUtility.FromJson<Milehigh.Data.HorizonGameData>(json);
 
                     // 🛡️ Sentinel: Security validation of deserialized data.
                     // SECURITY: Perform validation after deserialization to ensure data integrity and fail securely.
@@ -64,12 +60,12 @@ namespace Milehigh.Core
                     {
                         currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
                         // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
-                        Debug.Log($"Campaign data loaded and validated from {fileName}");
+                        UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
                     else
                     {
                         // SECURITY: Fail securely by nullifying corrupted data and logging the error without leaking internal paths.
-                        Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
+                        UnityEngine.Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
                         currentCampaignData = null!;
                     }
                 }
@@ -77,44 +73,44 @@ namespace Milehigh.Core
                 {
                     // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
                     // Mask runtime exception details and log only the file name to prevent information disclosure.
-                    Debug.LogError($"[Security] Error loading campaign data from {fileName}: {ex.Message}");
+                    UnityEngine.Debug.LogError($"[Security] Error loading campaign data from {fileName}: {ex.Message}");
                     currentCampaignData = null!;
                 }
             }
             else
             {
                 // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
-                Debug.LogError($"Campaign master JSON not found: {fileName}");
+                UnityEngine.Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
         }
 
         public void IncreaseVoidSaturation(float amount)
         {
-            currentVoidSaturationLevel = Mathf.Clamp01(currentVoidSaturationLevel + amount);
-            Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
+            currentVoidSaturationLevel = UnityEngine.Mathf.Clamp01(currentVoidSaturationLevel + amount);
+            UnityEngine.Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
             SaveSecureData("VoidSaturation", currentVoidSaturationLevel.ToString());
         }
 
         public void SaveSecureData(string key, string data)
         {
-            if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(data)) return;
+            if (System.String.IsNullOrEmpty(key) || System.String.IsNullOrEmpty(data)) return;
 
             string obfuscated = ProcessXOR(data);
-            PlayerPrefs.SetString($"SECURE_{key}", obfuscated);
-            PlayerPrefs.Save();
+            UnityEngine.PlayerPrefs.SetString($"SECURE_{key}", obfuscated);
+            UnityEngine.PlayerPrefs.Save();
         }
 
         public string LoadSecureData(string key)
         {
-            string obfuscated = PlayerPrefs.GetString($"SECURE_{key}", "");
-            if (string.IsNullOrEmpty(obfuscated)) return "";
+            string obfuscated = UnityEngine.PlayerPrefs.GetString($"SECURE_{key}", "");
+            if (System.String.IsNullOrEmpty(obfuscated)) return "";
 
             return ProcessXOR(obfuscated);
         }
 
         private string ProcessXOR(string textToProcess)
         {
-            string salt = SystemInfo.deviceUniqueIdentifier ?? "MILEHIGH_FALLBACK_SALT";
+            string salt = UnityEngine.SystemInfo.deviceUniqueIdentifier ?? "MILEHIGH_FALLBACK_SALT";
             char[] output = new char[textToProcess.Length];
 
             for (int i = 0; i < textToProcess.Length; i++)
