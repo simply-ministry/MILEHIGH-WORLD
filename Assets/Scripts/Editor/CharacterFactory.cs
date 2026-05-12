@@ -23,7 +23,6 @@ namespace Milehigh.Editor
                 string json = File.ReadAllText(path);
                 data = JsonUtility.FromJson<HorizonGameData>(json);
 
-                // 🛡️ Sentinel: Security validation of deserialized data.
                 if (data == null || !data.IsValid())
                 {
                     Debug.LogError("[Security] Character import aborted: Campaign data failed validation.");
@@ -52,12 +51,14 @@ namespace Milehigh.Editor
                 foreach (var charProfile in data.characters)
                 {
                     CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
-                    asset.characterName = charProfile.name;
-                    asset.role = charProfile.role;
-                    asset.traits = charProfile.traits;
-                    asset.behaviorScript = charProfile.behaviorScript;
+                    asset.characterName = charProfile.name ?? "unnamed";
+                    asset.role = charProfile.role ?? "none";
+                    asset.traits = charProfile.traits ?? System.Array.Empty<string>();
+                    asset.behaviorScript = charProfile.behaviorScript ?? "";
 
                     // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
+                    string baseName = charProfile.name ?? "unnamed_character";
+                    string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
                     // We use Path.GetInvalidFileNameChars to filter OS-level invalid characters and Path.GetFileName to strip traversal sequences.
                     string baseName = charProfile.name ?? "unnamed_character";
 
@@ -78,14 +79,9 @@ namespace Milehigh.Editor
 
                     string assetPath = $"{folderPath}/{safeFileName}.asset";
                     AssetDatabase.CreateAsset(asset, assetPath);
-
-                    // SECURITY: Log relative asset path to avoid absolute path disclosure.
                     Debug.Log($"Created character asset: {assetPath}");
                 }
             }
-
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
     }
 }

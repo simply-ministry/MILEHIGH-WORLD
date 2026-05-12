@@ -160,6 +160,8 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
+            if (string.IsNullOrEmpty(objectId) || objectId.Length > 128) return false;
+            if (string.IsNullOrEmpty(action) || action.Length > 128) return false;
             if (!string.IsNullOrEmpty(speaker) && speaker.Length > 64)
             {
                 UnityEngine.Debug.LogError("[Security] Dialogue validation failed: speaker name is too long.");
@@ -177,6 +179,7 @@ namespace Milehigh.Data
     [System.Serializable]
     public class SceneScenario
     {
+        public string name = null!;
         [UnityEngine.Tooltip("Unique ID for the scenario.")]
         public string scenarioId = null!;
         [UnityEngine.Tooltip("Description of the scenario.")]
@@ -184,6 +187,12 @@ namespace Milehigh.Data
         public string description = null!;
         [UnityEngine.Tooltip("List of interactive objects in this scenario.")]
         public List<ObjectInteraction> interactiveObjects = null!;
+
+        public bool IsValid()
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 128) return false;
+            if (interactiveObjects == null) return false;
+            foreach (var interaction in interactiveObjects)
         [UnityEngine.Tooltip("List of dialogue lines in this scenario.")]
         public List<Dialogue> dialogue = null!;
 
@@ -207,18 +216,7 @@ namespace Milehigh.Data
 
             if (interactiveObjects != null)
             {
-                foreach (var interaction in interactiveObjects)
-                {
-                    if (interaction == null || !interaction.IsValid()) return false;
-                }
-            }
-
-            if (dialogue != null)
-            {
-                foreach (var d in dialogue)
-                {
-                    if (d == null || !d.IsValid()) return false;
-                }
+                if (interaction == null || !interaction.IsValid()) return false;
             }
             return true;
         }
@@ -242,6 +240,7 @@ namespace Milehigh.Data
             {
                 UnityEngine.Debug.LogError("[Security] Game data validation failed: Metadata is missing or invalid.");
             if (metadata == null || !metadata.IsValid()) return false;
+            if (characters == null) return false;
 
             if (characters == null || characters.Count == 0)
             {
@@ -279,6 +278,7 @@ namespace Milehigh.Data
                 }
                 if (character == null || !character.IsValid()) return false;
             }
+            if (scenarios == null) return false;
 
             if (scenarios == null || scenarios.Count == 0)
             {
@@ -290,7 +290,6 @@ namespace Milehigh.Data
             {
                 if (scenario == null || !scenario.IsValid()) return false;
             }
-
             return true;
         }
     }
