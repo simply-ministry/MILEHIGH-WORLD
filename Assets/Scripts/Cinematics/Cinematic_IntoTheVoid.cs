@@ -110,8 +110,8 @@ namespace Milehigh.Cinematics
             // Palette: Subtle pulse effect for the skip hint to improve discoverability.
             if (SkipHintText != null && SkipHintText.gameObject.activeInHierarchy)
             {
-                Color c = SkipHintText.color;
-                c.a = 0.5f + Mathf.PingPong(Time.time * 0.5f, 0.5f);
+                UnityEngine.Color c = SkipHintText.color;
+                c.a = 0.5f + UnityEngine.Mathf.PingPong(UnityEngine.Time.time * 0.5f, 0.5f);
                 SkipHintText.color = c;
             }
         }
