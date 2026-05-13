@@ -11,6 +11,11 @@ namespace Milehigh.World.Terminal
         [SerializeField] private TMP_InputField commandInput;
         [SerializeField] private TextMeshProUGUI outputDisplay;
 
+        [Header("Typewriter Settings")]
+        [SerializeField] private float typingSpeed = 0.02f;
+        [SerializeField] private float punctuationDelay = 0.15f;
+        [SerializeField] private float commaDelay = 0.08f;
+
         // 🛡️ Sentinel: Security constants for input validation to prevent DoS and malformed input processing.
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
@@ -36,14 +41,21 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return;
-
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
             {
                 commandInput.text = "";
                 commandInput.ActivateInputField();
             }
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                WriteToTerminal("\n>");
+                return;
+            }
+
+            // UX Enhancement: Echo command to terminal for better interaction feedback
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
 
             // 🛡️ Sentinel: Input validation and DoS protection
             if (input.Length > MaxInputLength)
@@ -91,7 +103,7 @@ namespace Milehigh.World.Terminal
             }
             else
             {
-                WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>");
+                WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'. Type 'help' for options.</color>");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
         }
@@ -114,6 +126,8 @@ namespace Milehigh.World.Terminal
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
+            // UX Enhancement: Set visibility to current count BEFORE appending to prevent visual flash
+            outputDisplay.maxVisibleCharacters = startVisibleCount;
             outputDisplay.text += message;
             outputDisplay.ForceMeshUpdate();
             int endVisibleCount = outputDisplay.textInfo.characterCount;
@@ -129,12 +143,12 @@ namespace Milehigh.World.Terminal
                 {
                     char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                     if (c == '.' || c == ':' || c == '!')
-                        yield return new WaitForSeconds(0.15f);
+                        yield return new WaitForSeconds(punctuationDelay);
                     else if (c == ',')
-                        yield return new WaitForSeconds(0.08f);
+                        yield return new WaitForSeconds(commaDelay);
                 }
 
-                yield return new WaitForSeconds(0.02f);
+                yield return new WaitForSeconds(typingSpeed);
             }
 
             _typewriterCoroutine = null;
