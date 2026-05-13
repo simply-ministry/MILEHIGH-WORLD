@@ -303,6 +303,7 @@ namespace Milehigh.Cinematics
 
     private IEnumerator PopEffect(RectTransform rect)
     {
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0) || Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across all input types
         if (Input.anyKeyDown)
         // Poll for skip input to ensure responsiveness across keyboard and mouse
@@ -600,6 +601,22 @@ namespace Milehigh.Cinematics
 
         bool speakerChanged = SpeakerNameText.text != speaker;
         SpeakerNameText.text = speaker;
+        currentTypingSpeed = baseTypingSpeed * GetSpeedMultiplier(speaker);
+        skipRequested = false;
+        SpeakerNameText.color = GetSpeakerColor(speaker);
+
+        typingCoroutine = StartCoroutine(TypeDialogue(message));
+    }
+
+    internal float GetSpeedMultiplier(string speaker)
+    {
+        if (speaker == "Kai") return kaiSpeedMultiplier;
+        if (speaker == "Sky.ix") return skyixSpeedMultiplier;
+        return 1.0f;
+    }
+
+    internal Color GetSpeakerColor(string speaker)
+    {
         speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
         if (popCoroutine != null) StopCoroutine(popCoroutine);
 
@@ -642,17 +659,13 @@ namespace Milehigh.Cinematics
         switch (speaker)
         {
             case "Sky.ix":
-                speakerColor = Color.cyan;
-                break;
+                return Color.cyan;
             case "Kai":
-                speakerColor = new Color(1f, 0.84f, 0f); // Gold
-                break;
+                return new Color(1f, 0.84f, 0f); // Gold
             case "Delilah":
-                speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                break;
+                return new Color(0.6f, 0.1f, 0.9f); // Void Purple
             default:
-                speakerColor = Color.white;
-                break;
+                return Color.white;
         }
         SpeakerNameText.color = speakerColor;
         // BOLT: Cache hex color to avoid per-character allocation in the reveal loop
@@ -684,6 +697,14 @@ namespace Milehigh.Cinematics
 
     private IEnumerator PopScaleSpeaker()
     {
+        // UX Enhancement: Color-coded completion cue that matches speaker theme.
+        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
+        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
+        DialogueText.maxVisibleCharacters = 0;
+
+        DialogueText.ForceMeshUpdate();
+        TMP_TextInfo textInfo = DialogueText.textInfo;
+        int totalCharacters = textInfo.characterCount;
         float duration = 0.2f;
         float elapsed = 0f;
         float targetScale = 1.15f;
@@ -698,6 +719,9 @@ namespace Milehigh.Cinematics
             yield return null;
         }
 
+            DialogueText.maxVisibleCharacters = i + 1;
+            char c = textInfo.characterInfo[i].character;
+            float delay = currentTypingSpeed;
         SpeakerNameText.transform.localScale = originalSpeakerScale;
         scalingCoroutine = null;
     }
@@ -822,6 +846,9 @@ namespace Milehigh.Cinematics
 
             // Rhythmic punctuation pauses to mimic natural speech cadence
             if (c == '.' || c == '!' || c == '?')
+                delay = currentTypingSpeed * 15f;
+            else if (c == ',')
+                delay = currentTypingSpeed * 8f;
             {
                 float delay = currentTypingSpeed;
                 char c = textInfo.characterInfo[i].character;
@@ -877,6 +904,8 @@ namespace Milehigh.Cinematics
             yield return GetWait(delay);
         }
 
+        DialogueText.maxVisibleCharacters = totalCharacters + 2;
+        skipRequested = false;
         DialogueText.maxVisibleCharacters = totalVisibleCharacters + 2;
         skipRequested = false;
         // UX Enhancement: Reveal with completion cue already appended to prevent layout shifts.
@@ -1441,7 +1470,6 @@ namespace Milehigh.Cinematics
         }
         skipRequested = false;
     }
-
     private IEnumerator Cinematic_IntoTheVoid_Sequence()
     {
         DialogueBox.SetActive(true);
