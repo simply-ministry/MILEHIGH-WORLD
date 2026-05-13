@@ -369,3 +369,7 @@
 ## 2024-05-30 - Cache GetComponent Calls in Coroutines
 **Learning:** Repeatedly calling `GetComponent` within coroutines or updates incurs unnecessary engine boundary crossing overhead, which can cause micro-stutters during execution.
 **Action:** Always pre-cache components like `Animator` during initialization (`Start` or `Awake`) to ensure O(1) field access during intensive cinematic or runtime loops.
+
+## 2024-05-13 - Cache SystemInfo.deviceUniqueIdentifier
+**Learning:** `UnityEngine.SystemInfo.deviceUniqueIdentifier` queries OS-level APIs and crosses the native C++ boundary, making it an extremely slow, blocking call. In `CampaignManager.ProcessXOR`, this was queried repeatedly on every secure save/load, causing I/O stutters.
+**Action:** Always cache OS-level hardware identifiers in a static variable upon first access rather than re-evaluating them dynamically during data operations.
