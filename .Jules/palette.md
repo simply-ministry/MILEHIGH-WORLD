@@ -89,3 +89,7 @@
 ## 2024-05-21 - [Responsive Terminal Interaction Loop]
 **Learning:** Terminal interfaces in Unity (TMPro) feel significantly more responsive when they handle the full interaction lifecycle: auto-focusing on enable, clearing and refocusing after submission, and providing multi-modal feedback (rich text color + physical shake animation) for errors.
 **Action:** Always implement 'ActivateInputField' in 'OnEnable' and after command processing, and use 'localPosition' coroutines for non-blocking haptic-style visual feedback.
+
+## 2024-06-20 - [Rich Text Aware Terminal Typewriter]
+**Learning:** In terminal-style UIs using TextMeshPro, raw string length is unreliable for typewriter reveals because it includes hidden Rich Text tags (e.g. <color>). Using `ForceMeshUpdate()` and `textInfo.characterCount` ensures the typewriter pacing is accurate and only reveals visible glyphs, maintaining the intended aesthetic without glitching over markup.
+**Action:** Always use `textInfo.characterCount` for typewriter effects involving Rich Text to ensure accurate character-by-character reveal.
