@@ -30,7 +30,6 @@ namespace Milehigh.Cinematics
         public TextMeshProUGUI SpeakerNameText = null!;
         public TextMeshProUGUI DialogueText = null!;
         public TextMeshProUGUI SkipHintText = null!;
-        public TextMeshProUGUI? SkipHintText;
 
         [Header("UX Settings")]
         [Tooltip("Base delay in seconds between each character being revealed.")]
@@ -74,17 +73,15 @@ namespace Milehigh.Cinematics
 
             originalSpeakerScale = SpeakerNameText.transform.localScale;
 
-            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
-
             // Palette: Accessibility - Text outline for better contrast in dark scenes.
             if (SpeakerNameText.fontMaterial != null)
             {
-                SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+                SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
                 SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
             }
             if (DialogueText.fontMaterial != null)
             {
-                DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+                DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
                 DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
             }
             // ⚡ Bolt: Pre-cache animators to eliminate GetComponent allocations during the cinematic sequence.
@@ -104,12 +101,6 @@ namespace Milehigh.Cinematics
                 SkipHintText.text = "[Any Key/Click] Skip";
                 SkipHintText.gameObject.SetActive(false);
             }
-
-            // Palette: Accessibility - Text outline for better contrast in dark scenes.
-            SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
-            SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-            DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
-            DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
 
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
@@ -294,9 +285,6 @@ namespace Milehigh.Cinematics
         private IEnumerator Cinematic_IntoTheVoid_Sequence()
         {
             yield return FadeDialogueBox(1.0f, 0.5f);
-            yield return GetWait(1.0f);
-            DialogueBox.SetActive(true);
-            yield return FadeDialogue(1f, 0.5f);
             yield return WaitForSecondsOrSkip(1.0f);
 
             // Line 1: Delilah
@@ -338,23 +326,8 @@ namespace Milehigh.Cinematics
             yield return FadeDialogueBox(0f, 0.5f);
             Debug.Log("Cinematic Sequence Complete.");
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-            yield return FadeDialogue(0f, 0.5f);
-            DialogueBox.SetActive(false);
 
             Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
-        }
-
-        private IEnumerator FadeDialogue(float targetAlpha, float duration)
-        {
-            float startAlpha = DialogueCanvasGroup.alpha;
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
-                yield return null;
-            }
-            DialogueCanvasGroup.alpha = targetAlpha;
         }
     }
 }
