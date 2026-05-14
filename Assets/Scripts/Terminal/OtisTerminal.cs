@@ -17,6 +17,21 @@ namespace Milehigh.World.Terminal
 
         private Coroutine? _typewriterCoroutine;
 
+        // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
+        // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
+        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
+
+        private static WaitForSeconds GetWait(float seconds)
+        {
+            int ms = Mathf.RoundToInt(seconds * 1000f);
+            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
+            {
+                wait = new WaitForSeconds(seconds);
+                _waitCache[ms] = wait;
+            }
+            return wait;
+        }
+
         private void Start()
         {
             if (outputDisplay != null)
@@ -129,12 +144,12 @@ namespace Milehigh.World.Terminal
                 {
                     char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                     if (c == '.' || c == ':' || c == '!')
-                        yield return new WaitForSeconds(0.15f);
+                        yield return GetWait(0.15f);
                     else if (c == ',')
-                        yield return new WaitForSeconds(0.08f);
+                        yield return GetWait(0.08f);
                 }
 
-                yield return new WaitForSeconds(0.02f);
+                yield return GetWait(0.02f);
             }
 
             _typewriterCoroutine = null;

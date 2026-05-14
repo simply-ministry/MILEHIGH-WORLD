@@ -70,3 +70,7 @@
 ## 2026-03-26 - [Unity Component Caching and Lifecycle Management]
 **Learning:** While caching `GetComponent` calls into a `Dictionary<int, T>` using `GetInstanceID()` as a key is a powerful O(1) optimization, it introduces a memory leak risk if not cleared during scene or scenario transitions. Unity's "fake null" objects (destroyed on the native side but alive in managed memory) persist in dictionaries, leading to redundant processing and memory bloat.
 **Action:** Always clear component and object caches during scenario setups or scene transitions. In `SceneDirector.cs`, calling `_controllerCache.Clear()` ensures that only active objects are tracked, preventing leaks of destroyed character controllers.
+
+## 2024-05-15 - OtisTerminal Yield Instruction Caching
+**Learning:** Repeatedly calling 'new WaitForSeconds(time)' in high-frequency coroutines like the typewriter effect in 'OtisTerminal.cs' causes unnecessary GC allocations on every character reveal.
+**Action:** Implement a static 'Dictionary<int, WaitForSeconds>' cache using millisecond-rounded keys (Mathf.RoundToInt(time * 1000f)) to reuse yield instructions and eliminate heap allocations.
