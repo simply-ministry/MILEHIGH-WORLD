@@ -66,10 +66,21 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Character behaviorScript exceeds 128 characters.");
                 return false;
             }
-            if (traits != null && traits.Length > 20)
+            if (traits != null)
             {
-                Debug.LogError("[Security] Character traits count exceeds limit.");
-                return false;
+                if (traits.Length > 20)
+                {
+                    Debug.LogError("[Security] Character traits count exceeds limit.");
+                    return false;
+                }
+                foreach (var trait in traits)
+                {
+                    if (trait != null && trait.Length > 128)
+                    {
+                        Debug.LogError("[Security] Character trait string exceeds 128 characters.");
+                        return false;
+                    }
+                }
             }
             return true;
         }

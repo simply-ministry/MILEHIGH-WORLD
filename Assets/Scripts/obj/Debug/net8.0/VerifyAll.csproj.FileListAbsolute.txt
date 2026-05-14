@@ -3,3 +3,10 @@
 /app/Assets/Scripts/obj/Debug/net8.0/VerifyAll.AssemblyInfo.cs
 /app/Assets/Scripts/obj/Debug/net8.0/VerifyAll.csproj.CoreCompileInputs.cache
 /app/Assets/Scripts/obj/Debug/net8.0/VerifyAll.sourcelink.json
+/app/Assets/Scripts/bin/Debug/net8.0/VerifyAll.deps.json
+/app/Assets/Scripts/bin/Debug/net8.0/VerifyAll.dll
+/app/Assets/Scripts/bin/Debug/net8.0/VerifyAll.pdb
+/app/Assets/Scripts/obj/Debug/net8.0/VerifyAll.dll
+/app/Assets/Scripts/obj/Debug/net8.0/refint/VerifyAll.dll
+/app/Assets/Scripts/obj/Debug/net8.0/VerifyAll.pdb
+/app/Assets/Scripts/obj/Debug/net8.0/ref/VerifyAll.dll
