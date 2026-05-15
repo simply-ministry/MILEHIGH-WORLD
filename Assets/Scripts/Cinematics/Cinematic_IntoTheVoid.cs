@@ -77,6 +77,8 @@ namespace Milehigh.Cinematics
             _originalDialoguePos = _dialogueRect.anchoredPosition;
             originalSpeakerScale = SpeakerNameText.transform.localScale;
 
+bolt/optimize-getcomponent-3892746394166420668            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
+
             // ⚡ Bolt: Pre-cache animators to eliminate GetComponent allocations during the cinematic sequence.
             if (Skyix_Character != null) _skyixAnimator = Skyix_Character.GetComponent<Animator>();
             if (Kai_Character != null) _kaiAnimator = Kai_Character.GetComponent<Animator>();
@@ -95,6 +97,10 @@ namespace Milehigh.Cinematics
                 SkipHintText.gameObject.SetActive(false);
             }
 
+            // Palette: Accessibility - Consolidate text outline for better contrast in dark scenes.
+            ApplyTextOutline(SpeakerNameText);
+            ApplyTextOutline(DialogueText);
+            ApplyTextOutline(SkipHintText);
             // Palette: Accessibility - High-contrast text outline for better readability in dark/complex scenes.
             if (SpeakerNameText.fontMaterial != null)
             {
@@ -131,6 +137,15 @@ namespace Milehigh.Cinematics
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
 
+        private void ApplyTextOutline(TextMeshProUGUI? text)
+        {
+            if (text != null && text.fontMaterial != null)
+            {
+                text.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+                text.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            }
+        }
+
         private void Update()
         {
             // ⚡ Bolt: Precise skip detection for refined UX.
@@ -150,6 +165,15 @@ namespace Milehigh.Cinematics
                 {
                     SkipHintText.gameObject.SetActive(true);
                 }
+            }
+
+            // Palette: Add a gentle alpha pulse to the skip hint to improve discoverability.
+            if (SkipHintText != null && SkipHintText.gameObject.activeInHierarchy)
+            {
+                float alpha = Mathf.PingPong(Time.time * 0.5f, 0.5f) + 0.5f;
+                Color c = SkipHintText.color;
+                c.a = alpha;
+                SkipHintText.color = c;
             }
         }
 
@@ -371,6 +395,7 @@ namespace Milehigh.Cinematics
 
             // ⚡ Bolt: Removed redundant FadeDialogue and SetActive calls as FadeDialogueBox handles them.
             yield return FadeDialogueBox(0f, 0.5f);
+            Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
 
             Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
