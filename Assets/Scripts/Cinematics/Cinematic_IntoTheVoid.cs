@@ -30,7 +30,6 @@ namespace Milehigh.Cinematics
         public TextMeshProUGUI SpeakerNameText = null!;
         public TextMeshProUGUI DialogueText = null!;
         public TextMeshProUGUI SkipHintText = null!;
-        public TextMeshProUGUI? SkipHintText;
 
         [Header("UX Settings")]
         [Tooltip("Base delay in seconds between each character being revealed.")]
@@ -76,17 +75,6 @@ namespace Milehigh.Cinematics
 
             if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
 
-            // Palette: Accessibility - Text outline for better contrast in dark scenes.
-            if (SpeakerNameText.fontMaterial != null)
-            {
-                SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
-                SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-            }
-            if (DialogueText.fontMaterial != null)
-            {
-                DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
-                DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-            }
             // ⚡ Bolt: Pre-cache animators to eliminate GetComponent allocations during the cinematic sequence.
             if (Skyix_Character != null) _skyixAnimator = Skyix_Character.GetComponent<Animator>();
             if (Kai_Character != null) _kaiAnimator = Kai_Character.GetComponent<Animator>();
@@ -106,10 +94,18 @@ namespace Milehigh.Cinematics
             }
 
             // Palette: Accessibility - Text outline for better contrast in dark scenes.
-            SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
-            SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-            DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
-            DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            Material speakerMat = SpeakerNameText.fontMaterial;
+            Material dialogueMat = DialogueText.fontMaterial;
+            if (speakerMat != null)
+            {
+                speakerMat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+                speakerMat.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            }
+            if (dialogueMat != null)
+            {
+                dialogueMat.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+                dialogueMat.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            }
 
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
@@ -178,11 +174,10 @@ namespace Milehigh.Cinematics
             AudioSource? voiceSource = speaker switch
             {
                 "Sky.ix" => Skyix_VoiceSource,
-                "Kai" => Kai_Character?.GetComponent<AudioSource>(), // Fallback attempt
+                "Kai" => Kai_VoiceSource,
                 "Delilah" => Delilah_VoiceSource,
                 _ => null
             };
-            if (speaker == "Kai") voiceSource = Kai_VoiceSource; // Ensure Kai is handled correctly
 
             if (voiceSource != null) voiceSource.Play();
 
@@ -294,9 +289,6 @@ namespace Milehigh.Cinematics
         private IEnumerator Cinematic_IntoTheVoid_Sequence()
         {
             yield return FadeDialogueBox(1.0f, 0.5f);
-            yield return GetWait(1.0f);
-            DialogueBox.SetActive(true);
-            yield return FadeDialogue(1f, 0.5f);
             yield return WaitForSecondsOrSkip(1.0f);
 
             // Line 1: Delilah
@@ -336,10 +328,7 @@ namespace Milehigh.Cinematics
             yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 3.0f);
 
             yield return FadeDialogueBox(0f, 0.5f);
-            Debug.Log("Cinematic Sequence Complete.");
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-            yield return FadeDialogue(0f, 0.5f);
-            DialogueBox.SetActive(false);
 
             Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
         }
