@@ -370,6 +370,9 @@
 **Learning:** Repeatedly calling `GetComponent` within coroutines or updates incurs unnecessary engine boundary crossing overhead, which can cause micro-stutters during execution.
 **Action:** Always pre-cache components like `Animator` during initialization (`Start` or `Awake`) to ensure O(1) field access during intensive cinematic or runtime loops.
 
+## 2024-05-13 - Cache SystemInfo.deviceUniqueIdentifier
+**Learning:** `UnityEngine.SystemInfo.deviceUniqueIdentifier` queries OS-level APIs and crosses the native C++ boundary, making it an extremely slow, blocking call. In `CampaignManager.ProcessXOR`, this was queried repeatedly on every secure save/load, causing I/O stutters.
+**Action:** Always cache OS-level hardware identifiers in a static variable upon first access rather than re-evaluating them dynamically during data operations.
 ## 2026-05-15 - HashSet for Frequent String Lookups
 **Learning:** Using `System.Array.Exists` or linear searches on string arrays in high-frequency methods (like `ApplyInteraction` in `SceneDirector.cs`) is inefficient and causes per-call allocations if the array is local.
 **Action:** Move whitelist/lookup collections to a `static readonly HashSet<string>` field. This converts the O(N) linear search into an O(1) hash lookup and eliminates redundant allocations.
