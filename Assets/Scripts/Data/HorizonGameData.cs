@@ -190,6 +190,10 @@ namespace Milehigh.Data
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
             foreach (var character in characters)
             {
                 if (character == null || !character.IsValid()) return false;
