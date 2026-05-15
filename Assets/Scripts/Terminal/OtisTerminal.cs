@@ -23,21 +23,12 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
 
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
-        // We use int (milliseconds) as the key to avoid floating-point precision issues with dictionary lookups.
-        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
-
-        private WaitForSeconds GetWait(float seconds)
-        {
-            int ms = Mathf.RoundToInt(seconds * 1000f);
-            if (!_waitCache.TryGetValue(ms, out var wait))
-        // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
-        // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
         private static WaitForSeconds GetWait(float seconds)
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
-            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
+            if (!_waitCache.TryGetValue(ms, out var wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
@@ -73,7 +64,11 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                WriteToTerminal("\n>");
+                return;
+            }
 
             // 🎨 Palette: Echo user command to terminal for better interaction history
             WriteToTerminal($"\n<color=#888888>> {input}</color>");
@@ -84,15 +79,6 @@ namespace Milehigh.World.Terminal
                 commandInput.text = "";
                 commandInput.ActivateInputField();
             }
-
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                WriteToTerminal("\n>");
-                return;
-            }
-
-            // UX Enhancement: Echo command to terminal for better interaction feedback
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
 
             // 🛡️ Sentinel: Input validation and DoS protection
             if (input.Length > MaxInputLength)
@@ -171,27 +157,38 @@ namespace Milehigh.World.Terminal
 
             int charactersToReveal = endVisibleCount - startVisibleCount;
 
-            for (int i = 0; i <= charactersToReveal; i++)
+            for (int i = 1; i <= charactersToReveal; i++)
             {
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
 
-                // UX Learning: Punctuation delays trigger after character is visible
-                if (i > 0 && i <= charactersToReveal)
+                // 🎨 Palette: Rhythmic punctuation pauses for an "analog" terminal feel.
+                // We check the last revealed character to pause after it appears.
+                char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
+                float delay = typingSpeed;
+
+                if (c == '.' || c == '!' || c == '?')
                 {
-                    char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
-                    if (c == '.' || c == ':' || c == '!')
-                        yield return GetWait(0.15f);
-                    else if (c == ',')
-                        yield return GetWait(0.08f);
+                    // Smart Punctuation: Look ahead to avoid pauses in filenames or technical terms (e.g., Sky.ix)
+                    bool isEndOfSentence = true;
+                    if (startVisibleCount + i < endVisibleCount)
+                    {
+                        char nextChar = outputDisplay.textInfo.characterInfo[startVisibleCount + i].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence)
+                    {
+                        // Check for ellipsis (multiple dots)
+                        bool isEllipsis = (c == '.' && startVisibleCount + i - 2 >= 0 && outputDisplay.textInfo.characterInfo[startVisibleCount + i - 2].character == '.');
+                        delay = isEllipsis ? typingSpeed * 4f : punctuationDelay;
+                    }
+                }
+                else if (c == ',' || c == ':' || c == ';')
+                {
+                    delay = commaDelay;
                 }
 
-                yield return GetWait(0.02f);
-                        yield return new WaitForSeconds(punctuationDelay);
-                    else if (c == ',')
-                        yield return new WaitForSeconds(commaDelay);
-                }
-
-                yield return new WaitForSeconds(typingSpeed);
+                yield return GetWait(delay);
             }
 
             _typewriterCoroutine = null;
