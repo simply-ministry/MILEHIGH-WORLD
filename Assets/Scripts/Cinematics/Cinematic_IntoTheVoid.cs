@@ -172,6 +172,9 @@ namespace Milehigh.Cinematics
             // Audio: Play the character's voice line if assigned.
             // ⚡ Bolt: Direct reference usage to avoid redundant GetComponent or conditional overwrites.
             UnityEngine.AudioSource? voiceSource = speaker switch
+            // ⚡ Bolt: Removed expensive runtime GetComponent call, relying on pre-cached Kai_VoiceSource.
+            // ⚡ Bolt: Use direct field reference for Kai instead of expensive GetComponent lookup.
+            AudioSource? voiceSource = speaker switch
             {
                 "Sky.ix" => Skyix_VoiceSource,
                 "Kai" => Kai_VoiceSource,
