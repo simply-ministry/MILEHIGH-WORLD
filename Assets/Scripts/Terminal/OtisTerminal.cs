@@ -22,6 +22,14 @@ namespace Milehigh.World.Terminal
 
         private Coroutine? _typewriterCoroutine;
 
+        // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
+        // We use int (milliseconds) as the key to avoid floating-point precision issues with dictionary lookups.
+        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
+
+        private WaitForSeconds GetWait(float seconds)
+        {
+            int ms = Mathf.RoundToInt(seconds * 1000f);
+            if (!_waitCache.TryGetValue(ms, out var wait))
         // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();

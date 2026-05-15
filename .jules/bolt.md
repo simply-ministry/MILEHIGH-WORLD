@@ -71,6 +71,9 @@
 **Learning:** While caching `GetComponent` calls into a `Dictionary<int, T>` using `GetInstanceID()` as a key is a powerful O(1) optimization, it introduces a memory leak risk if not cleared during scene or scenario transitions. Unity's "fake null" objects (destroyed on the native side but alive in managed memory) persist in dictionaries, leading to redundant processing and memory bloat.
 **Action:** Always clear component and object caches during scenario setups or scene transitions. In `SceneDirector.cs`, calling `_controllerCache.Clear()` ensures that only active objects are tracked, preventing leaks of destroyed character controllers.
 
+## 2026-05-13 - [Unity WaitForSeconds GC Optimization]
+**Learning:** In terminal-style UI components like 'OtisTerminal.cs' that use coroutine-based typewriter effects, creating 'new WaitForSeconds' for every character revealed leads to significant Garbage Collection (GC) allocations. This can cause frame stuttering during long text reveals.
+**Action:** Implement a static Dictionary cache using milliseconds (int) as keys for 'WaitForSeconds' objects to eliminate redundant heap allocations while avoiding floating-point lookup precision issues.
 ## 2024-05-15 - OtisTerminal Yield Instruction Caching
 **Learning:** Repeatedly calling 'new WaitForSeconds(time)' in high-frequency coroutines like the typewriter effect in 'OtisTerminal.cs' causes unnecessary GC allocations on every character reveal.
 **Action:** Implement a static 'Dictionary<int, WaitForSeconds>' cache using millisecond-rounded keys (Mathf.RoundToInt(time * 1000f)) to reuse yield instructions and eliminate heap allocations.
