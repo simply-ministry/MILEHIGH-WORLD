@@ -74,3 +74,6 @@
 ## 2026-05-13 - [Unity WaitForSeconds GC Optimization]
 **Learning:** In terminal-style UI components like 'OtisTerminal.cs' that use coroutine-based typewriter effects, creating 'new WaitForSeconds' for every character revealed leads to significant Garbage Collection (GC) allocations. This can cause frame stuttering during long text reveals.
 **Action:** Implement a static Dictionary cache using milliseconds (int) as keys for 'WaitForSeconds' objects to eliminate redundant heap allocations while avoiding floating-point lookup precision issues.
+## 2024-05-15 - OtisTerminal Yield Instruction Caching
+**Learning:** Repeatedly calling 'new WaitForSeconds(time)' in high-frequency coroutines like the typewriter effect in 'OtisTerminal.cs' causes unnecessary GC allocations on every character reveal.
+**Action:** Implement a static 'Dictionary<int, WaitForSeconds>' cache using millisecond-rounded keys (Mathf.RoundToInt(time * 1000f)) to reuse yield instructions and eliminate heap allocations.

@@ -30,6 +30,14 @@ namespace Milehigh.World.Terminal
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
             if (!_waitCache.TryGetValue(ms, out var wait))
+        // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
+        // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
+        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
+
+        private static WaitForSeconds GetWait(float seconds)
+        {
+            int ms = Mathf.RoundToInt(seconds * 1000f);
+            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
