@@ -253,6 +253,7 @@ namespace Milehigh.Cinematics
     private Coroutine? scalingCoroutine;
     private Coroutine? speakerPopCoroutine;
     private Coroutine typingCoroutine;
+    private Coroutine speakerPopCoroutine;
     private Coroutine popCoroutine;
     private Vector3 originalSpeakerNameScale;
     private Coroutine? typingCoroutine;
@@ -261,6 +262,7 @@ namespace Milehigh.Cinematics
     private string currentSpeakerHex;
     private string currentSpeakerColorTag;
     private bool skipRequested;
+    private Vector3 originalSpeakerScale;
     private bool playerInteracted;
     private Vector3 originalScale;
     private Vector3 originalSpeakerScale;
@@ -405,6 +407,16 @@ namespace Milehigh.Cinematics
         target.localScale = Vector3.one;
     }
 
+    private IEnumerator WaitForSecondsOrSkip(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds && !skipRequested)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+    }
+
     void Start()
     private void Start()
     {
@@ -418,6 +430,8 @@ namespace Milehigh.Cinematics
             Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
             return;
         }
+
+        originalSpeakerScale = SpeakerNameText.transform.localScale;
 
         // Palette: Find SkipHint programmatically if not assigned
         if (SkipHintText == null && DialogueBox != null)
@@ -601,6 +615,7 @@ namespace Milehigh.Cinematics
 
         bool speakerChanged = SpeakerNameText.text != speaker;
         SpeakerNameText.text = speaker;
+        speakerPopCoroutine = StartCoroutine(PopEffect());
         currentTypingSpeed = baseTypingSpeed * GetSpeedMultiplier(speaker);
         skipRequested = false;
         SpeakerNameText.color = GetSpeakerColor(speaker);
@@ -744,6 +759,26 @@ namespace Milehigh.Cinematics
 
         SpeakerNameText.transform.localScale = originalScale;
         popScaleCoroutine = null;
+    }
+
+    private IEnumerator PopEffect()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        Vector3 popScale = originalSpeakerScale * 1.2f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = elapsed / duration;
+            // Simple sin wave for the pop
+            float curve = Mathf.Sin(t * Mathf.PI);
+            SpeakerNameText.transform.localScale = Vector3.Lerp(originalSpeakerScale, popScale, curve);
+            yield return null;
+        }
+
+        SpeakerNameText.transform.localScale = originalSpeakerScale;
+        speakerPopCoroutine = null;
     }
 
     private IEnumerator TypeDialogue(string message)
@@ -1668,6 +1703,7 @@ namespace Milehigh.Cinematics
         // Example: PlayerInput.Instance.DisableControls();
         // Example: CinematicCamera.SetActive(false);
         // Example: BossFightController.StartFight();
+        skipRequested = false;
         Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
         private IEnumerator Cinematic_IntoTheVoid_Sequence()
         {

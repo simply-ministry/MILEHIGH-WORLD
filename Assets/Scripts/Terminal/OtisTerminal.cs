@@ -24,6 +24,15 @@ namespace Milehigh.World.Terminal
 
         private void Start()
         {
+            if (commandInput != null)
+            {
+                commandInput.characterLimit = MaxInputLength;
+                if (commandInput.placeholder is TMP_Text placeholderText)
+                {
+                    placeholderText.text = "Enter command...";
+                }
+            }
+
             if (outputDisplay != null)
             {
                 outputDisplay.text = "";
@@ -41,6 +50,11 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            if (string.IsNullOrWhiteSpace(input)) return;
+
+            // 🎨 Palette: Echo user command to terminal for better interaction history
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
+
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
             {

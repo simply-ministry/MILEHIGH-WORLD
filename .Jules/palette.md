@@ -93,3 +93,7 @@
 ## 2024-06-20 - [Rich Text Aware Terminal Typewriter]
 **Learning:** In terminal-style UIs using TextMeshPro, raw string length is unreliable for typewriter reveals because it includes hidden Rich Text tags (e.g. <color>). Using `ForceMeshUpdate()` and `textInfo.characterCount` ensures the typewriter pacing is accurate and only reveals visible glyphs, maintaining the intended aesthetic without glitching over markup.
 **Action:** Always use `textInfo.characterCount` for typewriter effects involving Rich Text to ensure accurate character-by-character reveal.
+
+## 2024-06-21 - [Terminal Affordance and Feedback]
+**Learning:** Terminal interfaces in Unity (TMPro) feel more intuitive when they provide clear affordances (placeholders) and immediate feedback (command echoing). Echoing the user's input in a muted color (#888888) creates a clear distinction between user actions and system responses while maintaining a readable interaction history.
+**Action:** Always include placeholder text for input fields and implement command echoing in terminal-style UIs to improve user orientation and feedback loops.
