@@ -30,14 +30,6 @@ namespace Milehigh.World.Terminal
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
             if (!_waitCache.TryGetValue(ms, out var wait))
-        // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
-        // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
-        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
-
-        private static WaitForSeconds GetWait(float seconds)
-        {
-            int ms = Mathf.RoundToInt(seconds * 1000f);
-            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
@@ -75,26 +67,7 @@ namespace Milehigh.World.Terminal
         {
             if (string.IsNullOrWhiteSpace(input)) return;
 
-            // 🎨 Palette: Echo user command to terminal for better interaction history
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
-
-            // UX Enhancement: Clear input and refocus immediately for better flow
-            if (commandInput != null)
-            {
-                commandInput.text = "";
-                commandInput.ActivateInputField();
-            }
-
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                WriteToTerminal("\n>");
-                return;
-            }
-
-            // UX Enhancement: Echo command to terminal for better interaction feedback
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
-
-            // 🛡️ Sentinel: Input validation and DoS protection
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
             if (input.Length > MaxInputLength)
             {
                 WriteToTerminal("\n[SECURITY]: <color=#FF0000>Input exceeds maximum length (256 characters).</color>");
@@ -107,6 +80,16 @@ namespace Milehigh.World.Terminal
                 WriteToTerminal("\n[SECURITY]: <color=#FF0000>Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.</color>");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
                 return;
+            }
+
+            // 🎨 Palette: Echo user command to terminal AFTER validation to ensure safe rendering.
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
+
+            // UX Enhancement: Clear input and refocus immediately for better flow
+            if (commandInput != null)
+            {
+                commandInput.text = "";
+                commandInput.ActivateInputField();
             }
 
             string[] parts = input.Trim().Split(' ');
@@ -180,18 +163,12 @@ namespace Milehigh.World.Terminal
                 {
                     char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                     if (c == '.' || c == ':' || c == '!')
-                        yield return GetWait(0.15f);
+                        yield return GetWait(punctuationDelay);
                     else if (c == ',')
-                        yield return GetWait(0.08f);
+                        yield return GetWait(commaDelay);
                 }
 
-                yield return GetWait(0.02f);
-                        yield return new WaitForSeconds(punctuationDelay);
-                    else if (c == ',')
-                        yield return new WaitForSeconds(commaDelay);
-                }
-
-                yield return new WaitForSeconds(typingSpeed);
+                yield return GetWait(typingSpeed);
             }
 
             _typewriterCoroutine = null;
