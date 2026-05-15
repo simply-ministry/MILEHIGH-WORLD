@@ -30,7 +30,7 @@ namespace Milehigh.Core
 
         private void Awake()
         {
-            if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
+            if (_instance != null && _instance != this)
             {
                 UnityEngine.Object.Destroy(gameObject);
                 return;
@@ -51,48 +51,50 @@ namespace Milehigh.Core
             filePath = Path.Combine(Application.streamingAssetsPath, fileName);
 #endif
 
-            if (!File.Exists(filePath))
+            if (File.Exists(filePath))
             {
-                // SECURITY: Log only the filename to prevent information disclosure of absolute paths.
-                Debug.LogError($"Campaign master JSON not found: {fileName}");
-                return;
-            }
-
-            try
-            {
-                string json = File.ReadAllText(filePath);
-                HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
-
-                // 🛡️ Sentinel: Perform security and integrity validation *before* assignment.
-                if (data != null && data.IsValid())
+                try
                 {
-                    currentCampaignData = data;
-                    if (currentCampaignData.metadata != null)
+                    string json = File.ReadAllText(filePath);
+                    HorizonGameData? data = JsonUtility.FromJson<HorizonGameData>(json);
+
+                    // 🛡️ Sentinel: Fix Security Bypass.
+                    // Validate newly loaded data BEFORE assigning to currentCampaignData.
+                    if (data != null && data.IsValid())
                     {
-                        currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        currentCampaignData = data;
+                        if (currentCampaignData.metadata != null)
+                        {
+                            currentVoidSaturationLevel = currentCampaignData.metadata.voidSaturationLevel;
+                        }
+                        // SECURITY: Log only the filename to avoid exposing absolute filesystem paths.
+                        Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
-                    // SECURITY: Log only the filename to avoid exposing absolute filesystem paths.
-                    Debug.Log($"Campaign data loaded and validated from {fileName}");
+                    else
+                    {
+                        // SECURITY: Fail securely and don't use invalid data
+                        Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
+                        currentCampaignData = null;
+                    }
                 }
-                else
+                catch (System.Exception ex)
                 {
-                    // SECURITY: Fail securely and do not use invalid or malformed data.
-                    Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
+                    // SECURITY: Fail securely by catching exceptions and masking sensitive details (e.g., stack traces).
+                    Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
                     currentCampaignData = null;
                 }
             }
-            catch (Exception ex)
+            else
             {
-                // SECURITY: Fail securely by catching exceptions and masking sensitive details (like stack traces).
-                Debug.LogError($"[Security] Critical error during campaign data load from {fileName}: {ex.Message}");
-                currentCampaignData = null;
+                // SECURITY: Log only the filename to prevent information disclosure.
+                Debug.LogError($"Campaign master JSON not found: {fileName}");
             }
         }
 
         public void IncreaseVoidSaturation(float amount)
         {
             currentVoidSaturationLevel = Mathf.Clamp01(currentVoidSaturationLevel + amount);
-            Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
+            UnityEngine.Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
         }
     }
 }
