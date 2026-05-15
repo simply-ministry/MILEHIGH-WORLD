@@ -116,6 +116,17 @@ namespace Milehigh.Core
             // queries and native boundary crossings on every save/load operation.
             _cachedDeviceSalt ??= UnityEngine.SystemInfo.deviceUniqueIdentifier ?? "MILEHIGH_FALLBACK_SALT";
             string salt = _cachedDeviceSalt;
+        // ⚡ Bolt: Cache the device identifier to prevent expensive OS-level native boundary crossings.
+        private static string? _cachedDeviceIdentifier;
+
+        private string ProcessXOR(string textToProcess)
+        {
+            if (_cachedDeviceIdentifier == null)
+            {
+                _cachedDeviceIdentifier = UnityEngine.SystemInfo.deviceUniqueIdentifier ?? "MILEHIGH_FALLBACK_SALT";
+            }
+
+            string salt = _cachedDeviceIdentifier;
             char[] output = new char[textToProcess.Length];
 
             for (int i = 0; i < textToProcess.Length; i++)
