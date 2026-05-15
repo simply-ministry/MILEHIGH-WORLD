@@ -14,22 +14,17 @@ namespace Milehigh.Data
         public int systemParity;
         public float voidSaturationLevel;
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation to ensure deserialized metadata meets business constraints.
-        /// </summary>
         public bool IsValid()
         {
-            // SECURITY: Ensure voidSaturationLevel is within the expected [0.0, 1.0] range
             if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
-                Debug.LogError($"[Security] Metadata validation failed: voidSaturationLevel {voidSaturationLevel} is out of range [0.0, 1.0]");
+                Debug.LogError($"[Security] Metadata: voidSaturationLevel {voidSaturationLevel} out of range.");
                 return false;
             }
 
-            // SECURITY: Input validation for environment string length (DoS mitigation)
             if (!string.IsNullOrEmpty(environment) && environment.Length > 128)
             {
-                Debug.LogError("[Security] Metadata validation failed: Environment name exceeds 128 characters.");
+                Debug.LogError("[Security] Metadata: Environment name too long.");
                 return false;
             }
 
@@ -45,31 +40,38 @@ namespace Milehigh.Data
         public string[] traits = Array.Empty<string>();
         public string behaviorScript = "";
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation for character profile data.
-        /// </summary>
         public bool IsValid()
         {
-            // SECURITY: Implement resource exhaustion protection (DoS prevention)
             if (string.IsNullOrEmpty(name) || name.Length > 128)
             {
-                Debug.LogError("[Security] Character name is invalid or too long.");
+                Debug.LogError("[Security] CharacterProfile: Name invalid or too long.");
                 return false;
             }
             if (role != null && role.Length > 128)
             {
-                Debug.LogError("[Security] Character role exceeds 128 characters.");
+                Debug.LogError("[Security] CharacterProfile: Role too long.");
                 return false;
             }
-            if (behaviorScript != null && behaviorScript.Length > 128)
+            if (behaviorScript != null && behaviorScript.Length > 2048)
             {
-                Debug.LogError("[Security] Character behaviorScript exceeds 128 characters.");
+                Debug.LogError("[Security] CharacterProfile: behaviorScript too long.");
                 return false;
             }
-            if (traits != null && traits.Length > 20)
+            if (traits != null)
             {
-                Debug.LogError("[Security] Character traits count exceeds limit.");
-                return false;
+                if (traits.Length > 20)
+                {
+                    Debug.LogError("[Security] CharacterProfile: Traits count exceeds limit.");
+                    return false;
+                }
+                foreach (var trait in traits)
+                {
+                    if (trait != null && trait.Length > 128)
+                    {
+                        Debug.LogError("[Security] CharacterProfile: Trait string too long.");
+                        return false;
+                    }
+                }
             }
             return true;
         }
@@ -88,19 +90,16 @@ namespace Milehigh.Data
 
         public Vector3 GetVectorValue() => new Vector3(x, y, z);
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation for object interaction data.
-        /// </summary>
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(objectId) || objectId.Length > 128)
             {
-                Debug.LogError("[Security] Interaction objectId is invalid or too long.");
+                Debug.LogError("[Security] Interaction: objectId invalid or too long.");
                 return false;
             }
             if (action != null && action.Length > 128)
             {
-                Debug.LogError("[Security] Interaction action exceeds 128 characters.");
+                Debug.LogError("[Security] Interaction: Action too long.");
                 return false;
             }
             return true;
@@ -114,24 +113,21 @@ namespace Milehigh.Data
         public string text = "";
         public string trigger = "";
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation for dialogue data.
-        /// </summary>
         public bool IsValid()
         {
             if (speaker != null && speaker.Length > 128)
             {
-                Debug.LogError("[Security] Dialogue speaker name exceeds 128 characters.");
+                Debug.LogError("[Security] Dialogue: Speaker too long.");
                 return false;
             }
             if (string.IsNullOrEmpty(text) || text.Length > 2048)
             {
-                Debug.LogError("[Security] Dialogue text is empty or exceeds 2048 characters.");
+                Debug.LogError("[Security] Dialogue: Text invalid or too long.");
                 return false;
             }
             if (trigger != null && trigger.Length > 128)
             {
-                Debug.LogError("[Security] Dialogue trigger exceeds 128 characters.");
+                Debug.LogError("[Security] Dialogue: Trigger too long.");
                 return false;
             }
             return true;
@@ -146,14 +142,11 @@ namespace Milehigh.Data
         public List<ObjectInteraction> interactiveObjects = new List<ObjectInteraction>();
         public List<Dialogue> dialogue = new List<Dialogue>();
 
-        /// <summary>
-        /// 🛡️ Sentinel: Security validation for scenario data.
-        /// </summary>
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(scenarioId) || scenarioId.Length > 128)
             {
-                Debug.LogError("[Security] ScenarioId is invalid or too long.");
+                Debug.LogError("[Security] Scenario: scenarioId invalid or too long.");
                 return false;
             }
             if (interactiveObjects != null)
@@ -178,28 +171,29 @@ namespace Milehigh.Data
         public List<CharacterProfile> characters = new List<CharacterProfile>();
         public List<SceneScenario> scenarios = new List<SceneScenario>();
 
-        /// <summary>
-        /// 🛡️ Sentinel: Performs integrity and security validation on the entire campaign dataset.
-        /// </summary>
         public bool IsValid()
         {
             if (string.IsNullOrEmpty(sceneId) || sceneId.Length > 128)
             {
-                Debug.LogError("[Security] Game data validation failed: sceneId is invalid or too long.");
+                Debug.LogError("[Security] HorizonGameData: sceneId invalid or too long.");
                 return false;
             }
             if (metadata == null || !metadata.IsValid()) return false;
             if (characters == null || characters.Count == 0 || characters.Count > 50)
             {
-                Debug.LogError("[Security] Game data validation failed: Character count is invalid.");
+                Debug.LogError("[Security] HorizonGameData: Character count invalid.");
                 return false;
             }
             if (scenarios == null || scenarios.Count == 0 || scenarios.Count > 100)
             {
-                Debug.LogError("[Security] Game data validation failed: Scenario count is invalid.");
+                Debug.LogError("[Security] HorizonGameData: Scenario count invalid.");
                 return false;
             }
 
+            if (scenarios == null || scenarios.Count == 0)
+            {
+                Debug.LogError("[Security] Game data validation failed: No scenarios defined.");
+                return false;
             foreach (var character in characters)
             {
                 if (character == null || !character.IsValid()) return false;
