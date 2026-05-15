@@ -47,6 +47,8 @@ namespace Milehigh.Cinematics
         private float idleTimer;
         private bool playerInteracted;
         private Vector3 originalSpeakerScale;
+        private RectTransform _dialogueRect = null!;
+        private Vector2 _originalDialoguePos;
 
         // BOLT: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
@@ -71,9 +73,9 @@ namespace Milehigh.Cinematics
                 return;
             }
 
+            _dialogueRect = DialogueBox.GetComponent<RectTransform>();
+            _originalDialoguePos = _dialogueRect.anchoredPosition;
             originalSpeakerScale = SpeakerNameText.transform.localScale;
-
-            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
 
             // ⚡ Bolt: Pre-cache animators to eliminate GetComponent allocations during the cinematic sequence.
             if (Skyix_Character != null) _skyixAnimator = Skyix_Character.GetComponent<Animator>();
@@ -93,6 +95,16 @@ namespace Milehigh.Cinematics
                 SkipHintText.gameObject.SetActive(false);
             }
 
+            // Palette: Accessibility - High-contrast text outline for better readability in dark/complex scenes.
+            if (SpeakerNameText.fontMaterial != null)
+            {
+                SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+                SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            }
+            if (DialogueText.fontMaterial != null)
+            {
+                DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+                DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
             // Palette: Accessibility - Text outline for better contrast in dark scenes.
             // ⚡ Bolt: Cache material references to avoid redundant allocations and engine boundary calls.
             Material speakerMat = SpeakerNameText.fontMaterial;
@@ -270,6 +282,11 @@ namespace Milehigh.Cinematics
         {
             if (targetAlpha > 0) DialogueBox.SetActive(true);
             float startAlpha = DialogueCanvasGroup.alpha;
+
+            // Palette: Define target and start positions for a subtle "slide" effect (30 units down).
+            Vector2 targetPos = targetAlpha > 0 ? _originalDialoguePos : _originalDialoguePos + Vector2.down * 30f;
+            if (targetAlpha > 0) _dialogueRect.anchoredPosition = _originalDialoguePos + Vector2.down * 30f;
+            Vector2 startPos = _dialogueRect.anchoredPosition;
             RectTransform rect = (RectTransform)DialogueBox.transform;
             Vector2 startPos = rect.anchoredPosition;
             Vector2 targetPos = new Vector2(startPos.x, targetAlpha > 0 ? 0f : -30f);
@@ -281,6 +298,11 @@ namespace Milehigh.Cinematics
                 elapsed += Time.deltaTime;
                 float t = elapsed / duration;
                 DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
+                _dialogueRect.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
+                yield return null;
+            }
+            DialogueCanvasGroup.alpha = targetAlpha;
+            _dialogueRect.anchoredPosition = targetPos;
                 rect.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
                 yield return null;
             }
