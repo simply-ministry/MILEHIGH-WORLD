@@ -51,6 +51,11 @@ namespace UnityEngine
         public IEnumerator GetEnumerator() { yield break; }
     }
 
+    public class RectTransform : Transform
+    {
+        public Vector2 anchoredPosition { get; set; }
+    }
+
     public class Coroutine {}
 
     public class AudioSource : Component
@@ -77,6 +82,15 @@ namespace UnityEngine
         public Vector3(float x, float y, float z) { this.x = x; this.y = y; this.z = z; }
         public static Vector3 one = new Vector3(1, 1, 1);
         public static Vector3 operator *(Vector3 a, float b) => new Vector3(a.x * b, a.y * b, a.z * b);
+        public static Vector3 operator -(Vector3 a, Vector3 b) => new Vector3(a.x - b.x, a.y - b.y, a.z - b.z);
+    }
+
+    public struct Vector2
+    {
+        public float x, y;
+        public Vector2(float x, float y) { this.x = x; this.y = y; }
+        public static Vector2 operator -(Vector2 a, Vector2 b) => new Vector2(a.x - b.x, a.y - b.y);
+        public static Vector2 Lerp(Vector2 a, Vector2 b, float t) => new Vector2(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t);
     }
 
     public struct Color
@@ -97,6 +111,7 @@ namespace UnityEngine
         public static float Sin(float f) => (float)System.Math.Sin(f);
         public static float PingPong(float t, float length) => 0;
         public static float Clamp01(float f) => f < 0 ? 0 : (f > 1 ? 1 : f);
+        public static float Pow(float f, float p) => (float)System.Math.Pow(f, p);
     }
 
     public class WaitForSeconds
