@@ -372,536 +372,172 @@ namespace Milehigh.Cinematics
 
     /// <summary>
     /// Wait for a specified duration, but allow the user to skip the wait by pressing any key.
-    /// </summary>
-    private IEnumerator WaitForSecondsOrSkip(float duration)
-    {
-        float timer = 0f;
-        while (timer < duration && !skipRequested)
-        {
-            timer += Time.deltaTime;
-            yield return null;
-        }
-        skipRequested = false;
-    }
-
+namespace Milehigh.Cinematics
+{
     /// <summary>
-    /// Adds a "pop" scale animation to a UI element for visual juice.
+    /// Manages the cinematic sequence "Into the Void", handling dialogue, character animations, audio, and rhythmic text reveal.
     /// </summary>
-    private IEnumerator PopScale(RectTransform target, float duration, float scaleFactor)
+    public class Cinematic_IntoTheVoid : MonoBehaviour
     {
-        if (target == null) yield break;
+        [Header("Character References")]
+        public GameObject Skyix_Character = null!;
+        public AudioSource Skyix_VoiceSource = null!;
+        public GameObject Kai_Character = null!;
+        public AudioSource Kai_VoiceSource = null!;
+        public GameObject Delilah_Character = null!;
+        public AudioSource Delilah_VoiceSource = null!;
 
-        target.localScale = Vector3.one;
-        float elapsed = 0f;
-        while (elapsed < duration)
+        // ⚡ Bolt: Cache Animators to avoid expensive GetComponent calls during cinematic execution.
+        private Animator? _skyixAnimator;
+        private Animator? _kaiAnimator;
+        private Animator? _delilahAnimator;
+
+        [Header("UI Components")]
+        public GameObject DialogueBox = null!;
+        public CanvasGroup DialogueCanvasGroup = null!;
+        public TMPro.TextMeshProUGUI SpeakerNameText = null!;
+        public TMPro.TextMeshProUGUI DialogueText = null!;
+        public TMPro.TextMeshProUGUI SkipHintText = null!;
+
+        [Header("UX Settings")]
+        [Tooltip("Base delay in seconds between each character being revealed.")]
+        public float baseTypingSpeed = 0.03f;
+        [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
+        public float kaiSpeedMultiplier = 3.0f;
+        [Tooltip("Delay multiplier for Skyix (Steady/Precise tempo).")]
+        public float skyixSpeedMultiplier = 1.2f;
+
+        private Coroutine? typingCoroutine;
+        private Coroutine? popScaleCoroutine;
+        private float currentTypingSpeed;
+        private string currentSpeakerHex = "FFFFFF";
+        private Color currentSpeakerColor = Color.white;
+        private bool skipRequested;
+        private float idleTimer;
+        private bool playerInteracted;
+        private bool _isDialogueBoxActive;
+        private bool _isTypeRevealComplete;
+        private bool _isSkipHintActive;
+        private Vector3 originalSpeakerScale;
+
+        // BOLT: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
+        private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
+        private RectTransform _dialogueRect = null!;
+        private Vector2 _originalDialoguePos;
+
+        private WaitForSeconds GetWait(float time)
         {
-            elapsed += Time.deltaTime;
-            float percent = elapsed / duration;
-            // Use a sine wave for a smooth pop out and back in
-            float scale = 1f + Mathf.Sin(percent * Mathf.PI) * scaleFactor;
-            target.localScale = new Vector3(scale, scale, 1f);
-            yield return null;
-        }
-        target.localScale = Vector3.one;
-    }
-
-    void Start()
-    private void Start()
-    {
-        // Cache original scale to prevent scale drift during interrupted animations
-        if (SpeakerNameText != null) originalSpeakerNameScale = SpeakerNameText.transform.localScale;
-
-        // 🛡️ Sentinel: Security enhancement - Defensive programming
-        // Ensure UI components are assigned to prevent NullReferenceException and potential stack trace leakage.
-        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
-        {
-            Debug.LogError("Missing UI components required for cinematic. Aborting to prevent errors.");
-            return;
-        }
-
-        // Palette: Find SkipHint programmatically if not assigned
-        if (SkipHintText == null && DialogueBox != null)
-        {
-            Transform hintTransform = DialogueBox.transform.Find("SkipHint");
-            if (hintTransform != null) SkipHintText = hintTransform.GetComponent<TextMeshProUGUI>();
-        }
-
-        if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
-
-        // UX Enhancement: Cache the original scale of the speaker text to prevent animation drift
-        originalScale = SpeakerNameText.transform.localScale;
-
-        originalSpeakerScale = SpeakerNameText.transform.localScale;
-
-        // 🎨 Palette: Accessibility - Text outline for better contrast in dark scenes
-        SpeakerNameText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
-        SpeakerNameText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-        DialogueText.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
-        DialogueText.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
-
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-    private void Update()
-    {
-        if (Input.anyKeyDown) skipRequested = true;
-    }
-
-        // Poll for skip input to ensure responsiveness
-        if (Input.anyKeyDown)
-    private IEnumerator WaitForSecondsOrSkip(float duration)
-    {
-        float start = Time.unscaledTime;
-        while (Time.unscaledTime - start < duration && !skipRequested)
-        {
-            yield return null;
-        }
-    }
-
-        skipRequested = false;
-    }
-
-    /// <summary>
-    /// UX Enhancement: A skippable wait that allows users to 'fast-forward' through dialogue beats.
-    /// </summary>
-    private IEnumerator WaitForSecondsOrSkip(float duration)
-    {
-        float elapsed = 0f;
-        while (elapsed < duration && !skipRequested)
-        {
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        skipRequested = false;
-    }
-
-    /// <summary>
-    /// UX Enhancement: A subtle 'pop' animation for UI elements to draw focus during state changes.
-    /// </summary>
-    private IEnumerator PopScale(Transform target, float duration = 0.2f, float scaleFactor = 1.15f)
-    {
-        // 🛡️ Sentinel: Security enhancement - Defensive programming
-        if (DialogueBox == null || SpeakerNameText == null || DialogueText == null)
-        Vector3 initialScale = target.localScale;
-        Vector3 targetScale = initialScale * scaleFactor;
-
-        float elapsed = 0f;
-        while (elapsed < duration / 2f)
-        {
-            Debug.LogError("Missing UI components required for cinematic.");
-            return;
-        }
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-            target.localScale = Vector3.Lerp(initialScale, targetScale, elapsed / (duration / 2f));
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        elapsed = 0f;
-        while (elapsed < duration / 2f)
-        {
-            target.localScale = Vector3.Lerp(targetScale, initialScale, elapsed / (duration / 2f));
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-        target.localScale = initialScale;
-        popCoroutine = null;
-    }
-
-    void Start()
-    void Update()
-    {
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
-        {
-            skipRequested = true;
-            playerInteracted = true;
-            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
-        }
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) skipRequested = true;
-        if (Input.anyKeyDown) skipRequested = true;
-        // Poll for skip input to ensure responsiveness
-        if (Input.anyKeyDown)
-        // ⚡ Bolt: Precise skip detection for refined UX.
-        // We focus on primary confirmation keys to prevent accidental skips from accidental key presses.
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetMouseButtonDown(0))
-        private void Update()
-        {
-            // UX Enhancement: Allow skipping dialogue reveal with Space or Left Click.
-            if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+            int ms = Mathf.RoundToInt(time * 1000f);
+            if (!_waitForSecondsCache.TryGetValue(ms, out var wait))
             {
-                skipRequested = true;
-            }
-        }
-
-        speakerNameOriginalScale = SpeakerNameText.transform.localScale;
-
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
-
-    /// <summary>
-    /// Yields for the specified duration but returns immediately if a skip is requested.
-    /// Resets the skip flag upon completion.
-    /// </summary>
-    private IEnumerator WaitForSecondsOrSkip(float duration)
-    {
-        float start = Time.time;
-        while (Time.time - start < duration && !skipRequested)
-
-        private WaitForSeconds GetWait(float seconds)
-        {
-            if (!waitCache.TryGetValue(seconds, out var wait))
-            {
-                wait = new WaitForSeconds(seconds);
-                waitCache[seconds] = wait;
+                wait = new WaitForSeconds(time);
+                _waitForSecondsCache[ms] = wait;
             }
             return wait;
         }
 
-        private IEnumerator WaitForSecondsOrSkip(float seconds)
+        private void Start()
         {
-            float elapsed = 0;
-            while (elapsed < seconds && !skipRequested)
+            if (DialogueBox != null) _isDialogueBoxActive = DialogueBox.activeInHierarchy;
+
+            if (DialogueBox == null || SpeakerNameText == null || DialogueText == null || DialogueCanvasGroup == null)
             {
-                elapsed += Time.deltaTime;
-                yield return null;
+                Debug.LogError("Missing UI components required for cinematic. Aborting.");
+                return;
             }
-            skipRequested = false;
-        }
 
-        StartCoroutine(Cinematic_IntoTheVoid_Sequence());
-    }
+            originalSpeakerScale = SpeakerNameText.transform.localScale;
+            _dialogueRect = DialogueBox.GetComponent<RectTransform>();
+            _originalDialoguePos = _dialogueRect.anchoredPosition;
 
-    public void ShowDialogue(string speaker, string message)
-    {
-        skipRequested = false;
-        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-        if (speakerPopCoroutine != null) StopCoroutine(speakerPopCoroutine);
+            if (SkipHintText != null) SkipHintText.gameObject.SetActive(false);
 
-        // 🎨 Palette: PopScale animation for speaker name changes
-        if (SpeakerNameText.text != speaker)
-        {
-            if (scalingCoroutine != null) StopCoroutine(scalingCoroutine);
-            scalingCoroutine = StartCoroutine(PopScaleSpeaker());
-        }
+            // ⚡ Bolt: Pre-cache animators to eliminate GetComponent allocations during the cinematic sequence.
+            if (Skyix_Character != null) _skyixAnimator = Skyix_Character.GetComponent<Animator>();
+            if (Kai_Character != null) _kaiAnimator = Kai_Character.GetComponent<Animator>();
+            if (Delilah_Character != null) _delilahAnimator = Delilah_Character.GetComponent<Animator>();
 
-        // UI Juice: Apply a pop animation to the speaker name when it changes
-        if (SpeakerNameText.text != speaker)
-        {
-            StartCoroutine(PopScale(SpeakerNameText.rectTransform, 0.2f, 0.15f));
-        }
-
-        // UX Enhancement: Trigger a subtle "Pop" animation when the speaker changes
-        if (SpeakerNameText.text != speaker)
-        {
-            if (popScaleCoroutine != null) StopCoroutine(popScaleCoroutine);
-            popScaleCoroutine = StartCoroutine(PopScaleEffect());
-        }
-
-        bool speakerChanged = SpeakerNameText.text != speaker;
-        SpeakerNameText.text = speaker;
-        currentTypingSpeed = baseTypingSpeed * GetSpeedMultiplier(speaker);
-        skipRequested = false;
-        SpeakerNameText.color = GetSpeakerColor(speaker);
-
-        typingCoroutine = StartCoroutine(TypeDialogue(message));
-    }
-
-    internal float GetSpeedMultiplier(string speaker)
-    {
-        if (speaker == "Kai") return kaiSpeedMultiplier;
-        if (speaker == "Sky.ix") return skyixSpeedMultiplier;
-        return 1.0f;
-    }
-
-    internal Color GetSpeakerColor(string speaker)
-    {
-        speakerPopCoroutine = StartCoroutine(PopEffect(SpeakerNameText.rectTransform));
-        if (popCoroutine != null) StopCoroutine(popCoroutine);
-
-        if (speakerChanged) StartCoroutine(PopEffect(SpeakerNameText.transform));
-
-        // Apply speaker-specific speed multipliers based on voice profiles
-        SpeakerNameText.text = speaker;
-        popCoroutine = StartCoroutine(PopScale(SpeakerNameText.transform));
-        popCoroutine = StartCoroutine(PopSpeakerName());
-        public void ShowDialogue(string speaker, string message)
-        {
-            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-
-        // Apply speaker-specific speed multipliers
-        float multiplier = 1.0f;
-        if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
-        else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
-            SpeakerNameText.text = speaker;
-
-        currentTypingSpeed = typingSpeed * multiplier;
-        skipRequested = false;
-
-        Color speakerColor = Color.white;
-        if (speaker == "Sky.ix") speakerColor = Color.cyan;
-        else if (speaker == "Kai") speakerColor = new Color(1f, 0.84f, 0f);
-        else if (speaker == "Delilah") speakerColor = new Color(0.6f, 0.1f, 0.9f);
-
-
-        Color speakerColor = Color.white;
-        // Apply character-specific colors
-        // Apply character-specific colors for better speaker identification
-        Color speakerColor;
-        switch (speaker)
-        {
-            case "Sky.ix": speakerColor = Color.cyan; break;
-            case "Kai": speakerColor = new Color(1f, 0.84f, 0f); break; // Gold
-            case "Delilah": speakerColor = new Color(0.6f, 0.1f, 0.9f); break; // Void Purple
-            default: speakerColor = Color.white; break;
-        // Apply character-specific colors for better speaker identification
-        switch (speaker)
-        {
-            case "Sky.ix":
-                return Color.cyan;
-            case "Kai":
-                return new Color(1f, 0.84f, 0f); // Gold
-            case "Delilah":
-                return new Color(0.6f, 0.1f, 0.9f); // Void Purple
-            default:
-                return Color.white;
-        }
-        SpeakerNameText.color = speakerColor;
-        // BOLT: Cache hex color to avoid per-character allocation in the reveal loop
-        cachedHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
-        speakerHexColor = ColorUtility.ToHtmlStringRGB(speakerColor);
-
-                SpeakerNameText.color = Color.cyan;
-                currentSpeakerColorTag = "<color=#00FFFF>";
-                break;
-            case "Kai":
-                SpeakerNameText.color = new Color(1f, 0.84f, 0f); // Gold
-                currentSpeakerColorTag = "<color=#FFD700>";
-                break;
-            case "Delilah":
-                SpeakerNameText.color = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                currentSpeakerColorTag = "<color=#9919E6>";
-                break;
-            default:
-                SpeakerNameText.color = Color.white;
-                currentSpeakerColorTag = "<color=#FFFFFF>";
-                break;
-        }
-
-        currentSpeakerHex = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        SpeakerNameText.color = speakerColor;
-        typingCoroutine = StartCoroutine(TypeDialogue(message));
-        StartCoroutine(PopScale(SpeakerNameText.rectTransform));
-    }
-
-    private IEnumerator PopScaleSpeaker()
-    {
-        // UX Enhancement: Color-coded completion cue that matches speaker theme.
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = 0;
-
-        DialogueText.ForceMeshUpdate();
-        TMP_TextInfo textInfo = DialogueText.textInfo;
-        int totalCharacters = textInfo.characterCount;
-        float duration = 0.2f;
-        float elapsed = 0f;
-        float targetScale = 1.15f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / duration;
-            // Simple bounce-out curve
-            float s = 1f + Mathf.Sin(t * Mathf.PI) * (targetScale - 1f);
-            SpeakerNameText.transform.localScale = originalSpeakerScale * s;
-            yield return null;
-        }
-
-            DialogueText.maxVisibleCharacters = i + 1;
-            char c = textInfo.characterInfo[i].character;
-            float delay = currentTypingSpeed;
-        SpeakerNameText.transform.localScale = originalSpeakerScale;
-        scalingCoroutine = null;
-    }
-
-    private IEnumerator PopScaleEffect()
-    {
-        float elapsed = 0f;
-        float duration = 0.2f;
-        float targetScale = 1.15f;
-
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float percent = elapsed / duration;
-            // Simple ease-out curve using Sin
-            float curve = Mathf.Sin(percent * Mathf.PI);
-            SpeakerNameText.transform.localScale = originalScale * (1f + (targetScale - 1f) * curve);
-            yield return null;
-        }
-
-        SpeakerNameText.transform.localScale = originalScale;
-        popScaleCoroutine = null;
-    }
-
-    private IEnumerator TypeDialogue(string message)
-    {
-        // UX Enhancement: Color-coded completion cue that matches speaker theme.
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-
-        DialogueText.maxVisibleCharacters = 0;
-
-        // Ensure TMP is updated to get accurate character info
-
-        DialogueText.maxVisibleCharacters = 0;
-        DialogueText.ForceMeshUpdate();
-        TMP_TextInfo textInfo = DialogueText.textInfo;
-        int totalVisibleCharacters = textInfo.characterCount;
-    /// <summary>
-    /// Unified typewriter effect that handles rich text, rhythmic pauses, and skip logic.
-    /// </summary>
-    private IEnumerator TypeDialogue(string message)
-    {
-        // UX Enhancement: Color-coded completion cue ('▽') that matches the current speaker.
-        // We append it immediately to ensure the full layout is calculated upfront, preventing layout shifts.
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-
-        // The message length excluding the cue (▽ is 1 char)
-        int messageChars = totalCharacters - 1;
-
-        float startTime = Time.time;
-        bool hintShown = false;
-
-        for (int i = 0; i < totalCharacters; i++)
-        for (int i = 0; i <= messageChars; i++)
-        {
-            // UX Enhancement: Robust skip logic using persistent flag
-            if (skipRequested) break;
-
-            DialogueText.maxVisibleCharacters = i;
-
-            // Palette: Show skip hint if player is idle for 2 seconds
-            if (!playerInteracted && !hintShown && Time.time - startTime > 2f)
+            if (SkipHintText == null && DialogueBox != null)
             {
+                Transform hintTransform = DialogueBox.transform.Find("SkipHint");
+                if (hintTransform != null) SkipHintText = hintTransform.GetComponent<TextMeshProUGUI>();
+            }
+
+            if (SkipHintText != null)
+            {
+                SkipHintText.text = "[Any Key/Click] Skip";
+                SkipHintText.gameObject.SetActive(false);
+            }
+
+            // Palette: Accessibility - Consolidated text outline for better contrast in dark scenes.
+            foreach (var text in new[] { SpeakerNameText, DialogueText, SkipHintText })
+            {
+                if (text != null && text.fontMaterial != null)
+                {
+                    text.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.25f);
+                    text.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+                }
+            }
+
+            this.StartCoroutine(Cinematic_IntoTheVoid_Sequence());
+        }
+
+        private void Update()
+        {
+            // BOLT: Use cached boolean flags to reduce expensive engine-to-managed boundary calls (activeInHierarchy).
+            if (!_isDialogueBoxActive) return;
+
+            // Palette: Pulse the completion cue ('▽') alpha when the dialogue is finished revealing.
+            if (_isTypeRevealComplete && DialogueText != null)
+            {
+                var textInfo = DialogueText.textInfo;
+                if (textInfo.characterCount > 0)
+                {
+                    int lastCharIndex = textInfo.characterCount - 1;
+                    if (textInfo.characterInfo[lastCharIndex].isVisible)
+                    {
+                        float pulse = Mathf.PingPong(Time.time * 2.5f, 0.5f) + 0.5f;
+                        Color32 pulseColor = currentSpeakerColor;
+                        pulseColor.a = (byte)(pulse * 255);
+
+                        int materialIndex = textInfo.characterInfo[lastCharIndex].materialReferenceIndex;
+                        int vertexIndex = textInfo.characterInfo[lastCharIndex].vertexIndex;
+                        Color32[] vertexColors = textInfo.meshInfo[materialIndex].colors32;
+
+                        for (int i = 0; i < 4; i++) vertexColors[vertexIndex + i] = pulseColor;
+                        DialogueText.UpdateVertexData(TMP_VertexDataUpdateFlags.Colors32);
+                    }
+                }
+            }
+
+            if (Input.anyKeyDown)
+            {
+                skipRequested = true;
+                playerInteracted = true;
+                idleTimer = 0f;
                 if (SkipHintText != null)
                 {
-                    SkipHintText.text = "[Space] Skip";
+                    SkipHintText.gameObject.SetActive(false);
+                    _isSkipHintActive = false;
+                }
+            }
+
+            if (!playerInteracted && !skipRequested)
+            {
+                idleTimer += Time.deltaTime;
+                if (idleTimer >= 2.0f && SkipHintText != null && !_isSkipHintActive)
+                {
                     SkipHintText.gameObject.SetActive(true);
-                    hintShown = true;
+                    _isSkipHintActive = true;
                 }
             }
 
-            char c = textInfo.characterInfo[i].character;
-            float delay = typingSpeed;
-            if (i < messageChars)
+            if (_isSkipHintActive && SkipHintText != null)
             {
-                char c = textInfo.characterInfo[i].character;
-                float delay = currentTypingSpeed;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                // Delay occurs after character reveal for natural rhythm.
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    // Refined ellipsis detection: if neighboring characters are also dots, it's an ellipsis
-                    bool isEllipsis = false;
-                    if (c == '.')
-                    {
-                        if (i > 0 && textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
-                        if (i < messageChars - 1 && textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
-        // UX Enhancement: Color-coded completion cue that matches speaker theme.
-        DialogueText.text = $"{message} <color=#{cachedHexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = 0;
-        DialogueText.ForceMeshUpdate();
-
-        string hexColor = ColorUtility.ToHtmlStringRGB(SpeakerNameText.color);
-        DialogueText.text = $"{message} <color=#{hexColor}>▽</color>";
-        DialogueText.maxVisibleCharacters = 0;
-        DialogueText.ForceMeshUpdate();
-
-        int totalVisibleCharacters = DialogueText.textInfo.characterCount;
-        // The cue character is at the end. We reveal it only after the main message is typed.
-        int mainMessageLength = totalVisibleCharacters - 1;
-
-        for (int i = 0; i < mainMessageLength; i++)
-        {
-            if (skipRequested) break;
-
-        for (int i = 1; i <= totalVisibleCharacters; i++)
-        {
-            if (skipRequested)
-            {
-                DialogueText.maxVisibleCharacters = totalVisibleCharacters;
-                break;
+                // BOLT: Use canvasRenderer.SetAlpha to avoid expensive mesh rebuilds triggered by material/color changes.
+                float alpha = Mathf.PingPong(Time.time * 0.5f, 0.5f) + 0.5f;
+                SkipHintText.canvasRenderer.SetAlpha(alpha);
             }
-
-            char c = DialogueText.textInfo.characterInfo[i].character;
-            float delay = currentTypingSpeed;
-            DialogueText.maxVisibleCharacters = i;
-            float delay = currentTypingSpeed;
-            char c = DialogueText.textInfo.characterInfo[i - 1].character;
-
-            // Rhythmic punctuation pauses to mimic natural speech cadence
-            if (c == '.' || c == '!' || c == '?')
-                delay = currentTypingSpeed * 15f;
-            else if (c == ',')
-                delay = currentTypingSpeed * 8f;
-            {
-                float delay = currentTypingSpeed;
-                char c = textInfo.characterInfo[i].character;
-
-                // UX Enhancement: Rhythmic punctuation pauses for natural reading.
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (i + 1 < totalVisibleCharacters)
-                    {
-                        char nextChar = textInfo.characterInfo[i + 1].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                // Look ahead to distinguish sentence endings from mid-word periods (e.g., Sky.ix)
-                bool isEndOfSentence = true;
-                if (i + 1 < mainMessageLength)
-                {
-                    char nextChar = DialogueText.textInfo.characterInfo[i + 1].character;
-                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                }
-
-                if (isEndOfSentence)
-                {
-                    // Refined ellipsis detection
-                    bool isEllipsis = false;
-                    if (c == '.')
-                    {
-                        if (i > 0 && DialogueText.textInfo.characterInfo[i - 1].character == '.') isEllipsis = true;
-                        if (i + 1 < mainMessageLength && DialogueText.textInfo.characterInfo[i + 1].character == '.') isEllipsis = true;
-            {
-                bool isEndOfSentence = true;
-                if (i < totalVisibleCharacters)
-                {
-                    char nextChar = DialogueText.textInfo.characterInfo[i].character;
-                    if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                }
-
-                if (isEndOfSentence)
-                {
-                    bool isEllipsis = false;
-                    if (c == '.')
-                    {
-                        if (i > 1 && DialogueText.textInfo.characterInfo[i - 2].character == '.') isEllipsis = true;
-                        if (i < totalVisibleCharacters && DialogueText.textInfo.characterInfo[i].character == '.') isEllipsis = true;
-                    }
-                    delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
-                }
-            }
-            else if (c == ',' || c == ';' || c == ':')
-            {
-                delay = currentTypingSpeed * 8f;
-            }
-
-            yield return GetWait(delay);
         }
 
         DialogueText.maxVisibleCharacters = totalCharacters + 2;
@@ -925,9 +561,27 @@ namespace Milehigh.Cinematics
             {
                 DialogueText.maxVisibleCharacters = totalCharacters;
                 break;
+        public void ShowDialogue(string speaker, string message)
+        {
+            if (typingCoroutine != null) this.StopCoroutine(typingCoroutine);
+            _isTypeRevealComplete = false;
+
+            // UX Enhancement: Reset idle timer and interaction state for each new dialogue line.
+            idleTimer = 0f;
+            playerInteracted = false;
+            if (SkipHintText != null)
+            {
+                SkipHintText.gameObject.SetActive(false);
+                _isSkipHintActive = false;
             }
 
-            DialogueText.maxVisibleCharacters = i;
+            if (SpeakerNameText.text != speaker)
+            {
+                if (popScaleCoroutine != null) this.StopCoroutine(popScaleCoroutine);
+                popScaleCoroutine = this.StartCoroutine(PopScale(SpeakerNameText.transform, 0.2f, 1.15f));
+            }
+
+            SpeakerNameText.text = speaker;
 
             if (i > 0 && i < totalCharacters)
             {
@@ -1311,6 +965,143 @@ namespace Milehigh.Cinematics
                     yield return null;
                 }
                 yield return GetWait(delay);
+            float multiplier = 1.0f;
+            Color speakerColor = speaker switch
+            {
+                "Sky.ix" => Color.cyan,
+                "Kai" => new Color(1f, 0.84f, 0f), // Gold
+                "Delilah" => new Color(0.6f, 0.1f, 0.9f), // Void Purple
+                _ => Color.white
+            };
+
+            if (speaker == "Kai") multiplier = kaiSpeedMultiplier;
+            else if (speaker == "Sky.ix") multiplier = skyixSpeedMultiplier;
+
+            SpeakerNameText.color = speakerColor;
+            currentSpeakerColor = speakerColor;
+            currentSpeakerHex = ColorUtility.ToHtmlStringRGB(speakerColor);
+            currentTypingSpeed = baseTypingSpeed * multiplier;
+
+            skipRequested = false;
+
+            // Audio: Play the character's voice line if assigned.
+            AudioSource? voiceSource = speaker switch
+            {
+                "Sky.ix" => Skyix_VoiceSource,
+                "Kai" => Kai_VoiceSource,
+                "Delilah" => Delilah_VoiceSource,
+                _ => null
+            };
+
+            if (voiceSource != null) voiceSource.Play();
+
+            typingCoroutine = this.StartCoroutine(TypeDialogue(message));
+        }
+
+        private IEnumerator TypeDialogue(string message)
+        {
+            // Palette: Pre-append completion cue and use maxVisibleCharacters to ensure layout stability.
+            DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+            DialogueText.maxVisibleCharacters = 0;
+            DialogueText.ForceMeshUpdate();
+
+            TMPro.TMP_TextInfo textInfo = DialogueText.textInfo;
+            int totalCharacters = textInfo.characterCount;
+            int mainMessageLength = totalCharacters - 1; // Exclude the completion cue
+
+            for (int i = 0; i <= mainMessageLength; i++)
+            {
+                if (skipRequested) break;
+
+                DialogueText.maxVisibleCharacters = i;
+
+                if (i > 0 && i <= mainMessageLength)
+                {
+                    char c = textInfo.characterInfo[i - 1].character;
+                    float delay = currentTypingSpeed;
+
+                    // Rhythmic pacing
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Check for mid-word periods (like Sky.ix) using look-ahead
+                        bool isEndOfSentence = true;
+                        if (i < mainMessageLength)
+                        {
+                            char nextChar = textInfo.characterInfo[i].character;
+                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence)
+                        {
+                            bool isEllipsis = (i > 1 && textInfo.characterInfo[i - 2].character == '.') ||
+                                             (i < mainMessageLength && textInfo.characterInfo[i].character == '.');
+                            delay = currentTypingSpeed * (isEllipsis ? 5f : 15f);
+                        }
+                    }
+                    else if (c == ',' || c == ';' || c == ':')
+                    {
+                        delay = currentTypingSpeed * 8f;
+                    }
+
+                    yield return GetWait(delay);
+                }
+            }
+
+            DialogueText.maxVisibleCharacters = totalCharacters;
+            DialogueText.ForceMeshUpdate();
+            _isTypeRevealComplete = true;
+            // Palette: Carry-over skip - skipRequested is NOT reset here to allow skipping the reading pause too.
+            typingCoroutine = null;
+        }
+
+        private IEnumerator WaitForSecondsOrSkip(float duration)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration && !skipRequested)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+            skipRequested = false;
+        }
+
+        private IEnumerator PlayDialogueLine(string speaker, string message, float readingPause)
+        {
+            ShowDialogue(speaker, message);
+            while (typingCoroutine != null) yield return null;
+            yield return WaitForSecondsOrSkip(readingPause);
+        }
+
+        private IEnumerator FadeDialogueBox(float targetAlpha, float duration)
+        {
+            if (targetAlpha > 0)
+            {
+                DialogueBox.SetActive(true);
+                _isDialogueBoxActive = true;
+            }
+            float startAlpha = DialogueCanvasGroup.alpha;
+
+            Vector2 startPos = _originalDialoguePos + (targetAlpha > 0 ? new Vector2(0, -30f) : Vector2.zero);
+            Vector2 endPos = _originalDialoguePos + (targetAlpha <= 0 ? new Vector2(0, -30f) : Vector2.zero);
+
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = Mathf.Clamp01(elapsed / duration);
+                float smoothT = Mathf.SmoothStep(0f, 1f, t);
+
+                DialogueCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, smoothT);
+                if (_dialogueRect != null) _dialogueRect.anchoredPosition = Vector2.Lerp(startPos, endPos, smoothT);
+                yield return null;
+            }
+
+            DialogueCanvasGroup.alpha = targetAlpha;
+            if (_dialogueRect != null) _dialogueRect.anchoredPosition = endPos;
+            if (targetAlpha <= 0)
+            {
+                DialogueBox.SetActive(false);
+                _isDialogueBoxActive = false;
             }
             else if (i == totalVisibleCharacters && totalVisibleCharacters > 0)
             {
@@ -1751,6 +1542,66 @@ namespace Milehigh.Cinematics
             DialogueBox.SetActive(false);
 
             Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
+        private IEnumerator PopScale(Transform target, float duration, float scaleFactor)
+        {
+            Vector3 initialScale = originalSpeakerScale;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float curve = Mathf.Sin((elapsed / duration) * Mathf.PI) * (scaleFactor - 1f);
+                target.localScale = initialScale * (1f + curve);
+                yield return null;
+            }
+            target.localScale = initialScale;
+            popScaleCoroutine = null;
+        }
+
+        private IEnumerator Cinematic_IntoTheVoid_Sequence()
+        {
+            yield return FadeDialogueBox(1.0f, 0.5f);
+            yield return GetWait(1.0f);
+            yield return WaitForSecondsOrSkip(1.0f);
+
+            // Line 1: Delilah
+            if (_delilahAnimator != null) _delilahAnimator.SetTrigger("Channeling_Idle");
+            yield return PlayDialogueLine("Delilah", "Can you feel them, Sky.ix? Fading. Every laugh, every touch, every promise... becoming meaningless noise. It's a mercy, really. Attachments are just flaws in the code.", 2.5f);
+
+            // Line 2: Sky.ix
+            if (_skyixAnimator != null) _skyixAnimator.SetTrigger("React_Furious");
+            yield return PlayDialogueLine("Sky.ix", "Those 'flaws' are everything that matters! You're not cleansing anything, you're just a vandal smashing something beautiful you could never understand.", 1.5f);
+
+            // Line 3: Kai
+            if (_kaiAnimator != null) _kaiAnimator.SetTrigger("Point_Urgent");
+            yield return PlayDialogueLine("Kai", "Sky, don't let her distract you. Her channeling is creating a feedback loop. It's unstable, but it's shielded. I need you to hit the third resonant frequency conduit... now!", 2.0f);
+
+            // Line 4: Delilah
+            if (_delilahAnimator != null) _delilahAnimator.SetTrigger("Smirk_Dismissive");
+            yield return PlayDialogueLine("Delilah", "The little drifter thinks it's found a backdoor. How quaint. This power is not built on code you can hack. It is built on pure, unadulterated nothingness.", 2.0f);
+
+            // Line 5: Sky.ix
+            if (_skyixAnimator != null) _skyixAnimator.SetTrigger("Action_Ready");
+            yield return PlayDialogueLine("Sky.ix", "Then I'll just have to break it with something real. Kai, I see it! I'm going in!", 1.0f);
+
+            // ACTION: Sky.ix dashes
+            if (_skyixAnimator != null) _skyixAnimator.SetTrigger("Dash_Forward");
+            yield return WaitForSecondsOrSkip(2.0f);
+
+            // Line 6: Kai
+            if (_kaiAnimator != null) _kaiAnimator.SetTrigger("React_Alarmed");
+            yield return PlayDialogueLine("Kai", "The energy spike is massive! Your shields won't hold for long!", 1.0f);
+
+            // Line 7: Delilah
+            if (_delilahAnimator != null) _delilahAnimator.SetTrigger("Taunt_OpenArms");
+            yield return PlayDialogueLine("Delilah", "Come then. Offer your existence to the glitch. Join your precious family in the great deletion.", 1.5f);
+
+            // Line 8: Sky.ix
+            if (_skyixAnimator != null) _skyixAnimator.SetTrigger("Determined_Resolve");
+            yield return PlayDialogueLine("Sky.ix", "My family is my anchor. They are the reason I can walk through this hell and not become a monster like you. And I am bringing them home.", 3.0f);
+
+            yield return FadeDialogueBox(0f, 0.5f);
+            Debug.Log("Cinematic Sequence Complete: [Deep within the anti-reality of ŤĤÊ VØĪĐ...]");
+            if (typingCoroutine != null) this.StopCoroutine(typingCoroutine);
         }
     }
 }

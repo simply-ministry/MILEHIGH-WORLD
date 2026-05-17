@@ -25,6 +25,7 @@ namespace Milehigh.Characters
             {
                 // ⚡ Bolt: Removed redundant Instantiate call to halve instantiation overhead and reduce memory pressure.
                 UnityEngine.Object.Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, UnityEngine.Quaternion.identity);
+                Instantiate(shadowClonePrefab, transform.position + UnityEngine.Random.insideUnitSphere * 5f, Quaternion.identity);
             }
         }
 
