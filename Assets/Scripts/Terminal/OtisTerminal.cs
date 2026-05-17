@@ -179,11 +179,21 @@ namespace Milehigh.World.Terminal
 
             int charactersToReveal = endVisibleCount - startVisibleCount;
 
-            for (int i = 0; i <= charactersToReveal; i++)
+            for (int i = 1; i <= charactersToReveal; i++)
             {
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
 
                 // UX Learning: Punctuation delays trigger after character is visible
+                char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
+
+                float delay = typingSpeed;
+                if (c == '.' || c == ':' || c == '!')
+                    delay = punctuationDelay;
+                else if (c == ',')
+                    delay = commaDelay;
+
+                // ⚡ Bolt: Zero-allocation yield via shared cache
+                yield return GetWait(delay);
                 if (i > 0 && i <= charactersToReveal)
                 {
                     char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
