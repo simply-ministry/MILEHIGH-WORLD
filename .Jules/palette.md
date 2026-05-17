@@ -97,6 +97,6 @@
 **Learning:** Providing inclusive interaction hints, such as "[Any Key/Click] Skip" instead of specific keys like "[Space] Skip", ensures that users across different input methods (keyboard, mouse, gamepad, or assistive technology) understand that any deliberate action will trigger the skip. This transparency improves accessibility and reduces frustration for users who might not be using a standard keyboard.
 **Action:** Always use inclusive language for interaction hints when the underlying logic supports multiple input types (e.g., 'Input.anyKeyDown').
 
-## 2026-05-23 - [Premium UI Transitions and Pulsing Interaction Cues]
+## 2024-05-23 - [Premium UI Transitions and Pulsing Interaction Cues]
 **Learning:** Moving beyond linear interpolation (Lerp) to cubic easing (SmoothStep) significantly elevates the perceived quality of UI transitions in Unity. Additionally, adding a subtle alpha pulse to interaction cues (like '▽') using vertex color manipulation provides an intuitive, non-distracting signal for user progression without the performance cost of layout rebuilds.
 **Action:** Use 'Mathf.SmoothStep' for UI panel animations and prefer vertex-based animation for interactive text elements to maintain high performance and polish.
