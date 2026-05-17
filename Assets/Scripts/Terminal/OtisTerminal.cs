@@ -30,13 +30,6 @@ namespace Milehigh.World.Terminal
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
             if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
-        // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
-        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
-
-        private WaitForSeconds GetWait(float seconds)
-        {
-            int ms = Mathf.RoundToInt(seconds * 1000f);
-            if (!_waitCache.TryGetValue(ms, out var wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
@@ -72,18 +65,6 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                WriteToTerminal("\n>");
-                return;
-            }
-
-            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
-            // 🎨 Palette: Echo user command to terminal for better interaction history
-            // We do this before clearing the input so the user sees immediate feedback
-            string echo = string.IsNullOrWhiteSpace(input) ? ">" : $"> {input}";
-            WriteToTerminal($"\n<color=#888888>{echo}</color>");
-
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
             {
@@ -91,11 +72,19 @@ namespace Milehigh.World.Terminal
                 commandInput.ActivateInputField();
             }
 
-            if (string.IsNullOrWhiteSpace(input)) return;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                WriteToTerminal("\n<color=#888888>></color>");
+                return;
+            }
 
-            // 🛡️ Sentinel: Input validation and DoS protection
+            // 🛡️ Sentinel: Security - Strip Rich Text tags before echoing to prevent UI injection if validation fails.
+            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
+
+            // 🛡️ Sentinel: Input validation and DoS protection.
             if (input.Length > MaxInputLength)
             {
+                WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length (256 characters).");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
                 return;
@@ -103,20 +92,14 @@ namespace Milehigh.World.Terminal
 
             if (!SafeCommandRegex.IsMatch(input))
             {
+                WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
                 return;
             }
 
-            // 🎨 Palette: Echo user command to terminal AFTER validation to ensure safe rendering.
+            // 🎨 Palette: Echo user command to terminal.
             WriteToTerminal($"\n<color=#888888>> {input}</color>");
-
-            // UX Enhancement: Clear input and refocus immediately for better flow
-            if (commandInput != null)
-            {
-                commandInput.text = "";
-                commandInput.ActivateInputField();
-            }
 
             string[] parts = input.Trim().Split(' ');
             string command = parts[0].ToLower();
@@ -164,7 +147,8 @@ namespace Milehigh.World.Terminal
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
-                outputDisplay.maxVisibleCharacters = int.MaxValue; // Reveal all current text
+                // UX Enhancement: Reveal full previous message when interrupted.
+                outputDisplay.maxVisibleCharacters = int.MaxValue;
             }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
@@ -188,7 +172,7 @@ namespace Milehigh.World.Terminal
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
 
                 // 🎨 Palette: Rhythmic punctuation pauses for an "analog" terminal feel.
-                // We check the last revealed character to pause after it appears.
+                // We check the revealed character to pause after it appears.
                 char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                 float delay = typingSpeed;
 
@@ -215,27 +199,6 @@ namespace Milehigh.World.Terminal
                 }
 
                 yield return GetWait(delay);
-                // UX Learning: Punctuation delays trigger after character is visible
-                char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
-
-                float delay = typingSpeed;
-                if (c == '.' || c == ':' || c == '!')
-                    delay = punctuationDelay;
-                else if (c == ',')
-                    delay = commaDelay;
-
-                // ⚡ Bolt: Zero-allocation yield via shared cache
-                yield return GetWait(delay);
-                if (i > 0 && i <= charactersToReveal)
-                {
-                    char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
-                    if (c == '.' || c == ':' || c == '!')
-                        yield return GetWait(punctuationDelay);
-                    else if (c == ',')
-                        yield return GetWait(commaDelay);
-                }
-
-                yield return GetWait(typingSpeed);
             }
 
             _typewriterCoroutine = null;
