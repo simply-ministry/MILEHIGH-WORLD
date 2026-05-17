@@ -23,21 +23,12 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
 
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
-        // We use int (milliseconds) as the key to avoid floating-point precision issues with dictionary lookups.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
         private WaitForSeconds GetWait(float seconds)
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
             if (!_waitCache.TryGetValue(ms, out var wait))
-        // BOLT: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
-        // Using int millisecond keys to avoid floating-point precision issues in dictionary lookups.
-        private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
-
-        private static WaitForSeconds GetWait(float seconds)
-        {
-            int ms = Mathf.RoundToInt(seconds * 1000f);
-            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
@@ -59,7 +50,7 @@ namespace Milehigh.World.Terminal
             if (outputDisplay != null)
             {
                 outputDisplay.text = "";
-                WriteToTerminal("[SYSTEM]: OTIS Terminal Online. Type 'help' for commands.");
+                WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
             }
         }
 
@@ -73,10 +64,10 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return;
-
             // 🎨 Palette: Echo user command to terminal for better interaction history
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
+            // We do this before clearing the input so the user sees immediate feedback
+            string echo = string.IsNullOrWhiteSpace(input) ? ">" : $"> {input}";
+            WriteToTerminal($"\n<color=#888888>{echo}</color>");
 
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
@@ -85,26 +76,19 @@ namespace Milehigh.World.Terminal
                 commandInput.ActivateInputField();
             }
 
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                WriteToTerminal("\n>");
-                return;
-            }
-
-            // UX Enhancement: Echo command to terminal for better interaction feedback
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
+            if (string.IsNullOrWhiteSpace(input)) return;
 
             // 🛡️ Sentinel: Input validation and DoS protection
             if (input.Length > MaxInputLength)
             {
-                WriteToTerminal("\n[SECURITY]: <color=#FF0000>Input exceeds maximum length (256 characters).</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length (256 characters).");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
                 return;
             }
 
             if (!SafeCommandRegex.IsMatch(input))
             {
-                WriteToTerminal("\n[SECURITY]: <color=#FF0000>Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
                 return;
             }
@@ -116,12 +100,14 @@ namespace Milehigh.World.Terminal
             {
                 outputDisplay.text = "";
                 outputDisplay.maxVisibleCharacters = 0;
+                // 🎨 Palette: Re-issue orientation message after clear
+                WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
                 return;
             }
 
             if (command == "help")
             {
-                WriteToTerminal("\n[SYSTEM]: <color=#FFFF00>Available Commands:</color>" +
+                WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands.");
@@ -135,12 +121,13 @@ namespace Milehigh.World.Terminal
                 {
                     string argument = input.Substring(index);
                     ExecuteExtendedCommand(parts[0], argument);
-                    WriteToTerminal($"\n[SYSTEM]: <color=#00FF00>Command '{parts[0]}' executed.</color>");
+                    WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: Command '{parts[0]}' executed.");
                 }
             }
             else
             {
-                WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'. Type 'help' for options.</color>");
+                // 🎨 Palette: Friendly help suggestion for unknown commands
+                WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{parts[0]}'. Type <color=#00FFFF>'help'</color> for options.</color>");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
         }
@@ -180,18 +167,12 @@ namespace Milehigh.World.Terminal
                 {
                     char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                     if (c == '.' || c == ':' || c == '!')
-                        yield return GetWait(0.15f);
+                        yield return GetWait(punctuationDelay);
                     else if (c == ',')
-                        yield return GetWait(0.08f);
+                        yield return GetWait(commaDelay);
                 }
 
-                yield return GetWait(0.02f);
-                        yield return new WaitForSeconds(punctuationDelay);
-                    else if (c == ',')
-                        yield return new WaitForSeconds(commaDelay);
-                }
-
-                yield return new WaitForSeconds(typingSpeed);
+                yield return GetWait(typingSpeed);
             }
 
             _typewriterCoroutine = null;
