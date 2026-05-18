@@ -39,6 +39,13 @@ namespace Milehigh.World.Terminal
         private void Update()
         {
             if (commandInput == null || !commandInput.isFocused) return;
+
+            // Power User Shortcut: Ctrl+L to clear the terminal
+            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
+            {
+                ClearTerminalDisplay();
+            }
+
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(-1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(1);
         }
@@ -84,8 +91,7 @@ namespace Milehigh.World.Terminal
 
             if (command == "clear")
             {
-                outputDisplay.text = "";
-                outputDisplay.maxVisibleCharacters = 0;
+                ClearTerminalDisplay();
                 return;
             }
 
@@ -94,7 +100,7 @@ namespace Milehigh.World.Terminal
                 WriteToTerminal("\n[SYSTEM]: <color=#FFFF00>Available Commands:</color>" +
                                 "\n - <color=#00FFFF>help/clear</color>: Show help or clear display." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute commands." +
-                                "\n\n[SYSTEM]: <color=#FFFF00>Shortcuts:</color> Up/Down Arrow for History.");
+                                "\n\n[SYSTEM]: <color=#FFFF00>Shortcuts:</color> Up/Down Arrow for History, Ctrl+L to Clear.");
                 return;
             }
 
@@ -113,6 +119,13 @@ namespace Milehigh.World.Terminal
                 WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
+        }
+
+        private void ClearTerminalDisplay()
+        {
+            if (outputDisplay == null) return;
+            outputDisplay.text = "";
+            outputDisplay.maxVisibleCharacters = 0;
         }
 
         private void WriteToTerminal(string message)
