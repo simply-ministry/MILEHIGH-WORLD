@@ -12,7 +12,13 @@ namespace MilehighWorld.Characters
         [SerializeField] private Transform muzzlePoint;
         [SerializeField] private GameObject beamFX; // The visual representation of the Void Blast
 
+        [System.Obsolete("ExecuteFireLogic is synchronous and violates asynchronous SOPs. Use ExecuteFireLogicAsync instead.")]
         public void ExecuteFireLogic()
+        {
+            _ = ExecuteFireLogicAsync();
+        }
+
+        public async System.Threading.Tasks.Task ExecuteFireLogicAsync()
         {
             if (beamFX != null && muzzlePoint != null)
             {
@@ -26,9 +32,11 @@ namespace MilehighWorld.Characters
                     ps.Play();
                 }
 
-                Destroy(beam, 0.5f); // Clean up the effect
+                // Asynchronous delay before cleanup to prevent main-thread lockup
+                await System.Threading.Tasks.Task.Delay(500);
+                if (beam != null) Destroy(beam);
 
-                Debug.Log("<color=cyan>[Skylx]: Firing Void Conduit Gauntlet.</color>");
+                Debug.Log("<color=cyan>[Skylx]: Firing Void Conduit Gauntlet (Async).</color>");
 
                 // Trigger parity logic (e.g., checking if the shot synchronizes with the lattice)
                 FireLogicParity();
