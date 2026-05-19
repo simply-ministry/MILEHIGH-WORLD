@@ -8,10 +8,6 @@ using MilehighWorld.Data;
 using MilehighWorld.Characters;
 using System;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Milehigh.Data;
-using Milehigh.Characters;
 using System.Text.RegularExpressions;
 
 namespace MilehighWorld.Core
@@ -62,7 +58,10 @@ namespace MilehighWorld.Core
                 {
                     if (prefab != null && !string.IsNullOrEmpty(prefab.name))
                     {
+                        // ⚡ Bolt: Populate cache with exact name for O(1) lookup
                         _prefabCache[prefab.name] = prefab;
+
+                        // Also cache common variations if needed, or rely on exact match for true O(1)
                     }
                 }
             }
@@ -187,11 +186,13 @@ namespace MilehighWorld.Core
         {
             if (string.IsNullOrEmpty(profileName)) return null;
 
+            // ⚡ Bolt: True O(1) lookup via Dictionary.
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
             {
                 if (prefab != null) return prefab;
             }
 
+            // Fallback to linear search ONLY if not in cache, then cache it for future O(1) access.
             prefab = characterPrefabs?.Find(p => p != null && (p.name == profileName || p.name.Contains(profileName)));
             if (prefab != null) _prefabCache[profileName] = prefab;
             return prefab;
