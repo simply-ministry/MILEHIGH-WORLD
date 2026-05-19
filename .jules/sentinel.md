@@ -75,3 +75,8 @@
 **Vulnerability:** A missing closing brace in a redundant scenario check within `HorizonGameData.cs` caused the C# compiler to skip subsequent character and scenario validation loops, effectively bypassing deep-validation for untrusted JSON data.
 **Learning:** Code rot, specifically orphaned or malformed conditional blocks, can lead to silent security failures where critical validation logic is bypassed without triggering immediate runtime errors.
 **Prevention:** Regularly audit validation logic for redundancy and ensure that all validation paths are fully covered by unit tests and static analysis. Favor clean, linear validation pipelines over complex, nested, or redundant checks.
+
+## 2024-05-18 - IDOR and NRE in Scene Interaction System
+**Vulnerability:** Insecure Direct Object Reference (IDOR) via unsanitized `interaction.objectId` in `SceneDirector.cs`, and a `NullReferenceException` risk due to accessing properties before null-checking the `interaction` object.
+**Learning:** Broad interaction systems that allow external data to target objects by name or ID are vulnerable to IDOR attacks if critical system managers (e.g., `CombatManager`, `GlobalResonanceManager`) are not strictly blocked. Additionally, incorrect ordering of validation logic can lead to runtime crashes that expose internal state.
+**Prevention:** Implement a hardened blocklist for all core architectural singletons and system managers at the boundary of the interaction system. Always perform defensive null-checks and property validation before attempting to use untrusted data.
