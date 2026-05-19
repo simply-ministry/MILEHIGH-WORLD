@@ -1,1 +1,43 @@
-{ "characters": [] }
+{
+  "characters": [
+    {
+      "id": "npc_skyix_01",
+      "name": "Sky.ix",
+      "role": "Xenolinguist/Cyborg",
+      "techAlignment": "Cybernetic",
+      "description": "A 45-year-old Caucasian cyborg woman with short white hair. Her face and body have visible cybernetic enhancements that allow her to traverse the Void.",
+      "voiceProfile": {
+        "pitch": "Mid-Range Mezzo-Shorano",
+        "tempo": "Steady and Precise",
+        "texture": "Clean, Clear, and Articulated",
+        "tone": "Driven, Loving, Determined"
+      }
+    },
+    {
+      "id": "npc_kai_01",
+      "name": "Kai",
+      "role": "Child of Prophecy",
+      "techAlignment": "Arcane",
+      "description": "Sky.ix's child, lost and now found. Holds the key to the Prophecy.",
+      "voiceProfile": {
+        "pitch": "Gender Neutral/Mid-Range",
+        "tempo": "Slow and Paused",
+        "texture": "Aged, Weathered, and Layered",
+        "tone": "Cryptic, Calm, Profound"
+      }
+    },
+    {
+      "id": "npc_delilah_01",
+      "name": "Delilah",
+      "role": "The Desolate",
+      "techAlignment": "Void",
+      "description": "A corrupted form of Ingris, wielding Voidfire.",
+      "voiceProfile": {
+        "pitch": "Harsh/Ethereal",
+        "tempo": "Calculated",
+        "texture": "Glitching/Distorted",
+        "tone": "Cold, Nihilistic"
+      }
+    }
+  ]
+}

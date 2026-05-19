@@ -40,18 +40,5 @@ namespace MilehighWorld.Core
             return finalDamage;
         }
 
-        private static readonly int GlitchIntensityId = Shader.PropertyToID("_GlitchIntensity");
-        private static MaterialPropertyBlock? _glitchPropertyBlock;
-
-        public void TriggerEnemyGlitch(GameObject target)
-        {
-            if (target.TryGetComponent<Renderer>(out Renderer ren))
-            {
-                if (_glitchPropertyBlock == null) _glitchPropertyBlock = new MaterialPropertyBlock();
-                ren.GetPropertyBlock(_glitchPropertyBlock);
-                _glitchPropertyBlock.SetFloat(GlitchIntensityId, 1.0f);
-                ren.SetPropertyBlock(_glitchPropertyBlock);
-            }
-        }
     }
 }

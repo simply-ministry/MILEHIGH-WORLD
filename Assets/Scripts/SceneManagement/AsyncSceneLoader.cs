@@ -2,17 +2,10 @@
 // PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
 
 using UnityEngine;
-
-namespace MilehighWorld.SceneManagement
-{
-    public class AsyncSceneLoader : MonoBehaviour
-    {
-        // AsyncSceneLoader code...
-using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
 
-namespace Milehigh.SceneManagement
+namespace MilehighWorld.SceneManagement
 {
     public class AsyncSceneLoader : MonoBehaviour
     {

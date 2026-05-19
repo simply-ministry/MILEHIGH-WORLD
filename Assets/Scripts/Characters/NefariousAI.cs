@@ -33,7 +33,13 @@ namespace MilehighWorld.Characters
             return wait;
         }
 
+        [System.Obsolete("TriggerEnemyGlitch is synchronous and violates asynchronous SOPs. Use TriggerEnemyGlitchAsync instead.")]
         public void TriggerEnemyGlitch()
+        {
+            _ = TriggerEnemyGlitchAsync();
+        }
+
+        public async System.Threading.Tasks.Task TriggerEnemyGlitchAsync()
         {
             // ⚡ Bolt: Use cached renderer to avoid expensive GetComponent calls.
             if (_renderer == null) return;
@@ -45,14 +51,8 @@ namespace MilehighWorld.Characters
             _propertyBlock.SetFloat(GlitchIntensityId, 1.0f);
             _renderer.SetPropertyBlock(_propertyBlock);
 
-            // Reset after a brief moment
-            StartCoroutine(ResetGlitch());
-        }
-
-        private IEnumerator ResetGlitch()
-        {
-            // ⚡ Bolt: Zero-allocation yield via shared cache.
-            yield return GetWait(0.2f);
+            // ⚡ Bolt: Non-blocking asynchronous delay for reset.
+            await System.Threading.Tasks.Task.Delay(200);
 
             if (_renderer != null)
             {
