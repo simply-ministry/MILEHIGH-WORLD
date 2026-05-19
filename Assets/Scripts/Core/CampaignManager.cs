@@ -1,39 +1,48 @@
+using System;
+using UnityEngine;
+using System.IO;
+using Milehigh.Data;
+
 namespace Milehigh.Core
 {
     [UnityEngine.DefaultExecutionOrder(-100)]
     public class CampaignManager : UnityEngine.MonoBehaviour
     {
-        private static Milehigh.Core.CampaignManager? _instance;
-        public static Milehigh.Core.CampaignManager Instance
+        private static CampaignManager? _instance;
+
+        public static CampaignManager Instance
         {
             get
             {
-                // BOLT: O(1) access in the common case after initialization
-                if (_instance != null) return _instance;
-
-                _instance = UnityEngine.Object.FindObjectOfType<Milehigh.Core.CampaignManager>();
                 if (_instance == null)
                 {
-                    UnityEngine.GameObject go = new UnityEngine.GameObject("CampaignManager");
-                    _instance = go.AddComponent<Milehigh.Core.CampaignManager>();
+                    _instance = UnityEngine.Object.FindAnyObjectByType<CampaignManager>();
+                    if (_instance == null)
+                    {
+                        UnityEngine.GameObject go = new UnityEngine.GameObject("CampaignManager");
+                        _instance = go.AddComponent<CampaignManager>();
+                    }
                 }
-                return _instance!;
+                return _instance;
             }
         }
 
-        public Milehigh.Data.HorizonGameData currentCampaignData = null!;
+        public HorizonGameData? currentCampaignData;
         public float currentVoidSaturationLevel;
+
+        // 🛡️ Sentinel: Cache deviceUniqueIdentifier to avoid expensive native boundary crossing
+        private static string? _cachedDeviceIdentifier;
 
         private void Awake()
         {
-            if (_instance != null && (UnityEngine.Object)_instance != (UnityEngine.Object)this)
+            if (_instance != null && _instance != this)
             {
                 UnityEngine.Object.Destroy(this.gameObject);
                 return;
             }
             _instance = this;
             UnityEngine.Object.DontDestroyOnLoad(this.gameObject);
-            this.LoadCampaignData();
+            LoadCampaignData();
         }
 
         private void LoadCampaignData()
@@ -52,29 +61,32 @@ namespace Milehigh.Core
                 try
                 {
                     string json = System.IO.File.ReadAllText(filePath);
-                    this.currentCampaignData = UnityEngine.JsonUtility.FromJson<Milehigh.Data.HorizonGameData>(json);
+                    HorizonGameData? data = UnityEngine.JsonUtility.FromJson<HorizonGameData>(json);
 
-                    // 🛡️ Sentinel: Security validation of deserialized data.
-                    // SECURITY: Perform validation after deserialization to ensure data integrity and fail securely.
-                    if (this.currentCampaignData != null && this.currentCampaignData.IsValid())
+                    // 🛡️ Sentinel: Perform security and integrity validation after deserialization.
+                    if (data != null && data.IsValid())
                     {
-                        this.currentVoidSaturationLevel = this.currentCampaignData.metadata.voidSaturationLevel;
-                        // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
+                        currentCampaignData = data;
+                        if (data.metadata != null)
+                        {
+                            currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
+                        }
+                        // SECURITY: Log only the filename to avoid exposing absolute filesystem paths.
                         UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
                     }
                     else
                     {
                         // SECURITY: Fail securely by nullifying corrupted data and logging the error without leaking internal paths.
                         UnityEngine.Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
-                        this.currentCampaignData = null!;
+                        currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)
                 {
-                    // SECURITY: Catch exceptions during file read/JSON parse to fail securely and avoid leaking internal stack traces or absolute paths.
-                    // Mask runtime exception details and log only the file name to prevent information disclosure.
-                    UnityEngine.Debug.LogError($"[Security] Error loading campaign data from {fileName}: {ex.Message}");
-                    this.currentCampaignData = null!;
+                    // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
+                    // Log only the file name and exception type to prevent information disclosure of internal paths.
+                    UnityEngine.Debug.LogError($"[Security] Error loading campaign data from {fileName}: ({ex.GetType().Name})");
+                    currentCampaignData = null;
                 }
             }
             else
@@ -86,8 +98,8 @@ namespace Milehigh.Core
 
         public void IncreaseVoidSaturation(float amount)
         {
-            this.currentVoidSaturationLevel = UnityEngine.Mathf.Clamp01(this.currentVoidSaturationLevel + amount);
-            UnityEngine.Debug.Log($"Void Saturation Level: {this.currentVoidSaturationLevel}");
+            currentVoidSaturationLevel = UnityEngine.Mathf.Clamp01(currentVoidSaturationLevel + amount);
+            UnityEngine.Debug.Log($"Void Saturation Level: {currentVoidSaturationLevel}");
             this.SaveSecureData("VoidSaturation", this.currentVoidSaturationLevel.ToString());
         }
 
@@ -108,15 +120,17 @@ namespace Milehigh.Core
             return this.ProcessXOR(obfuscated);
         }
 
-        // 🛡️ Sentinel: Cache deviceUniqueIdentifier to avoid expensive native boundary crossing
-        private static string? _cachedDeviceIdentifier;
-
         private string ProcessXOR(string textToProcess)
         {
             if (string.IsNullOrEmpty(_cachedDeviceIdentifier))
             {
-                _cachedDeviceIdentifier = UnityEngine.SystemInfo.deviceUniqueIdentifier ?? "MILEHIGH_FALLBACK_SALT";
+                _cachedDeviceIdentifier = UnityEngine.SystemInfo.deviceUniqueIdentifier;
+                if (string.IsNullOrEmpty(_cachedDeviceIdentifier) || _cachedDeviceIdentifier == "n/a")
+                {
+                    _cachedDeviceIdentifier = "MILEHIGH_FALLBACK_STABLE_SALT_2025";
+                }
             }
+
             string salt = _cachedDeviceIdentifier;
             char[] output = new char[textToProcess.Length];
 

@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Milehigh.Data;
 
 namespace Milehigh.Editor
@@ -10,10 +12,12 @@ namespace Milehigh.Editor
         [MenuItem("Milehigh/Import Campaign Data")]
         public static void ImportCampaignData()
         {
-            string path = "Assets/Scripts/Data/campaign_master.json";
+            string fileName = "campaign_master.json";
+            string path = Path.Combine("Assets/Scripts/Data", fileName);
+
             if (!File.Exists(path))
             {
-                Debug.LogError("Campaign master JSON not found at " + path);
+                UnityEngine.Debug.LogError("Campaign master JSON not found at " + path);
                 return;
             }
 
@@ -31,8 +35,7 @@ namespace Milehigh.Editor
             }
             catch (System.Exception ex)
             {
-                // 🛡️ Sentinel: Catch exceptions during file read/JSON parse to fail securely and avoid leaking stack traces
-                Debug.LogError($"[Security] Failed to load or parse campaign data: {ex.Message}");
+                Debug.LogError($"[Security] Error loading campaign data for import: ({ex.GetType().Name})");
                 return;
             }
 
@@ -50,30 +53,42 @@ namespace Milehigh.Editor
             {
                 foreach (var charProfile in data.characters)
                 {
+                    if (charProfile == null || !charProfile.IsValid()) continue;
+
                     CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
-                    asset.characterName = charProfile.name ?? "unnamed";
-                    asset.role = charProfile.role ?? "none";
-                    asset.traits = charProfile.traits ?? System.Array.Empty<string>();
-                    asset.behaviorScript = charProfile.behaviorScript ?? "";
+                    asset.characterName = charProfile.name;
+                    asset.role = charProfile.role;
+                    asset.traits = charProfile.traits;
+                    asset.behaviorScript = charProfile.behaviorScript;
 
-                    // 🛡️ Sentinel: Sanitize character name to prevent Path Traversal vulnerabilities.
-                    // We use Path.GetInvalidFileNameChars to filter OS-level invalid characters and Path.GetFileName to strip traversal sequences.
-                    string baseName = charProfile.name ?? "unnamed_character";
-                    string sanitizedName = string.Join("_", baseName.Split(Path.GetInvalidFileNameChars()));
-
-                    // Ensure no directory separators or traversal sequences remain
-                    string safeFileName = Path.GetFileName(sanitizedName).Replace(" ", "_");
-
-                    if (string.IsNullOrEmpty(safeFileName))
-                    {
-                        safeFileName = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
-                    }
-
+                    string safeFileName = GetSafeFileName(charProfile.name);
                     string assetPath = $"{folderPath}/{safeFileName}.asset";
+
                     AssetDatabase.CreateAsset(asset, assetPath);
                     Debug.Log($"Created character asset: {assetPath}");
                 }
             }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+        }
+
+        private static string GetSafeFileName(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+
+            // Whitelist: Allow only alphanumeric, underscores, and hyphens.
+            string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");
+
+            // Strip leading dots/underscores to prevent hidden files or traversal.
+            sanitized = sanitized.TrimStart('.', '_');
+
+            if (string.IsNullOrEmpty(sanitized))
+            {
+                sanitized = "character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
+
+            return sanitized;
         }
     }
 }

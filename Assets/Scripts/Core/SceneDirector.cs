@@ -1,8 +1,10 @@
-using UnityEngine;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using UnityEngine;
 using Milehigh.Data;
 using Milehigh.Characters;
+using System.Text.RegularExpressions;
 
 namespace Milehigh.Core
 {
@@ -11,18 +13,15 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = new List<GameObject>();
         public Transform characterSpawnRoot = null!;
 
-        // BOLT: Consolidated O(1) caches to prevent expensive O(N) scene traversals and linear searches.
         private readonly Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         private readonly Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         private readonly Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
-        // 🛡️ Sentinel & BOLT: Protected managers hashset for fast and secure O(1) lookups
         private static readonly HashSet<string> _protectedManagers = new HashSet<string>
         {
-            "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager", "GlobalResonanceManager"
+            "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager", "GlobalResonanceManager", "CombatManager"
         };
 
-        // 🛡️ Sentinel: Regex for whitelisting safe object names to prevent DoS via expensive GameObject.Find operations.
         private static readonly Regex _nameValidator = new Regex(@"^[a-zA-Z0-9_\s\(\)\-$\.\/\[\]]+$", RegexOptions.Compiled);
 
         private void Awake()
@@ -41,7 +40,6 @@ namespace Milehigh.Core
 
         private void OnDestroy()
         {
-            // BOLT: Explicitly clear caches to release Unity object references and prevent memory leaks.
             _objectCache.Clear();
             _prefabCache.Clear();
             _controllerCache.Clear();
@@ -65,15 +63,9 @@ namespace Milehigh.Core
         public void SetupScene(SceneScenario scenario)
         {
             if (scenario == null || !scenario.IsValid()) return;
-
             Debug.Log($"Setting up scenario: {scenario.scenarioId}");
 
-            // BOLT: Clear scene-specific caches at start of setup to avoid stale references.
             _objectCache.Clear();
-            _controllerCache.Clear();
-
-            // BOLT: Performance Boost - Pre-populate object cache with existing scene objects
-            // in a single pass to avoid lazy O(N) lookups later.
             foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
             {
                 if (go != null && !string.IsNullOrEmpty(go.name) && !_objectCache.ContainsKey(go.name))
@@ -82,27 +74,25 @@ namespace Milehigh.Core
                 }
             }
 
-            // Instantiate characters if not already in scene
             var campaignData = CampaignManager.Instance.currentCampaignData;
             if (campaignData != null && campaignData.characters != null)
             {
                 foreach (var charProfile in campaignData.characters)
                 {
-                    SpawnCharacter(charProfile);
+                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
                 }
             }
 
-            // Execute interactive objects logic
             if (scenario.interactiveObjects != null)
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
-                    ApplyInteraction(interaction);
+                    if (interaction != null) ApplyInteraction(interaction);
                 }
             }
         }
 
-        public void SpawnCharacter(CharacterProfile profile)
+        public void SpawnOrUpdateCharacter(CharacterProfile profile)
         {
             if (profile == null || !profile.IsValid()) return;
 
@@ -113,7 +103,7 @@ namespace Milehigh.Core
                 GameObject? prefab = GetPrefab(profile.name);
                 if (prefab != null)
                 {
-                    characterObj = Instantiate(prefab, characterSpawnRoot);
+                    characterObj = Instantiate<GameObject>(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
                     _objectCache[profile.name] = characterObj;
                 }
@@ -121,7 +111,17 @@ namespace Milehigh.Core
 
             if (characterObj != null)
             {
-                GetCharacterController(characterObj);
+                var controller = GetCharacterController(characterObj);
+                if (controller != null)
+                {
+                    CharacterData data = ScriptableObject.CreateInstance<CharacterData>();
+                    data.characterName = profile.name;
+                    data.role = profile.role;
+                    data.traits = profile.traits;
+                    data.behaviorScript = profile.behaviorScript;
+
+                    controller.Initialize(data);
+                }
             }
         }
 
@@ -129,30 +129,28 @@ namespace Milehigh.Core
         {
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
-            // 🛡️ Sentinel: Prevent IDOR (Insecure Direct Object Reference) tampering with core systems.
-            // Explicitly block critical managers to prevent unauthorized manipulation via external data.
-            // We trim leading slashes to prevent bypasses using path-like IDs (e.g., "/CampaignManager").
             string sanitizedId = interaction.objectId.TrimStart('/');
-
-            // BOLT: Use cached HashSet for efficient lookup and zero per-call allocation.
-            if (_protectedManagers != null && _protectedManagers.Contains(sanitizedId))
+            string[] segments = sanitizedId.Split('/');
+            foreach (string segment in segments)
             {
-                Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on core system: {sanitizedId}");
-                return;
+                if (_protectedManagers.Contains(segment))
+                {
+                    Debug.LogWarning($"[Security] Blocked unauthorized interaction attempt on core system: {sanitizedId}");
+                    return;
+                }
             }
 
             GameObject? target = GetCachedObject(interaction.objectId);
 
             if (target != null)
             {
-                Debug.Log($"Applying {interaction.action} to {interaction.objectId}");
                 if (interaction.isVector)
                 {
                     target.transform.position = interaction.GetVectorValue();
                 }
                 else
                 {
-                    target.transform.localScale = Vector3.one * interaction.floatValue;
+                    target.transform.localScale = UnityEngine.Vector3.one * interaction.floatValue;
                 }
             }
         }
@@ -161,7 +159,6 @@ namespace Milehigh.Core
         {
             if (string.IsNullOrEmpty(objectName)) return null;
 
-            // 🛡️ Sentinel: DoS Mitigation - Enforce length limit and character whitelist on object names.
             if (objectName.Length > 128 || !_nameValidator.IsMatch(objectName))
             {
                 Debug.LogWarning($"[Security] GetCachedObject blocked potentially malicious input: {objectName}");
@@ -170,10 +167,6 @@ namespace Milehigh.Core
 
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
-                // BOLT: Surgical negative caching using ReferenceEquals.
-                if (ReferenceEquals(obj, null)) return null;
-
-                // If it's a Unity null (native object destroyed), we should try to find it again.
                 if (obj != null) return obj;
             }
 
@@ -188,12 +181,11 @@ namespace Milehigh.Core
 
             if (_prefabCache.TryGetValue(profileName, out GameObject? prefab))
             {
-                if (ReferenceEquals(prefab, null)) return null;
                 if (prefab != null) return prefab;
             }
 
             prefab = characterPrefabs?.Find(p => p != null && (p.name == profileName || p.name.Contains(profileName)));
-            _prefabCache[profileName] = prefab;
+            if (prefab != null) _prefabCache[profileName] = prefab;
             return prefab;
         }
 
@@ -202,12 +194,11 @@ namespace Milehigh.Core
             int id = characterObj.GetInstanceID();
             if (_controllerCache.TryGetValue(id, out CharacterControllerBase? controller))
             {
-                if (ReferenceEquals(controller, null)) return null;
                 if (controller != null) return controller;
             }
 
             controller = characterObj.GetComponent<CharacterControllerBase>();
-            _controllerCache[id] = controller;
+            if (controller != null) _controllerCache[id] = controller;
             return controller;
         }
     }
