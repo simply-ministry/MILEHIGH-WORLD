@@ -50,7 +50,7 @@ namespace MilehighWorld.Core
 
         private void LoadCampaignData()
         {
-            string fileName = "campaign_master.json";
+            const string fileName = "campaign_master.json";
             string filePath;
 
 #if UNITY_EDITOR
@@ -74,29 +74,36 @@ namespace MilehighWorld.Core
                         {
                             currentVoidSaturationLevel = data.metadata.voidSaturationLevel;
                         }
-                        // SECURITY: Log only the filename to avoid exposing absolute filesystem paths.
-                        UnityEngine.Debug.Log($"Campaign data loaded and validated from {fileName}");
+                        LogSecureInfo($"Campaign data loaded and validated from {fileName}");
                     }
                     else
                     {
-                        // SECURITY: Fail securely by nullifying corrupted data and logging the error without leaking internal paths.
-                        UnityEngine.Debug.LogError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
+                        LogSecureError($"[Security] Campaign data from {fileName} failed validation or is malformed.");
                         currentCampaignData = null;
                     }
                 }
                 catch (System.Exception ex)
                 {
-                    // SECURITY: Mask runtime exception details and avoid leaking absolute paths in logs
-                    // Log only the file name and exception type to prevent information disclosure of internal paths.
-                    UnityEngine.Debug.LogError($"[Security] Error loading campaign data from {fileName}: ({ex.GetType().Name})");
+                    LogSecureError($"[Security] Error loading campaign data from {fileName}: ({ex.GetType().Name})");
                     currentCampaignData = null;
                 }
             }
             else
             {
-                // SECURITY: Log only the file name, not the absolute path, to prevent information disclosure.
-                UnityEngine.Debug.LogError($"Campaign master JSON not found: {fileName}");
+                LogSecureError($"Campaign master JSON not found: {fileName}");
             }
+        }
+
+        private void LogSecureInfo(string message)
+        {
+            // SECURITY: Ensure message doesn't contain sensitive path info if passed dynamically,
+            // but here we just wrap UnityEngine.Debug for consistency.
+            UnityEngine.Debug.Log(message);
+        }
+
+        private void LogSecureError(string message)
+        {
+            UnityEngine.Debug.LogError(message);
         }
 
         public void IncreaseVoidSaturation(float amount)

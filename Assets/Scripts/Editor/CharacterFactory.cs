@@ -7,7 +7,6 @@ using System.IO;
 using MilehighWorld.Data;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using Milehigh.Data;
 
 namespace MilehighWorld.Editor
 {
