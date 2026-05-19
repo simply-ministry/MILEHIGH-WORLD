@@ -1,10 +1,13 @@
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
-using Milehigh.Data;
-using Milehigh.Characters;
+using MilehighWorld.Data;
+using MilehighWorld.Characters;
 
-namespace Milehigh.Core
+namespace MilehighWorld.Core
 {
     public class SceneDirector : MonoBehaviour
     {

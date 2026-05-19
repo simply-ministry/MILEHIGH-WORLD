@@ -1,8 +1,11 @@
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Milehigh.Data
+namespace MilehighWorld.Data
 {
     public enum LightingState
     {

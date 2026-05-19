@@ -1,7 +1,10 @@
-using UnityEngine;
-using Milehigh.Data;
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
 
-namespace Milehigh.Characters
+using UnityEngine;
+using MilehighWorld.Data;
+
+namespace MilehighWorld.Characters
 {
     public class DelilahAIController : CharacterControllerBase
     {

@@ -1,8 +1,11 @@
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Milehigh.Narrative
+namespace MilehighWorld.Narrative
 {
     public class ReverieDialogueSync : MonoBehaviour
     {

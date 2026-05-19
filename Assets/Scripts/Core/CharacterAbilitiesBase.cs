@@ -1,1 +1,12 @@
-// Abstract base class for abilities...
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
+using UnityEngine;
+
+namespace MilehighWorld.Core
+{
+    public abstract class CharacterAbilitiesBase : MonoBehaviour
+    {
+        // Abstract base class for abilities...
+    }
+}

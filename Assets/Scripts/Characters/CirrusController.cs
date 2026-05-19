@@ -5,8 +5,8 @@ using UnityEngine;
 
 namespace MilehighWorld.Characters
 {
-    public class SkyixAbilityController : MonoBehaviour
+    public class CirrusController : MonoBehaviour
     {
-        // Ability controller for Sky.ix...
+        // Controller for Cirrus character
     }
 }

@@ -1,8 +1,11 @@
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
 using UnityEngine;
 using System.IO;
-using Milehigh.Data;
+using MilehighWorld.Data;
 
-namespace Milehigh.Core
+namespace MilehighWorld.Core
 {
     public class CampaignManager : MonoBehaviour
     {

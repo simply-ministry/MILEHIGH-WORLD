@@ -1,6 +1,9 @@
+// Copyright 2026 MILEHIGH-WORLD LLC. All Rights Reserved.
+// PROPRIETARY AND CONFIDENTIAL: DO NOT DISTRIBUTE.
+
 using UnityEngine;
 
-namespace Milehigh.Data
+namespace MilehighWorld.Data
 {
     [CreateAssetMenu(fileName = "NewCharacterData", menuName = "Milehigh/Character Data")]
     public class CharacterData : ScriptableObject
