@@ -9,9 +9,9 @@ namespace MilehighWorld.Characters
 {
     public class NefariousAI : MonoBehaviour
     {
-        private Renderer? _renderer;
+        private Renderer _renderer = null!;
         private static readonly int GlitchIntensityId = Shader.PropertyToID("_GlitchIntensity");
-        private static MaterialPropertyBlock? _propertyBlock;
+        private static MaterialPropertyBlock _propertyBlock = null!;
 
         // ⚡ Bolt: Cache for WaitForSeconds using millisecond keys to prevent floating-point precision issues
         // and eliminate redundant GC allocations during coroutine execution.
