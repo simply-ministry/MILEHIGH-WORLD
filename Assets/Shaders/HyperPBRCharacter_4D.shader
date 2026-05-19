@@ -64,9 +64,6 @@ Shader "Milehigh/HyperPBRCharacter_4D"
             float2 uv_MainTex;
             float3 viewDir;
             float3 worldPos;
-            float3 T; // Tangent
-            float3 B; // Bitangent
-            float3 N; // Normal
         };
 
         sampler2D _MainTex, _BumpMap, _RMAIMap, _SSSMask, _EffectMask, _ParallaxMap;
@@ -78,9 +75,8 @@ Shader "Milehigh/HyperPBRCharacter_4D"
         void vert (inout appdata_full v, out Input o)
         {
             UNITY_INITIALIZE_OUTPUT(Input, o);
-            o.N = UnityObjectToWorldNormal(v.normal);
-            o.T = UnityObjectToWorldDir(v.tangent.xyz);
-            o.B = cross(o.N, o.T) * v.tangent.w; // Bitangent
+
+            // BOLT: Removed redundant Tangent, Bitangent, and Normal interpolators to save GPU bandwidth.
 
             // Parallax Occlusion Mapping
             half h = tex2Dlod(_ParallaxMap, float4(v.texcoord.xy, 0, 0)).a;
@@ -137,11 +133,6 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Specular = lerp(o.Specular, o.Specular * iridescence, iridescenceMask);
             }
 
-            // BOLT: Removed dead Subsurface Scattering logic block that was being overwritten
-            // by the final Albedo assignment below. This saves GPU cycles and a texture sample.
-
-            o.Albedo = albedo.rgb;
-            o.Albedo = albedo.rgb;
             // --- Subsurface Scattering ---
             half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
             if (sssMask > 0)
@@ -154,13 +145,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half sss_sq = sss_base * sss_base;
                 half sss_4 = sss_sq * sss_sq;
                 half sss = sss_4 * sss_4 * _SSSScale;
-                // BOLT: Ensure albedo is assigned *before* SSS is added to avoid overwriting SSS calculation
-                o.Albedo = albedo.rgb;
-                o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
-            }
-            else
-            {
-                o.Albedo = albedo.rgb;
+
+                // BOLT: Removed redundant Albedo overwrites and fixed undefined variable 'albedo'.
+                // SSS is added to the base albedo already assigned at the start of the surf function.
+                o.Albedo += _SSSColor.rgb * sss * saturate(NdotL) * sssMask;
             }
         }
         ENDCG
