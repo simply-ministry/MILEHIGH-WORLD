@@ -16,6 +16,8 @@ namespace Milehigh.World.Terminal
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
 
         private Coroutine? _typewriterCoroutine;
+        private List<string> _commandHistory = new List<string>();
+        private int _historyIndex = -1;
 
         private void Start()
         {
@@ -34,9 +36,48 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void Update()
+        {
+            // Palette: Productivity - Ctrl+L shortcut to clear the terminal for better workspace management.
+            bool isControlPressed = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+            if (isControlPressed && Input.GetKeyDown(KeyCode.L))
+            {
+                ClearTerminal();
+            }
+        }
+
+        private void ClearTerminal()
+        {
+            if (outputDisplay != null)
+            {
+                outputDisplay.text = "";
+                outputDisplay.maxVisibleCharacters = 0;
+            }
+            if (commandInput == null || !commandInput.isFocused) return;
+
+            // Power User Shortcut: Ctrl+L to clear the terminal
+            if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
+            {
+                ClearTerminalDisplay();
+            }
+
+            if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(-1);
+            else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(1);
+        }
+
+        private void NavigateHistory(int direction)
+        {
+            if (_commandHistory.Count == 0) return;
+            _historyIndex = Mathf.Clamp(_historyIndex + direction, 0, _commandHistory.Count);
+            commandInput.text = _historyIndex < _commandHistory.Count ? _commandHistory[_historyIndex] : "";
+            commandInput.caretPosition = commandInput.text.Length;
+        }
+
         public void ProcessCommand(string input)
         {
             if (string.IsNullOrWhiteSpace(input)) return;
+            if (_commandHistory.Count == 0 || _commandHistory[^1] != input) _commandHistory.Add(input);
+            _historyIndex = _commandHistory.Count;
 
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
@@ -65,8 +106,8 @@ namespace Milehigh.World.Terminal
 
             if (command == "clear")
             {
-                outputDisplay.text = "";
-                outputDisplay.maxVisibleCharacters = 0;
+                ClearTerminalDisplay();
+                ClearTerminal();
                 return;
             }
 
@@ -74,8 +115,11 @@ namespace Milehigh.World.Terminal
             {
                 WriteToTerminal("\n[SYSTEM]: <color=#FFFF00>Available Commands:</color>" +
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
-                                "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
+                                "\n - <color=#00FFFF>clear</color>: Clear the terminal display (or Ctrl+L)." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands.");
+                                "\n - <color=#00FFFF>help/clear</color>: Show help or clear display." +
+                                "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute commands." +
+                                "\n\n[SYSTEM]: <color=#FFFF00>Shortcuts:</color> Up/Down Arrow for History, Ctrl+L to Clear.");
                 return;
             }
 
@@ -94,6 +138,13 @@ namespace Milehigh.World.Terminal
                 WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>");
                 if (commandInput != null) StartCoroutine(ShakeInputField());
             }
+        }
+
+        private void ClearTerminalDisplay()
+        {
+            if (outputDisplay == null) return;
+            outputDisplay.text = "";
+            outputDisplay.maxVisibleCharacters = 0;
         }
 
         private void WriteToTerminal(string message)
@@ -150,8 +201,8 @@ namespace Milehigh.World.Terminal
 
             while (elapsed < duration)
             {
-                float x = Random.Range(-1f, 1f) * magnitude;
-                commandInput.transform.localPosition = originalPos + new Vector3(x, 0, 0);
+                float x = UnityEngine.Random.Range(-1f, 1f) * magnitude;
+                commandInput.transform.localPosition = originalPos + new UnityEngine.Vector3(x, 0, 0);
                 elapsed += Time.deltaTime;
                 yield return null;
             }

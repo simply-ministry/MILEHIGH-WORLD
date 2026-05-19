@@ -74,13 +74,17 @@
 **Action:** Use the 'WaitForSecondsOrSkip' pattern for all skippable cinematic sequences and implement scale-based 'pop' effects for significant UI transitions.
 ## 2026-03-25 - [Context-Aware Typewriter Rhythms and Themed Cues]
 **Learning:** Fine-tuning typewriter rhythms requires look-ahead logic to distinguish between structural punctuation (sentence ends) and semantic punctuation (mid-word periods in names like 'Sky.ix' or ellipsis dots). Applying a faster 5x delay for ellipsis and ignoring mid-word periods creates a more professional, "human-like" reading pace. Furthermore, color-coding the completion cue ('▽') to match the speaker's theme color strengthens the visual link between the dialogue and the character, enhancing immersion.
-**Action:** Implement look-ahead checks for mid-word periods and ellipsis sequences in typewriter effects, and use speaker-themed colors for UI interaction cues.
+**Action:** Implement look-ahead/look-behind logic for punctuation pauses to handle abbreviations and ellipses, and leverage existing theme tokens (like speaker colors) for micro-interactions and visual cues.
 ## 2026-03-25 - [Ellipsis Pacing and Dynamic Completion Cues]
 **Learning:** Standardizing typewriter pauses for ellipses (reduced delay) improves dialogue flow and prevents "stuttering." Additionally, dynamically color-coding the completion cue (▽) to match the speaker's theme provides a subtle but high-impact visual delight that reinforces character identification without cluttering the UI.
 **Action:** Use 'ColorUtility.ToHtmlStringRGB' to capture speaker colors and implement reduced multipliers for consecutive punctuation marks (ellipses) in typewriter effects.
 ## 2026-03-25 - [Refined Rhythmic Pacing and Speaker-Matched UI Cues]
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
+
+## 2026-06-15 - [Terminal Command History for User Flow]
+**Learning:** In terminal-style interfaces, command history navigation (Up/Down arrows) is a critical "quality of life" feature that reduces repetitive typing and significantly improves user flow. For Unity InputFields, manually managing the caret position after updating the text is essential to ensure a seamless "command-line" feel.
+**Action:** Always implement command history and inclusive shortcut hints for terminal components to enhance accessibility and intuitiveness.
 
 ## 2026-03-26 - [Dynamic Speaker Feedback and Visual Flash Prevention]
 **Learning:** To provide subtle but effective feedback for speaker changes, a brief scaling animation ("PopScale") on the speaker's name text enhances presence without distraction. To ensure this remains stable over many interactions, caching the 'originalScale' in 'Start()' is necessary to prevent accumulation errors (drift) from interrupted animations. Additionally, to avoid a one-frame 'visual flash' of full text before a typewriter reveal starts, 'maxVisibleCharacters' must be set to 0 immediately after the text property is updated and before 'ForceMeshUpdate()' is called.
@@ -145,3 +149,10 @@
 ## 2024-05-23 - [Premium UI Transitions and Pulsing Interaction Cues]
 **Learning:** Moving beyond linear interpolation (Lerp) to cubic easing (SmoothStep) significantly elevates the perceived quality of UI transitions in Unity. Additionally, adding a subtle alpha pulse to interaction cues (like '▽') using vertex color manipulation provides an intuitive, non-distracting signal for user progression without the performance cost of layout rebuilds.
 **Action:** Use 'Mathf.SmoothStep' for UI panel animations and prefer vertex-based animation for interactive text elements to maintain high performance and polish.
+
+## 2026-05-18 - [Terminal Productivity Shortcuts]
+**Learning:** In terminal-style interfaces (e.g., OtisTerminal.cs), implementing standard productivity shortcuts like 'Ctrl+L' for clearing output provides a familiar and delightful experience for power users. Discoverability is key, so these shortcuts should be explicitly mentioned in 'help' command outputs.
+**Action:** Always implement standard CLI shortcuts and ensure they are discoverable via in-app documentation.
+## 2026-06-15 - [Familiar Terminal Shortcuts for Power Users]
+**Learning:** In-game terminal UIs (e.g., `OtisTerminal.cs`) feel significantly more "authentic" and efficient when they support standard CLI shortcuts like `Ctrl+L` for clearing the output. Power users often attempt these shortcuts instinctively, and meeting that expectation provides a subtle touch of delight while improving workspace management.
+**Action:** Implement standard command-line shortcuts (e.g., `Ctrl+L`) in all terminal-style micro-interactions to enhance user productivity and immersion.
