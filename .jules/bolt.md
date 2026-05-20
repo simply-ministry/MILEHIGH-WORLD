@@ -404,7 +404,3 @@
 ## 2024-06-01 - Redundant Input Checks in Update Loop
 **Learning:** Repeatedly calling `Input` properties/methods (like `Input.anyKeyDown` alongside specific keydown checks) inside `Update()` loops introduces unnecessary C#/C++ native boundary crossings. This overhead accumulates, leading to micro-stutters, especially in input-heavy or critical path systems like cinematic playback.
 **Action:** Eliminate duplicate or redundant input execution paths to reduce CPU overhead and prevent micro-stutters.
-
-## 2026-05-20 - [Optimized Cinematic Rendering & Lexical Reveal]
-**Learning:** In 'Cinematic_IntoTheVoid.cs', the typewriter effect was performing O(N^2) string concatenations, generating significant GC pressure. Additionally, 'TweenAlphaDecayAsync' was using 'Renderer.material', which triggers material cloning, increasing memory overhead and breaking draw call batching.
-**Action:** Use 'TextMeshProUGUI.maxVisibleCharacters' for efficient text reveal. Replace direct material access with 'MaterialPropertyBlock' for shader property updates to maintain batching and eliminate material instantiation.
