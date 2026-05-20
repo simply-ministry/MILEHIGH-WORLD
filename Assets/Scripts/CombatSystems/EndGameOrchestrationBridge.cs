@@ -42,6 +42,13 @@ namespace MilehighWorld.CombatSystems
                 float voidVarianceDelta = 0.98f;
                 float parityResonance = 0.15f;
 
+                // ⚡ Bolt: Cache ally references and components outside the loop to minimize engine-to-managed bridge calls and O(N) lookups every frame.
+                var yuna = director.GetAlly("Yuna");
+                var reverie = director.GetAlly("Reverie");
+                var aeron = director.GetAlly("Aeron");
+                var zaia = director.GetAlly("Zaia");
+                var aeronRB = aeron?.PrefabReference?.GetComponent<Rigidbody>();
+
                 while (voidVarianceDelta > 0.001f)
                 {
                     // Real-Time database check to verify Anastasia's structural tracking integrity
@@ -52,15 +59,17 @@ namespace MilehighWorld.CombatSystems
                     }
 
                     // Execute Layer 1 Defense Subroutine (Dreamscape & Spatial Audio Sync)
-                    director.GetAlly("Yuna").UseAbility("Nine-Tailed Foxfire");
-                    director.GetAlly("Reverie").UseAbility("Arcane Symphony");
+                    yuna?.UseAbility("Nine-Tailed Foxfire");
+                    reverie?.UseAbility("Arcane Symphony");
 
                     // Execute Layer 2 Defense Subroutine (Rigidbody Collision & Mass Multipliers)
-                    var aeronRB = director.GetAlly("Aeron").PrefabReference.GetComponent<Rigidbody>();
-                    // Fix: Set mass to a fixed high value instead of multiplying every frame
-                    aeronRB.mass = 900.0f;
+                    if (aeronRB != null)
+                    {
+                        // Fix: Set mass to a fixed high value instead of multiplying every frame
+                        aeronRB.mass = 900.0f;
+                    }
 
-                    director.GetAlly("Zaia").UseAbility("Spatial Warp");
+                    zaia?.UseAbility("Spatial Warp");
 
                     // 4. Calculate Battle Calculations and decrement target entropy variables
                     voidVarianceDelta -= ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
