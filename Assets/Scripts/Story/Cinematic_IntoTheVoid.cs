@@ -30,6 +30,12 @@ namespace MilehighWorld.Cinematics
         [Header("Environmental Shaders")]
         [SerializeField] private Material hyperrealisticPlatformShader = null!;
 
+        // Palette: Speaker Colors & UI Cues
+        private const string ColorCyrus = "#FF4500";
+        private const string ColorSkyix = "#00FFFF";
+        private const string ColorReverie = "#A855F7";
+        private const string CompletionCue = "▽";
+
         // Cached Shader Property IDs for zero-allocation performance
         private readonly int emissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
         private readonly int baseColorAlphaId = Shader.PropertyToID("_BaseColor_Alpha");
@@ -136,21 +142,61 @@ namespace MilehighWorld.Cinematics
         }
 
         /// <summary>
-        /// Zero-allocation typewriter effect for dialogue rendering.
+        /// Zero-allocation typewriter effect for dialogue rendering with rhythmic pacing and layout stability.
         /// </summary>
         private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
         {
-            speakerNameText.text = $"<color=cyan>[{speaker}]</color>";
-            dialogueText.text = "";
-
-            for (int i = 0; i < content.Length; i++)
+            string speakerColor = speaker switch
             {
-                dialogueText.text += content[i];
+                "King Cyrus" => ColorCyrus,
+                "Sky.ix" => ColorSkyix,
+                "Reverie" => ColorReverie,
+                _ => "#FFFFFF"
+            };
 
-                // Base-9 Frame Parity Alignment: Yield heavily on 9th iterations if needed,
-                // but for lexical pacing, we use a scaled delay.
-                await Task.Delay(Mathf.RoundToInt(charDelay * 1000));
+            speakerNameText.text = $"<color={speakerColor}>[{speaker}]</color>";
+
+            // Palette: Set full text (including cue) at start to stabilize layout, then reveal via maxVisibleCharacters.
+            dialogueText.text = $"{content} <color={speakerColor}>{CompletionCue}</color>";
+            dialogueText.maxVisibleCharacters = 0;
+            dialogueText.ForceMeshUpdate();
+
+            int totalCharacters = dialogueText.textInfo.characterCount;
+            // Subtract 1 for the completion cue
+            int messageLength = totalCharacters - 1;
+
+            for (int i = 0; i <= messageLength; i++)
+            {
+                dialogueText.maxVisibleCharacters = i;
+
+                if (i > 0 && i <= messageLength)
+                {
+                    // Palette: Use textInfo.characterInfo to correctly identify the revealed character even with rich text tags.
+                    char c = dialogueText.textInfo.characterInfo[i - 1].character;
+                    float multiplier = 1f;
+
+                    // Palette: Rhythmic pacing - check for sentence ends and clauses.
+                    if (c == '.' || c == '!' || c == '?')
+                    {
+                        // Lookahead for Sky.ix or ellipsis - check next visible character if available
+                        bool isMidWord = (i < messageLength && !char.IsWhiteSpace(dialogueText.textInfo.characterInfo[i].character));
+                        if (!isMidWord) multiplier = 15f;
+                    }
+                    else if (c == ',' || c == ':')
+                    {
+                        multiplier = 8f;
+                    }
+
+                    await Task.Delay(Mathf.RoundToInt(charDelay * multiplier * 1000));
+                }
+                else
+                {
+                    await Task.Delay(Mathf.RoundToInt(charDelay * 1000));
+                }
             }
+
+            // Reveal the completion cue
+            dialogueText.maxVisibleCharacters = totalCharacters;
         }
 
         [Conditional("ENABLE_NARRATIVE_LOGS")]
