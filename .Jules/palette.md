@@ -82,10 +82,6 @@
 **Learning:** Pacing in dialogue-heavy cinematics is significantly improved by distinguishing between sentence endings (long pause), ellipses (medium pause), and mid-word periods (no pause, e.g., 'Sky.ix'). Furthermore, color-coding progress indicators (like the '▽' cue) to match the speaker's theme strengthens the visual association between the narrative content and the character, reducing cognitive load for the player.
 **Action:** Implement look-ahead/look-behind logic for punctuation to refine pacing, and use speaker-specific colors for interactive UI cues via TMP rich text tags.
 
-## 2025-11-23 - [Layout-Safe Rhythmic Typewriter with Rich Text]
-**Learning:** In Unity TextMeshPro, implementing rhythmic pacing (pausing at punctuation) requires using `textInfo.characterInfo` instead of raw string indexing to avoid misalignment when rich text tags (like `<color>`) are present. Furthermore, setting the full text at the start and using `maxVisibleCharacters` for the reveal ensures that the layout is pre-calculated, preventing jarring text "jumps" as new words wrap to the next line.
-**Action:** Always use `textInfo.characterInfo` for character-level logic and prefer `maxVisibleCharacters` over string concatenation for typewriter reveals to ensure layout stability.
-
 ## 2026-06-15 - [Terminal Command History for User Flow]
 **Learning:** In terminal-style interfaces, command history navigation (Up/Down arrows) is a critical "quality of life" feature that reduces repetitive typing and significantly improves user flow. For Unity InputFields, manually managing the caret position after updating the text is essential to ensure a seamless "command-line" feel.
 **Action:** Always implement command history and inclusive shortcut hints for terminal components to enhance accessibility and intuitiveness.
