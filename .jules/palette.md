@@ -9,3 +9,7 @@
 ## 2025-06-12 - [CLI Interaction Feedback]
 **Learning:** In terminal-style interfaces, mirroring (echoing) user input back into the scrollback buffer provides vital confirmation that the system received the command, especially when processing takes time.
 **Action:** Prepend a prompt symbol (e.g., `>`) and use a secondary color (e.g., gray) to distinguish user "echoes" from system responses.
+
+## 2025-06-12 - [Terminal Navigation Shortcuts]
+**Learning:** Adding standard terminal shortcuts like Up/Down arrow history and Tab completion significantly lowers the cognitive load for power users and makes the interface feel more "professional" and "responsive".
+**Action:** Always include history buffers and basic completion for command-line style interfaces.
