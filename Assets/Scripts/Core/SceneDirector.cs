@@ -59,7 +59,7 @@ namespace Milehigh.Core
             if (scenario == null) return;
 
             _objectCache.Clear();
-            foreach (var go in Object.FindObjectsOfType<GameObject>())
+            foreach (var go in UnityEngine.Object.FindObjectsOfType<GameObject>())
             {
                 if (go != null && !string.IsNullOrEmpty(go.name))
                 {
@@ -161,16 +161,19 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs
+            // 🛡️ Sentinel: Defensive programming - verify parameters are not null.
+            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
+
+            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
+            // Block access to core architectural singletons and managers.
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager")
+                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
+                interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
+                interaction.objectId == "BicameralBattleEngine")
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
                 return;
             }
-
-            GameObject target = GetCachedObject(interaction.objectId);
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             GameObject? target = GetCachedObject(interaction.objectId);
             if (target != null)
