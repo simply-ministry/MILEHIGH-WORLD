@@ -39,7 +39,7 @@ namespace UnityEngine
         public Quaternion rotation { get; set; }
         public Vector3 localPosition { get; set; }
         public Vector3 localScale { get; set; }
-        public Vector3 one => new Vector3(1, 1, 1);
+        public static Vector3 one => new Vector3(1, 1, 1);
         public Transform parent { get; set; }
         public Transform Find(string name) => null;
     }
@@ -101,10 +101,6 @@ namespace UnityEngine
         public static int RoundToInt(float value) => (int)value;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
-    }
-    public static class Random
-    {
-        public static float Range(float min, float max) => 0;
     }
     public class Color
     {
@@ -169,7 +165,7 @@ namespace UnityEngine
         public static bool GetKeyDown(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
@@ -192,20 +188,10 @@ namespace TMPro
     {
         public string text { get; set; } = "";
     }
-    public class TextMeshProUGUI : UnityEngine.MonoBehaviour
-    {
-        public virtual string text { get; set; } = "";
-    }
     public class TextMeshProUGUI : TMP_Text
     {
-        public override string text { get; set; } = "";
         public int maxVisibleCharacters { get; set; }
-        public string text { get; set; } = "";
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-    }
-    public class TextMeshProUGUI : TMP_Text
-    {
-        public int maxVisibleCharacters { get; set; }
         public void ForceMeshUpdate() {}
         public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
@@ -220,11 +206,6 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; }
-        public int characterLimit { get; set; }
-    }
-    public class TMP_Text : UnityEngine.UI.Graphic
-    {
-        public string text { get; set; } = "";
     }
     public class TMP_TextInfo
     {

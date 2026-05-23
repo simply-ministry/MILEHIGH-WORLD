@@ -9,3 +9,7 @@
 ## 2025-06-12 - [CLI Interaction Feedback]
 **Learning:** In terminal-style interfaces, mirroring (echoing) user input back into the scrollback buffer provides vital confirmation that the system received the command, especially when processing takes time.
 **Action:** Prepend a prompt symbol (e.g., `>`) and use a secondary color (e.g., gray) to distinguish user "echoes" from system responses.
+
+## 2025-06-15 - [Terminal Shortcut Discoverability]
+**Learning:** Keyboard shortcuts in CLI interfaces (like Up/Down for history or Tab for completion) are often invisible to new users unless explicitly hinted.
+**Action:** Include a muted gray (#888888) tip in the 'help' command output detailing available keyboard shortcuts.
