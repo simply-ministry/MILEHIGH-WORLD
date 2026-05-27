@@ -116,6 +116,18 @@ namespace Milehigh.World.Terminal
                     commandInput.MoveTextEnd(false);
                 }
             }
+            // 🎨 Palette: Clear input (Down Arrow) for quick reset
+            else if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                commandInput.text = "";
+            }
+            // 🎨 Palette: Tab Completion for common commands
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentText = commandInput.text.ToLower();
+                if ("help".StartsWith(currentText) && currentText != "help") commandInput.text = "help";
+                else if ("clear".StartsWith(currentText) && currentText != "clear") commandInput.text = "clear";
+                commandInput.MoveTextEnd(false);
             else if (Input.GetKeyDown(KeyCode.DownArrow))
             {
                 if (_historyIndex > 0)
@@ -140,7 +152,10 @@ namespace Milehigh.World.Terminal
             {
                 newIndex = 0;
             }
+        }
 
+        public void ProcessCommand(string input)
+        {
             if (newIndex != _historyIndex)
             {
                 _historyIndex = newIndex;
@@ -196,7 +211,6 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            // 🛡️ Sentinel: Security - Strip Rich Text tags before echoing to prevent UI injection if validation fails.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
             // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
@@ -217,6 +231,7 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
             // 🎨 Palette: Echo validated user command to terminal.
             WriteToTerminal($"\n<color=#888888>> {input}</color>");
 
@@ -251,6 +266,7 @@ namespace Milehigh.World.Terminal
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
+                                "\n <color=#888888>Tip: Use [Tab] to autocomplete, [Up] for history, [Down] to clear.</color>");
                                 "\n <color=#888888>Tip: Use Up/Down arrows to navigate command history.</color>");
                                 "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
                                 "\n <color=#888888>(Tip: Use Tab for autocomplete and Up Arrow for history)</color>");
@@ -291,7 +307,6 @@ namespace Milehigh.World.Terminal
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
-                // UX Enhancement: Reveal full previous message when interrupted.
                 outputDisplay.maxVisibleCharacters = int.MaxValue;
             }
 
