@@ -115,3 +115,6 @@
 ## 2026-05-18 - [Terminal Command History and Cursor Management]
 **Learning:** In terminal-style UIs (Unity TMPro), implementing a "command history" via UpArrow significantly improves user experience by reducing repetitive typing. Crucially, after setting the text programmatically, calling 'MoveTextEnd(false)' is required to ensure the caret is at the end of the line, providing a smooth continuation of input.
 **Action:** Always implement 'MoveTextEnd(false)' when programmatically recalling previous terminal commands to maintain input flow.
+## 2025-05-22 - [Terminal Tab Completion and Shortcut Discovery]
+**Learning:** Terminal-style interfaces are significantly enhanced by "power-user" shortcuts like Tab Completion and command history (Up Arrow). These features reduce friction and align with user expectations for CLI environments. To improve discoverability without cluttering the UI, muted color hints (e.g., #888888) can be included in system responses like 'help' to provide subtle guidance.
+**Action:** Implement Tab Completion for common commands and include non-intrusive shortcut tips in terminal 'help' outputs to enhance user agency and flow.

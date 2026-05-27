@@ -122,6 +122,16 @@ namespace Milehigh.World.Terminal
             {
                 NavigateHistory(1);
             }
+            // 🎨 Palette: Tab Completion for common commands
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentText = commandInput.text.ToLower();
+                if (!string.IsNullOrEmpty(currentText))
+                {
+                    if ("help".StartsWith(currentText)) commandInput.text = "help";
+                    else if ("clear".StartsWith(currentText)) commandInput.text = "clear";
+                    commandInput.MoveTextEnd(false);
+                }
         }
 
         private void NavigateHistory(int direction)
@@ -254,6 +264,7 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            // 🛡️ Sentinel: Early exit for empty or whitespace-only input.
             // 🛡️ Sentinel: Early exit and basic echo for empty input.
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -326,6 +337,7 @@ namespace Milehigh.World.Terminal
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
+                                "\n\n<color=#888888>Tip: Use [Up Arrow] for history and [Tab] for autocomplete.</color>");
                                 "\n <color=#888888>Tip: Use Up Arrow for history and Tab for completion.</color>");
                                 "\n<color=#888888>Tip: Use Tab for completion, Up/Down for history.</color>");
                                 "\n <color=#888888>Tip: Use [Tab] to autocomplete, [Up] for history, [Down] to clear.</color>");
@@ -395,7 +407,7 @@ namespace Milehigh.World.Terminal
                 // We check the revealed character to pause after it appears.
                 // ⚡ Bolt: Calculate total delay for this character once to minimize coroutine resumptions.
                 char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
-                float totalDelay = typingSpeed;
+                float delay = typingSpeed;
 
                 if (c == '.' || c == '!' || c == '?')
                 {
@@ -409,11 +421,16 @@ namespace Milehigh.World.Terminal
                     if (isEndOfSentence)
                     {
                         bool isEllipsis = (c == '.' && startVisibleCount + i - 2 >= 0 && outputDisplay.textInfo.characterInfo[startVisibleCount + i - 2].character == '.');
-                        totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
+                        delay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
                     }
                 }
                 else if (c == ',' || c == ':' || c == ';')
                 {
+                    delay += commaDelay;
+                }
+
+                // ⚡ Bolt: Zero-allocation yield via shared cache
+                yield return GetWait(delay);
                     totalDelay += commaDelay;
                 }
 
