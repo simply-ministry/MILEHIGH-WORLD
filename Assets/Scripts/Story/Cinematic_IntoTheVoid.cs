@@ -79,7 +79,7 @@ namespace MilehighWorld.Cinematics
             // 3. Asynchronous Lexical Pacing
             dialogueCanvas.SetActive(true);
             await StreamDialogueAsync("King Cyrus", "Tremble, mortals, as the Age of Millenia crumbles before the might of the Void!", 0.04f);
-            await Task.Delay(500);
+            await DelayOrSkipAsync(500);
 
             await StreamDialogueAsync("Sky.ix", "Negative. The resonance is peaking. We are at 998 shards. Engaging Void Conduit.", 0.03f);
 
@@ -210,9 +210,16 @@ namespace MilehighWorld.Cinematics
 
                 await Task.Delay(currentDelay);
             }
+        }
 
-            // Ensure the skip flag doesn't immediately skip the next line if it was pressed late.
-            await Task.Yield();
+        private async Task DelayOrSkipAsync(int milliseconds)
+        {
+            int elapsed = 0;
+            while (elapsed < milliseconds && !skipRequested)
+            {
+                await Task.Delay(50);
+                elapsed += 50;
+            }
             skipRequested = false;
         }
 
