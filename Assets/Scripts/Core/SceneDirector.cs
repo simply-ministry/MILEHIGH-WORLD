@@ -164,6 +164,7 @@ namespace Milehigh.Core
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs
+            // We block core architectural singletons from being manipulated via external data.
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
                 interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
                 interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
