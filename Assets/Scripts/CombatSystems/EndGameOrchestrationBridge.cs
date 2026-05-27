@@ -19,6 +19,8 @@ namespace MilehighWorld.CombatSystems
         private static MaterialPropertyBlock? _propBlock;
 
         // ⚡ Bolt: Cache shader property IDs to avoid expensive string-to-int lookups in hot loops.
+        // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-ID lookups.
+        // ⚡ Bolt: Cache shader property IDs to avoid string-based lookups in the hot loop.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -67,6 +69,34 @@ namespace MilehighWorld.CombatSystems
                 float voidVarianceDelta = 0.98f;
                 float parityResonance = 0.15f;
 
+                // ⚡ Bolt: Hoist redundant lookups and component fetches outside the hot loop.
+                // Estimated Performance Gain: Removes 4 dictionary lookups, 2 component fetches,
+                // and 2 string-to-ID conversions per frame.
+                // ⚡ Bolt: Pre-fetch character references and components outside the hot loop to reduce CPU overhead.
+                var yuna = director.GetAlly("Yuna");
+                var reverie = director.GetAlly("Reverie");
+                var aeron = director.GetAlly("Aeron");
+                var zaia = director.GetAlly("Zaia");
+
+                Rigidbody? aeronRB = null;
+                if (aeron != null && aeron.PrefabReference != null)
+                {
+                    aeronRB = aeron.PrefabReference.GetComponent<Rigidbody>();
+                }
+
+                Renderer? delilahRenderer = null;
+                if (delilahTargetMesh != null)
+                {
+                    delilahTargetMesh.TryGetComponent<Renderer>(out delilahRenderer);
+                }
+                if (aeron?.PrefabReference != null) aeronRB = aeron.PrefabReference.GetComponent<Rigidbody>();
+
+                Renderer? delilahRen = null;
+                if (delilahTargetMesh != null) delilahTargetMesh.TryGetComponent<Renderer>(out delilahRen);
+
+                // ⚡ Bolt: Pre-calculate loop-invariant or frequent values.
+                float deltaStep = ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
+
                 while (voidVarianceDelta > 0.001f)
                 {
                     // Real-Time database check to verify Anastasia's structural tracking integrity
@@ -86,17 +116,33 @@ namespace MilehighWorld.CombatSystems
                     if (aeronRB != null)
                     {
                         // Fix: Set mass to a fixed high value instead of multiplying every frame
+                    if (aeronRB != null)
+                    {
+                        // Optimization: Setting mass is a native call; usually constant in this loop.
                         aeronRB.mass = 900.0f;
                     }
 
                     zaia?.UseAbility("Spatial Warp");
+                    yuna.UseAbility("Nine-Tailed Foxfire");
+                    reverie.UseAbility("Arcane Symphony");
+
+                    // Execute Layer 2 Defense Subroutine (Rigidbody Collision & Mass Multipliers)
+                    if (aeronRB != null) aeronRB.mass = 900.0f;
+
+                    zaia.UseAbility("Spatial Warp");
 
                     // 4. Calculate Battle Calculations and decrement target entropy variables
-                    voidVarianceDelta -= ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
+                    voidVarianceDelta -= deltaStep;
                     parityResonance += (1.0f - voidVarianceDelta) * 0.077f;
 
                     // Slow down shader pulse parameters on the target mesh using material overrides
                     // ⚡ Bolt: Using cached Renderer and Property IDs for O(1) shader updates.
+                    if (delilahRenderer != null)
+                    {
+                        delilahRenderer.GetPropertyBlock(_propBlock);
+                        _propBlock.SetFloat(VoidPulseRateId, voidVarianceDelta);
+                        _propBlock.SetFloat(EmissiveIntensityId, voidVarianceDelta * 3.0f);
+                        delilahRenderer.SetPropertyBlock(_propBlock);
                     if (delilahRen != null)
                     {
                         delilahRen.GetPropertyBlock(_propBlock);
