@@ -6,7 +6,7 @@ namespace UnityEngine
 {
     public class Object
     {
-        public static T FindObjectOfType<T>() where T : class => null;
+        public static T FindObjectOfType<T>() where T : class => null!;
         public static T[] FindObjectsOfType<T>() where T : class => new T[0];
         public static void Destroy(Object obj) {}
         public static void DontDestroyOnLoad(Object obj) {}
@@ -21,14 +21,14 @@ namespace UnityEngine
     {
         public string name { get; set; } = "";
         public Transform transform { get; } = new Transform();
-        public T GetComponent<T>() where T : class => null;
-        public bool TryGetComponent<T>(out T component) where T : class { component = null; return false; }
-        public T AddComponent<T>() where T : class => null;
+        public T GetComponent<T>() where T : class => null!;
+        public bool TryGetComponent<T>(out T component) where T : class { component = null!; return false; }
+        public T AddComponent<T>() where T : class => null!;
         public void SetActive(bool value) {}
-        public static GameObject Find(string name) => null;
-        public static T Instantiate<T>(T original, Transform parent) where T : class => null;
-        public static T Instantiate<T>(T original) where T : class => null;
-        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : class => null;
+        public static GameObject Find(string name) => null!;
+        public static T Instantiate<T>(T original, Transform parent) where T : class => null!;
+        public static T Instantiate<T>(T original) where T : class => null!;
+        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : class => null!;
         public GameObject() {}
         public GameObject(string name) {}
         public int GetInstanceID() => 0;
@@ -41,7 +41,7 @@ namespace UnityEngine
         public Vector3 localScale { get; set; }
         public static Vector3 one => new Vector3(1, 1, 1);
         public Transform parent { get; set; }
-        public Transform Find(string name) => null;
+        public Transform Find(string name) => null!;
     }
     public struct Vector3
     {
@@ -64,7 +64,7 @@ namespace UnityEngine
     }
     public class JsonUtility
     {
-        public static T FromJson<T>(string json) => default;
+        public static T FromJson<T>(string json) => default!;
     }
     public class Application
     {
@@ -141,7 +141,7 @@ namespace UnityEngine
     }
     public class Renderer : MonoBehaviour
     {
-        public Material material { get; set; }
+        public Material material { get; set; } = null!;
         public void GetPropertyBlock(MaterialPropertyBlock block) {}
         public void SetPropertyBlock(MaterialPropertyBlock block) {}
     }
@@ -242,6 +242,7 @@ namespace TMPro
         public void ActivateInputField() {}
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
+        public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
         public UnityEngine.UI.Graphic placeholder { get; set; }
     }
     public class TMP_TextInfo

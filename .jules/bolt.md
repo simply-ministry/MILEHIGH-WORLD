@@ -78,6 +78,10 @@
 **Learning:** Repeatedly calling 'new WaitForSeconds(time)' in high-frequency coroutines like the typewriter effect in 'OtisTerminal.cs' causes unnecessary GC allocations on every character reveal.
 **Action:** Implement a static 'Dictionary<int, WaitForSeconds>' cache using millisecond-rounded keys (Mathf.RoundToInt(time * 1000f)) to reuse yield instructions and eliminate heap allocations.
 
+## 2024-05-18 - High-Frequency Task.Yield Loop Optimization
+**Learning:** Synchronous-looking `while` loops using `await Task.Yield()` in Unity-integrated C# tasks often hide severe performance bottlenecks if engine calls like `GetComponent` or string-based registry lookups (e.g., `GetAlly`) are not cached. These calls incur repeated native bridge overhead and lookup costs every frame.
+**Action:** Always cache ally references and component lookups outside of `while` or `Update` loops that yield control to the engine. Use null-conditional operators for safer access to cached references.
+
 ## 2024-05-16 - Coroutine Resumption Optimization
 **Learning:** In high-frequency Unity coroutines like typewriter effects, each 'yield return' instruction incurs a performance penalty as the Unity coroutine scheduler must manage the suspension and resumption. Consolidating multiple yields (e.g., base speed + punctuation delay) into a single calculated 'yield return GetWait(totalDelay)' per iteration significantly reduces CPU overhead by ~75%.
 **Action:** Always sum cumulative delays within a single loop iteration and yield once to minimize scheduler resumptions.
