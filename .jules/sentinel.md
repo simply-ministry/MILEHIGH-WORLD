@@ -76,6 +76,10 @@
 **Learning:** Code rot, specifically orphaned or malformed conditional blocks, can lead to silent security failures where critical validation logic is bypassed without triggering immediate runtime errors.
 **Prevention:** Regularly audit validation logic for redundancy and ensure that all validation paths are fully covered by unit tests and static analysis. Favor clean, linear validation pipelines over complex, nested, or redundant checks.
 
+## 2026-05-20 - [IDOR Protection Bypass via Logic Flaws and Code Rot]
+**Vulnerability:** In `SceneDirector.cs`, the `ApplyInteraction` method accessed `interaction.objectId` before performing a null check on `interaction`, and it contained redundant variable declarations that caused compilation failures. Furthermore, the IDOR blocklist was incomplete, leaving several system managers (CombatManager, GlobalResonanceManager, BicameralBattleEngine) vulnerable to unauthorized manipulation.
+**Learning:** Security controls implemented within "rotted" or redundant code are prone to logic errors and bypasses. A security check that crashes the application (via `NullReferenceException`) or fails to compile is as ineffective as no check at all.
+**Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist/Allowlist) -> Execute. Ensure that the blocklist is comprehensive and covers all sensitive architectural singletons.
 ## 2026-05-20 - Exhaustive IDOR Blocklisting for Core Managers
 **Vulnerability:** Incomplete IDOR blocklist in `SceneDirector.cs`.
 **Learning:** Initial security implementations for data-driven object interaction blocked some system managers (`CampaignManager`, `SceneDirector`) but missed others (`CombatManager`, `GlobalResonanceManager`, `BicameralBattleEngine`). This left critical game state vulnerable to unauthorized manipulation via external campaign data.

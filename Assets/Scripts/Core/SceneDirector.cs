@@ -95,7 +95,7 @@ namespace Milehigh.Core
                 GameObject? prefab = GetPrefab(profile.name);
                 if (prefab != null)
                 {
-                    characterObj = Instantiate(prefab, characterSpawnRoot);
+                    characterObj = Object.Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
                     _objectCache[profile.name] = characterObj;
                 }
@@ -163,6 +163,8 @@ namespace Milehigh.Core
         {
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
+            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
+            // Block critical system managers and architectural singletons from being manipulated via external data.
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs
             // We block core architectural singletons from being manipulated via external data.
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
