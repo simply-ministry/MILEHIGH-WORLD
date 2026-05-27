@@ -78,6 +78,20 @@
 **Learning:** Repeatedly calling 'new WaitForSeconds(time)' in high-frequency coroutines like the typewriter effect in 'OtisTerminal.cs' causes unnecessary GC allocations on every character reveal.
 **Action:** Implement a static 'Dictionary<int, WaitForSeconds>' cache using millisecond-rounded keys (Mathf.RoundToInt(time * 1000f)) to reuse yield instructions and eliminate heap allocations.
 
+## 2024-05-18 - High-Frequency Task.Yield Loop Optimization
+**Learning:** Synchronous-looking `while` loops using `await Task.Yield()` in Unity-integrated C# tasks often hide severe performance bottlenecks if engine calls like `GetComponent` or string-based registry lookups (e.g., `GetAlly`) are not cached. These calls incur repeated native bridge overhead and lookup costs every frame.
+**Action:** Always cache ally references and component lookups outside of `while` or `Update` loops that yield control to the engine. Use null-conditional operators for safer access to cached references.
+
 ## 2024-05-16 - Coroutine Resumption Optimization
 **Learning:** In high-frequency Unity coroutines like typewriter effects, each 'yield return' instruction incurs a performance penalty as the Unity coroutine scheduler must manage the suspension and resumption. Consolidating multiple yields (e.g., base speed + punctuation delay) into a single calculated 'yield return GetWait(totalDelay)' per iteration significantly reduces CPU overhead by ~75%.
 **Action:** Always sum cumulative delays within a single loop iteration and yield once to minimize scheduler resumptions.
+
+## 2026-05-19 - [Unity Async Loop Lookup Optimization]
+**Learning:** Async task loops (using 'await Task.Yield()') that perform O(N) dictionary lookups ('director.GetAlly') or native component searches ('GetComponent') every iteration create a cumulative CPU bottleneck. Unlike 'Update()', these loops can be less obvious but equally performance-critical during cinematic/combat sequences.
+**Action:** Always pre-cache character references and components outside 'while' or 'for' loops that yield control. Ensure the base GameObject is null-checked before caching to prevent 'NullReferenceException' if the object is missing or destroyed.
+## 2025-05-18 - Combat Orchestration Reference Caching
+**Learning:** In frame-based combat orchestrators (e.g., EndGameOrchestrationBridge), repeated calls to 'director.GetAlly("Name")' and 'GetComponent<Rigidbody>()' within 'while' loops create significant CPU overhead due to dictionary lookups and native engine bridge crossings. Furthermore, assigning constant values to Rigidbody properties every frame creates redundant memory writes.
+**Action:** Always pre-cache ally references and components outside of frame-based loops. Move any constant property assignments (e.g., mass, drag) outside the loop to eliminate unnecessary per-frame overhead.
+## 2024-05-18 - Optimized Combat Loop Orchestration
+**Learning:** In 'EndGameOrchestrationBridge.cs', the main combat loop was performing O(N) 'GetAlly' lookups and 'GetComponent' calls every frame. Hoisting these lookups outside the loop and using 'Shader.PropertyToID' for shader parameter updates provides a significant CPU performance win by eliminating redundant dictionary searches and string-to-int hashing in the Unity engine.
+**Action:** Always pre-cache character references and component lookups outside of high-frequency loops (Update, Coroutines, or async Tasks). Use Property IDs for any per-frame material updates.
