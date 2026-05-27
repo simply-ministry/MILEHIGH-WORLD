@@ -39,11 +39,29 @@ namespace MilehighWorld.Cinematics
         private const float LinearOmenHexState = 6.0f;
         private const float IteratedSanctuary = 0.0777777777f;
 
+        private bool skipRequested;
+        private Vector3 originalSpeakerScale;
+
         private void Start()
         {
             // Lock timeScale for deterministic cinematic pacing
             Time.timeScale = 1.0f;
+
+            if (speakerNameText != null)
+            {
+                originalSpeakerScale = speakerNameText.transform.localScale;
+            }
+
             _ = ExecuteConvergenceSequenceAsync();
+        }
+
+        private void Update()
+        {
+            // Palette: Capture skip intent globally for narrative responsiveness.
+            if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+            {
+                skipRequested = true;
+            }
         }
 
         private async Task ExecuteConvergenceSequenceAsync()
@@ -136,31 +154,22 @@ namespace MilehighWorld.Cinematics
         }
 
         /// <summary>
-        /// Layout-safe rhythmic typewriter effect for cinematic dialogue.
-        /// </summary>
-        private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
-        {
-            speakerNameText.text = $"<color=cyan>[{speaker}]</color>";
-            dialogueText.text = content;
-            dialogueText.maxVisibleCharacters = 0;
-            dialogueText.ForceMeshUpdate();
-
-            for (int i = 0; i <= dialogueText.textInfo.characterCount; i++)
-            {
-                dialogueText.maxVisibleCharacters = i;
-                if (i > 0 && i < dialogueText.textInfo.characterCount)
-                {
-                    char c = dialogueText.textInfo.characterInfo[i - 1].character;
-                    if (c == '.' || c == '?' || c == '!') await Task.Delay(Mathf.RoundToInt(charDelay * 15 * 1000));
-                    else if (c == ',' || c == ':' || c == ';') await Task.Delay(Mathf.RoundToInt(charDelay * 8 * 1000));
-                }
-                await Task.Delay(Mathf.RoundToInt(charDelay * 1000));
         /// Zero-allocation typewriter effect with rhythmic pacing and character-themed cues.
         /// </summary>
         private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
         {
             string colorHex = GetSpeakerColor(speaker);
-            speakerNameText.text = $"<color={colorHex}>[{speaker}]</color>";
+            string formattedSpeaker = $"<color={colorHex}>[{speaker}]</color>";
+
+            // Palette: Trigger a subtle scale pop if the speaker has changed.
+            if (speakerNameText.text != formattedSpeaker)
+            {
+                speakerNameText.text = formattedSpeaker;
+                _ = PopScaleAsync();
+            }
+
+            // Palette: Reset skip flag for each new dialogue line.
+            skipRequested = false;
 
             // Pre-calculate layout with completion cue to avoid jarring shifts
             dialogueText.text = $"{content} <color={colorHex}>▽</color>";
@@ -173,6 +182,13 @@ namespace MilehighWorld.Cinematics
             for (int i = 1; i <= totalCharacters; i++)
             {
                 dialogueText.maxVisibleCharacters = i;
+
+                // Palette: Instant reveal if skip is requested.
+                if (skipRequested)
+                {
+                    dialogueText.maxVisibleCharacters = totalCharacters;
+                    break;
+                }
 
                 // Get the character that was just revealed
                 char c = dialogueText.textInfo.characterInfo[i - 1].character;
@@ -194,6 +210,30 @@ namespace MilehighWorld.Cinematics
 
                 await Task.Delay(currentDelay);
             }
+
+            // Ensure the skip flag doesn't immediately skip the next line if it was pressed late.
+            await Task.Yield();
+            skipRequested = false;
+        }
+
+        private async Task PopScaleAsync()
+        {
+            if (speakerNameText == null) return;
+
+            float duration = 0.2f;
+            float elapsed = 0f;
+            Vector3 targetScale = originalSpeakerScale * 1.1f;
+
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / duration;
+                // Simple Sin wave pulse
+                speakerNameText.transform.localScale = Vector3.Lerp(originalSpeakerScale, targetScale, Mathf.Sin(t * Mathf.PI));
+                await Task.Yield();
+            }
+
+            speakerNameText.transform.localScale = originalSpeakerScale;
         }
 
         private string GetSpeakerColor(string speaker)
