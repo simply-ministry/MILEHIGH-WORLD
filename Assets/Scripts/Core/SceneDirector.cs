@@ -165,7 +165,9 @@ namespace Milehigh.Core
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs
             if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager")
+                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
+                interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
+                interaction.objectId == "BicameralBattleEngine")
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
                 return;
