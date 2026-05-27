@@ -4,6 +4,7 @@ using TMPro;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Collections;
+using System.Linq;
 
 namespace Milehigh.World.Terminal
 {
@@ -25,6 +26,12 @@ namespace Milehigh.World.Terminal
         private List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
 
+        private string _lastCommand = "";
+        private readonly string[] _availableCommands = { "help", "clear" };
+
+        // 🎨 Palette: Available commands for autocomplete
+        private static readonly string[] ValidCommands = { "help", "clear" };
+
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
@@ -32,6 +39,7 @@ namespace Milehigh.World.Terminal
         {
             int ms = Mathf.RoundToInt(seconds * 1000f);
             if (!_waitCache.TryGetValue(ms, out var wait))
+            if (!_waitCache.TryGetValue(ms, out WaitForSeconds wait))
             {
                 wait = new WaitForSeconds(seconds);
                 _waitCache[ms] = wait;
@@ -70,6 +78,7 @@ namespace Milehigh.World.Terminal
             if (commandInput == null || !commandInput.isFocused) return;
 
             // 🎨 Palette: Command History navigation
+            // 🎨 Palette: Command History (Up Arrow) to recall previous input
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
                 if (_commandHistory.Count > 0 && _historyIndex < _commandHistory.Count - 1)
@@ -108,6 +117,33 @@ namespace Milehigh.World.Terminal
                 {
                     commandInput.text = "clear";
                     commandInput.MoveTextEnd(false);
+            // 🎨 Palette: Tab Completion for discoverable commands
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentText = commandInput.text.Trim().ToLower();
+                if (!string.IsNullOrEmpty(currentText))
+                {
+                    foreach (string cmd in ValidCommands)
+                    {
+                        if (cmd.StartsWith(currentText))
+                        {
+                            commandInput.text = cmd;
+                            commandInput.MoveTextEnd(false);
+                            break;
+                        }
+
+            // 🎨 Palette: Tab Completion
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentInput = commandInput.text.Trim().ToLower();
+                if (!string.IsNullOrEmpty(currentInput))
+                {
+                    string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
+                    if (match != null)
+                    {
+                        commandInput.text = match;
+                        commandInput.MoveTextEnd(false);
+                    }
                 }
             }
         }
@@ -125,6 +161,8 @@ namespace Milehigh.World.Terminal
             // 🛡️ Sentinel: Security - Strip Rich Text tags before echoing to prevent UI injection if validation fails.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
             if (input.Length > MaxInputLength)
             {
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
@@ -148,6 +186,7 @@ namespace Milehigh.World.Terminal
             _commandHistory.Add(input);
             _historyIndex = -1;
 
+            _lastCommand = input;
             CleanupInputAfterCommand();
 
             string[] parts = input.Trim().Split(' ');
@@ -168,6 +207,8 @@ namespace Milehigh.World.Terminal
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
                                 "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
+                                "\n <color=#888888>(Tip: Use Tab for autocomplete and Up Arrow for history)</color>");
+                                "\n<color=#888888><i>(Tip: Use Tab for auto-completion and Up Arrow for history)</i></color>");
                 return;
             }
 
@@ -227,6 +268,9 @@ namespace Milehigh.World.Terminal
             {
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
 
+                // 🎨 Palette: Rhythmic punctuation pauses for an "analog" terminal feel.
+                // We check the revealed character to pause after it appears.
+                // ⚡ Bolt: Calculate total delay for this character once to minimize coroutine resumptions.
                 char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                 float totalDelay = typingSpeed;
 
@@ -250,6 +294,7 @@ namespace Milehigh.World.Terminal
                     totalDelay += commaDelay;
                 }
 
+                // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
                 yield return GetWait(totalDelay);
             }
 

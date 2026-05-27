@@ -102,10 +102,6 @@ namespace UnityEngine
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
     }
-    public static class Random
-    {
-        public static float Range(float min, float max) => 0;
-    }
     public class Color
     {
         public static Color white => new Color();
@@ -170,6 +166,11 @@ namespace UnityEngine
         public static bool GetMouseButtonDown(int button) => false;
     }
     public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
+    public enum KeyCode { Space, Return, UpArrow, Tab }
+    public static class Random
+    {
+        public static float Range(float min, float max) => 0;
+    }
 }
 
 namespace UnityEngine.UI
@@ -188,6 +189,8 @@ namespace TMPro
     {
         public string text { get; set; } = "";
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
+        public int characterCount { get; set; }
+        public TMP_CharacterInfo[] characterInfo { get; set; } = new TMP_CharacterInfo[0];
     }
     public class TextMeshProUGUI : TMP_Text
     {
@@ -196,6 +199,7 @@ namespace TMPro
         public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
         public UnityEngine.Color color { get; set; }
+        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
     }
     public class TMP_InputField : UnityEngine.UI.Selectable
     {
