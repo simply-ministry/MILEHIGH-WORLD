@@ -10,8 +10,8 @@ namespace Milehigh.World.Terminal
 {
     public class OtisTerminal : MonoBehaviour
     {
-        [SerializeField] private TMP_InputField commandInput;
-        [SerializeField] private TextMeshProUGUI outputDisplay;
+        [SerializeField] private TMP_InputField commandInput = null!;
+        [SerializeField] private TextMeshProUGUI outputDisplay = null!;
 
         [Header("Typewriter Settings")]
         [SerializeField] private float typingSpeed = 0.02f;
@@ -26,19 +26,6 @@ namespace Milehigh.World.Terminal
         private List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
 
-
-        // 🎨 Palette: Multi-command History
-        private List<string> _commandHistory = new List<string>();
-        private int _historyIndex = -1;
-
-        // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
-        private List<string> _commandHistory = new List<string>();
-        private int _historyIndex = -1;
-
-        private string _lastCommand = "";
-        private readonly string[] _availableCommands = { "help", "clear" };
-
-        // 🎨 Palette: Available commands for autocomplete
         private static readonly string[] ValidCommands = { "help", "clear" };
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
@@ -85,174 +72,32 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
-            // 🎨 Palette: Command History (Up Arrow) to recall previous input
-            if (Input.GetKeyDown(KeyCode.UpArrow))
-            // 🎨 Palette: Command History (Up/Down Arrow) to recall previous inputs
-            if (Input.GetKeyDown(KeyCode.UpArrow) && _commandHistory.Count > 0)
-            {
-                _historyIndex = Mathf.Clamp(_historyIndex + 1, 0, _commandHistory.Count - 1);
-                commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
-                commandInput.MoveTextEnd(false);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow))
-            {
-                _historyIndex = Mathf.Clamp(_historyIndex - 1, -1, _commandHistory.Count - 1);
-                commandInput.text = _historyIndex == -1 ? "" : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
-                commandInput.MoveTextEnd(false);
-            }
-
-            // 🎨 Palette: Tab Completion for common commands
-            if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentText = commandInput.text.ToLower();
-                if (currentText.StartsWith("h") && !currentText.Equals("help"))
-                {
-                    commandInput.text = "help";
-                    commandInput.MoveTextEnd(false);
-                }
-                else if (currentText.StartsWith("c") && !currentText.Equals("clear"))
-                {
-                    commandInput.text = "clear";
             // 🎨 Palette: Command History Navigation (Up/Down Arrows)
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
-                NavigateHistory(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow))
-            {
-                NavigateHistory(1);
-            }
-            // 🎨 Palette: Tab Completion for common commands
-            else if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentText = commandInput.text.ToLower();
-                if (!string.IsNullOrEmpty(currentText))
+                if (_commandHistory.Count > 0)
                 {
-                    if ("help".StartsWith(currentText)) commandInput.text = "help";
-                    else if ("clear".StartsWith(currentText)) commandInput.text = "clear";
-                    commandInput.MoveTextEnd(false);
-                }
-        }
-
-        private void NavigateHistory(int direction)
-        {
-            if (_commandHistory.Count == 0) return;
-
-            int newIndex = _historyIndex + direction;
-
-            // Clamp and handle boundary cases
-            if (newIndex >= _commandHistory.Count)
-            {
-                _historyIndex = _commandHistory.Count;
-                commandInput.text = "";
-                return;
-            // 🎨 Palette: Command History navigation
-            // 🎨 Palette: Command History (Up Arrow) to recall previous input
-            if (Input.GetKeyDown(KeyCode.UpArrow))
-            {
-                if (_commandHistory.Count > 0 && _historyIndex < _commandHistory.Count - 1)
-                {
-                    _historyIndex++;
+                    _historyIndex = Mathf.Clamp(_historyIndex + 1, 0, _commandHistory.Count - 1);
                     commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                     commandInput.MoveTextEnd(false);
                 }
             }
-            // 🎨 Palette: Clear input (Down Arrow) for quick reset
             else if (Input.GetKeyDown(KeyCode.DownArrow))
             {
-                commandInput.text = "";
-            }
-            // 🎨 Palette: Tab Completion for common commands
-            else if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentText = commandInput.text.ToLower();
-                if ("help".StartsWith(currentText) && currentText != "help") commandInput.text = "help";
-                else if ("clear".StartsWith(currentText) && currentText != "clear") commandInput.text = "clear";
-                commandInput.MoveTextEnd(false);
-            else if (Input.GetKeyDown(KeyCode.DownArrow))
-            {
-                if (_historyIndex > 0)
+                if (_historyIndex > -1)
                 {
                     _historyIndex--;
-                    commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
+                    commandInput.text = _historyIndex == -1 ? "" : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                     commandInput.MoveTextEnd(false);
                 }
-                else if (_historyIndex == 0)
-                {
-                    _historyIndex = -1;
-                    commandInput.text = "";
-                }
             }
-            // 🎨 Palette: Tab completion for 'help' and 'clear'
-            else if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentInput = commandInput.text.ToLower();
-                if (string.IsNullOrEmpty(currentInput)) return;
-
-            if (newIndex < 0)
-            {
-                newIndex = 0;
-            }
-
             // 🎨 Palette: Tab Completion for common commands
-            if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentText = commandInput.text.ToLower();
-                if (currentText.StartsWith("h") && !"help".StartsWith(currentText)) { /* already help or something else */ }
-                else if ("help".StartsWith(currentText))
-                {
-                    commandInput.text = "help";
-                    commandInput.MoveTextEnd(false);
-                }
-                else if ("clear".StartsWith(currentText))
-                {
-                    commandInput.text = "clear";
-                    commandInput.MoveTextEnd(false);
-                }
-        public void ProcessCommand(string input)
-        {
-            // 🎨 Palette: Reset history index on command submission
-            _historyIndex = -1;
-
-            // 🛡️ Sentinel: Early exit and basic echo for empty input.
-            if (string.IsNullOrWhiteSpace(input))
-            {
-            if (newIndex != _historyIndex)
-            {
-                _historyIndex = newIndex;
-                commandInput.text = _commandHistory[_historyIndex];
-                commandInput.MoveTextEnd(false);
-                if ("help".StartsWith(currentInput))
-                {
-                    commandInput.text = "help";
-                    commandInput.MoveTextEnd(false);
-                }
-                else if ("clear".StartsWith(currentInput))
-                {
-                    commandInput.text = "clear";
-                    commandInput.MoveTextEnd(false);
-            // 🎨 Palette: Tab Completion for discoverable commands
             else if (Input.GetKeyDown(KeyCode.Tab))
             {
                 string currentText = commandInput.text.Trim().ToLower();
                 if (!string.IsNullOrEmpty(currentText))
                 {
-                    foreach (string cmd in ValidCommands)
-                    {
-                        if (cmd.StartsWith(currentText))
-                        {
-                            commandInput.text = cmd;
-                            commandInput.MoveTextEnd(false);
-                            break;
-                        }
-
-            // 🎨 Palette: Tab Completion
-            if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentInput = commandInput.text.Trim().ToLower();
-                if (!string.IsNullOrEmpty(currentInput))
-                {
-                    string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
+                    string? match = ValidCommands.FirstOrDefault(c => c.StartsWith(currentText));
                     if (match != null)
                     {
                         commandInput.text = match;
@@ -264,7 +109,9 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            // 🛡️ Sentinel: Early exit for empty or whitespace-only input.
+            // 🎨 Palette: Reset history index on command submission
+            _historyIndex = -1;
+
             // 🛡️ Sentinel: Early exit and basic echo for empty input.
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -273,17 +120,14 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            // UX Enhancement: Clear input and refocus immediately for better flow
-            CleanupInputAfterCommand();
-
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
+            // Sanitize input to escape rich text tags.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
-            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
-            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
             if (input.Length > MaxInputLength)
             {
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length (256 characters).");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
                 CleanupInputAfterCommand();
                 return;
             }
@@ -291,33 +135,21 @@ namespace Milehigh.World.Terminal
             if (!SafeCommandRegex.IsMatch(input))
             {
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters.");
                 CleanupInputAfterCommand();
                 return;
             }
 
-            // 🎨 Palette: Echo user command to terminal.
-            // 🎨 Palette: Echo user command to terminal AFTER validation to ensure safe rendering.
-            // 🛡️ Sentinel: Ensures validated input is echoed, preventing UI injection via Rich Text tags.
-            // 🎨 Palette: Echo validated user command to terminal and update history.
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
-            _commandHistory.Add(input);
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
             // 🎨 Palette: Echo validated user command to terminal.
-            WriteToTerminal($"\n<color=#888888>> {input}</color>");
+            // 🛡️ Sentinel: Ensures sanitized input is echoed, preventing UI injection via Rich Text tags.
+            WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
 
-            // 🎨 Palette: Add to history if unique from the last entry
+            // Update command history
             if (_commandHistory.Count == 0 || _commandHistory[_commandHistory.Count - 1] != input)
             {
                 _commandHistory.Add(input);
             }
-            _historyIndex = _commandHistory.Count;
 
-            // 🎨 Palette: Update command history
-            _commandHistory.Add(input);
-            _historyIndex = -1;
-
-            _lastCommand = input;
             CleanupInputAfterCommand();
 
             string[] parts = input.Trim().Split(' ');
@@ -336,15 +168,7 @@ namespace Milehigh.World.Terminal
                 WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                                "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
-                                "\n\n<color=#888888>Tip: Use [Up Arrow] for history and [Tab] for autocomplete.</color>");
-                                "\n <color=#888888>Tip: Use Up Arrow for history and Tab for completion.</color>");
-                                "\n<color=#888888>Tip: Use Tab for completion, Up/Down for history.</color>");
-                                "\n <color=#888888>Tip: Use [Tab] to autocomplete, [Up] for history, [Down] to clear.</color>");
-                                "\n <color=#888888>Tip: Use Up/Down arrows to navigate command history.</color>");
                                 "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
-                                "\n <color=#888888>(Tip: Use Tab for autocomplete and Up Arrow for history)</color>");
-                                "\n<color=#888888><i>(Tip: Use Tab for auto-completion and Up Arrow for history)</i></color>");
                 return;
             }
 
@@ -403,9 +227,6 @@ namespace Milehigh.World.Terminal
             {
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
 
-                // 🎨 Palette: Rhythmic punctuation pauses for an "analog" terminal feel.
-                // We check the revealed character to pause after it appears.
-                // ⚡ Bolt: Calculate total delay for this character once to minimize coroutine resumptions.
                 char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                 float delay = typingSpeed;
 
@@ -429,15 +250,7 @@ namespace Milehigh.World.Terminal
                     delay += commaDelay;
                 }
 
-                // ⚡ Bolt: Zero-allocation yield via shared cache
                 yield return GetWait(delay);
-                    totalDelay += commaDelay;
-                }
-
-                // ⚡ Bolt: Zero-allocation yield via shared cache
-                // UX Learning: Punctuation delays trigger after character is visible
-                // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
-                yield return GetWait(totalDelay);
             }
 
             _typewriterCoroutine = null;
