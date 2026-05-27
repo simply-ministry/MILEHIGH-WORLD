@@ -13,6 +13,8 @@ namespace MilehighWorld.CombatSystems
         private double absoluteTensionBase = 1.4446678659d;
 
         [Header("Entity Allocations")]
+        [SerializeField] private GameObject anastasiaAnchor = null!;
+        [SerializeField] private GameObject delilahTargetMesh = null!;
         [SerializeFieldAttribute] private GameObject? anastasiaAnchor;
         [SerializeFieldAttribute] private GameObject? delilahTargetMesh;
 
@@ -84,6 +86,8 @@ namespace MilehighWorld.CombatSystems
                 float voidVarianceDelta = 0.98f;
                 float parityResonance = 0.15f;
 
+                // ⚡ Bolt: Pre-cache allies and components outside the evaluation loop to eliminate multiple O(N)
+                // dictionary lookups and expensive component searches (GetComponent/TryGetComponent) per frame.
                 // ⚡ Bolt: Cache ally references and components outside the loop to minimize engine-to-managed bridge calls and O(N) lookups every frame.
                 // ⚡ Bolt: Cache ally references and components before the hot loop to eliminate
                 // redundant dictionary lookups and expensive native-to-managed GetComponent calls.
@@ -108,6 +112,8 @@ namespace MilehighWorld.CombatSystems
                 var reverie = director.GetAlly("Reverie");
                 var aeron = director.GetAlly("Aeron");
                 var zaia = director.GetAlly("Zaia");
+
+                Rigidbody? aeronRB = (aeron?.PrefabReference != null) ? aeron.PrefabReference.GetComponent<Rigidbody>() : null;
                 var aeronRB = aeron?.PrefabReference?.GetComponent<Rigidbody>();
 
                 Rigidbody? aeronRB = null;
@@ -148,6 +154,16 @@ namespace MilehighWorld.CombatSystems
                     }
 
                     // Execute Layer 1 Defense Subroutine (Dreamscape & Spatial Audio Sync)
+                    yuna.UseAbility("Nine-Tailed Foxfire");
+                    reverie.UseAbility("Arcane Symphony");
+
+                    // Execute Layer 2 Defense Subroutine (Rigidbody Collision & Mass Multipliers)
+                    if (aeronRB != null)
+                    {
+                        // Fix: Set mass to a fixed high value instead of multiplying every frame
+                        aeronRB.mass = 900.0f;
+                    }
+
                     yuna?.UseAbility("Nine-Tailed Foxfire");
                     reverie?.UseAbility("Arcane Symphony");
 
@@ -207,6 +223,12 @@ namespace MilehighWorld.CombatSystems
                     parityResonance += (1.0f - voidVarianceDelta) * 0.077f;
 
                     // Slow down shader pulse parameters on the target mesh using material overrides
+                    if (delilahRenderer != null)
+                    {
+                        delilahRenderer.GetPropertyBlock(_propBlock);
+                        _propBlock.SetFloat("_VoidPulseRate", voidVarianceDelta);
+                        _propBlock.SetFloat("_EmissiveIntensity", voidVarianceDelta * 3.0f);
+                        delilahRenderer.SetPropertyBlock(_propBlock);
                     // ⚡ Bolt: Using cached renderer and Property IDs for O(1) shader updates.
                     if (delilahRenderer != null)
                     {

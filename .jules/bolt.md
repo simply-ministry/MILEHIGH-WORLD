@@ -86,6 +86,9 @@
 **Learning:** In high-frequency Unity coroutines like typewriter effects, each 'yield return' instruction incurs a performance penalty as the Unity coroutine scheduler must manage the suspension and resumption. Consolidating multiple yields (e.g., base speed + punctuation delay) into a single calculated 'yield return GetWait(totalDelay)' per iteration significantly reduces CPU overhead by ~75%.
 **Action:** Always sum cumulative delays within a single loop iteration and yield once to minimize scheduler resumptions.
 
+## 2026-05-19 - [Unity Async Loop Lookup Optimization]
+**Learning:** Async task loops (using 'await Task.Yield()') that perform O(N) dictionary lookups ('director.GetAlly') or native component searches ('GetComponent') every iteration create a cumulative CPU bottleneck. Unlike 'Update()', these loops can be less obvious but equally performance-critical during cinematic/combat sequences.
+**Action:** Always pre-cache character references and components outside 'while' or 'for' loops that yield control. Ensure the base GameObject is null-checked before caching to prevent 'NullReferenceException' if the object is missing or destroyed.
 ## 2025-05-18 - Combat Orchestration Reference Caching
 **Learning:** In frame-based combat orchestrators (e.g., EndGameOrchestrationBridge), repeated calls to 'director.GetAlly("Name")' and 'GetComponent<Rigidbody>()' within 'while' loops create significant CPU overhead due to dictionary lookups and native engine bridge crossings. Furthermore, assigning constant values to Rigidbody properties every frame creates redundant memory writes.
 **Action:** Always pre-cache ally references and components outside of frame-based loops. Move any constant property assignments (e.g., mass, drag) outside the loop to eliminate unnecessary per-frame overhead.
