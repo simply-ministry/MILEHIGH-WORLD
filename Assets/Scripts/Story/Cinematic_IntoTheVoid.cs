@@ -136,6 +136,25 @@ namespace MilehighWorld.Cinematics
         }
 
         /// <summary>
+        /// Layout-safe rhythmic typewriter effect for cinematic dialogue.
+        /// </summary>
+        private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
+        {
+            speakerNameText.text = $"<color=cyan>[{speaker}]</color>";
+            dialogueText.text = content;
+            dialogueText.maxVisibleCharacters = 0;
+            dialogueText.ForceMeshUpdate();
+
+            for (int i = 0; i <= dialogueText.textInfo.characterCount; i++)
+            {
+                dialogueText.maxVisibleCharacters = i;
+                if (i > 0 && i < dialogueText.textInfo.characterCount)
+                {
+                    char c = dialogueText.textInfo.characterInfo[i - 1].character;
+                    if (c == '.' || c == '?' || c == '!') await Task.Delay(Mathf.RoundToInt(charDelay * 15 * 1000));
+                    else if (c == ',' || c == ':' || c == ';') await Task.Delay(Mathf.RoundToInt(charDelay * 8 * 1000));
+                }
+                await Task.Delay(Mathf.RoundToInt(charDelay * 1000));
         /// Zero-allocation typewriter effect with rhythmic pacing and character-themed cues.
         /// </summary>
         private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
