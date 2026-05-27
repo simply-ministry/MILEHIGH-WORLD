@@ -81,3 +81,7 @@
 ## 2024-05-16 - Coroutine Resumption Optimization
 **Learning:** In high-frequency Unity coroutines like typewriter effects, each 'yield return' instruction incurs a performance penalty as the Unity coroutine scheduler must manage the suspension and resumption. Consolidating multiple yields (e.g., base speed + punctuation delay) into a single calculated 'yield return GetWait(totalDelay)' per iteration significantly reduces CPU overhead by ~75%.
 **Action:** Always sum cumulative delays within a single loop iteration and yield once to minimize scheduler resumptions.
+
+## 2024-05-18 - Optimized Combat Loop Orchestration
+**Learning:** In 'EndGameOrchestrationBridge.cs', the main combat loop was performing O(N) 'GetAlly' lookups and 'GetComponent' calls every frame. Hoisting these lookups outside the loop and using 'Shader.PropertyToID' for shader parameter updates provides a significant CPU performance win by eliminating redundant dictionary searches and string-to-int hashing in the Unity engine.
+**Action:** Always pre-cache character references and component lookups outside of high-frequency loops (Update, Coroutines, or async Tasks). Use Property IDs for any per-frame material updates.

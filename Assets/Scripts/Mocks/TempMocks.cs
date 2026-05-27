@@ -39,7 +39,7 @@ namespace UnityEngine
         public Quaternion rotation { get; set; }
         public Vector3 localPosition { get; set; }
         public Vector3 localScale { get; set; }
-        public Vector3 one => new Vector3(1, 1, 1);
+        public static Vector3 one => new Vector3(1, 1, 1);
         public Transform parent { get; set; }
         public Transform Find(string name) => null;
     }
@@ -101,10 +101,6 @@ namespace UnityEngine
         public static int RoundToInt(float value) => (int)value;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
-    }
-    public static class Random
-    {
-        public static float Range(float min, float max) => 0;
     }
     public class Color
     {
@@ -169,7 +165,12 @@ namespace UnityEngine
         public static bool GetKeyDown(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow }
+    public enum KeyCode { Space, Return, UpArrow, Tab, DownArrow }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow }
+    public enum KeyCode { Space, Return, UpArrow, Tab, DownArrow }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
+    public enum KeyCode { Space, Return, UpArrow, Tab }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
@@ -190,26 +191,33 @@ namespace TMPro
 {
     public class TMP_Text : UnityEngine.UI.Graphic
     {
-        public string text { get; set; } = "";
-    }
-    public class TextMeshProUGUI : UnityEngine.MonoBehaviour
-    {
         public virtual string text { get; set; } = "";
+        public string text { get; set; } = "";
+        public int maxVisibleCharacters { get; set; }
     }
     public class TextMeshProUGUI : TMP_Text
     {
-        public override string text { get; set; } = "";
         public int maxVisibleCharacters { get; set; }
+        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
+        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
+        public virtual string text { get; set; } = "";
+        public int maxVisibleCharacters { get; set; }
+        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
         public string text { get; set; } = "";
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
+        public int characterCount { get; set; }
+        public TMP_CharacterInfo[] characterInfo { get; set; } = new TMP_CharacterInfo[0];
     }
     public class TextMeshProUGUI : TMP_Text
     {
-        public int maxVisibleCharacters { get; set; }
         public void ForceMeshUpdate() {}
         public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
         public UnityEngine.Color color { get; set; }
+        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
+    }
+    public class TextMeshProUGUI : TMP_Text
+    {
     }
     public class TMP_InputField : UnityEngine.UI.Selectable
     {
@@ -220,11 +228,6 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; }
-        public int characterLimit { get; set; }
-    }
-    public class TMP_Text : UnityEngine.UI.Graphic
-    {
-        public string text { get; set; } = "";
     }
     public class TMP_TextInfo
     {
