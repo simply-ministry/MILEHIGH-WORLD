@@ -18,6 +18,10 @@ namespace MilehighWorld.CombatSystems
 
         private static MaterialPropertyBlock? _propBlock;
 
+        // ⚡ Bolt: Pre-cache shader property IDs to eliminate string hashing overhead in the hot loop.
+        private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
+        private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
+
         public async Task CoordinateFinalNexusLockAsync(EncounterDirector director, LatticeSynchronizer synchronizer)
         {
             Debug.Log("<color=#E0BBE4>[SYSTEM]: multi_front_battle_loop initiated. Synchronizing thread data...</color>");
@@ -28,6 +32,15 @@ namespace MilehighWorld.CombatSystems
             var aeronGuardian = director.GetAlly("Aeron");
             var cirrusDragon = director.GetAlly("Cirrus");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
+
+            // ⚡ Bolt: Hoist constant lookups and component fetches outside the hot loop.
+            var reverieAlly = director.GetAlly("Reverie");
+            Rigidbody? squadMassOverride = (micahBulwark?.PrefabReference != null)
+                ? micahBulwark.PrefabReference.GetComponent<Rigidbody>()
+                : null;
+
+            // ⚡ Bolt: Set constant property values once outside the loop.
+            if (squadMassOverride != null) squadMassOverride.mass = 900.0f;
 
             float voidVarianceDelta = 0.99f;
             float combinedTraumaModifier = 0.85f; // Clamped index based on Micah + Cirrus profiles
@@ -44,24 +57,23 @@ namespace MilehighWorld.CombatSystems
                     return;
                 }
 
-                // Simulate the defensive grounding footprint from Micah's Bulwark class
-                var squadMassOverride = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
-                // Fix: Set mass to a fixed high value instead of multiplying every frame
-                squadMassOverride.mass = 900.0f;
+                // ⚡ Bolt: Removed redundant GetComponent and mass assignment from loop.
 
                 // Process the 1000 Fox Parade / Arcane Symphony visual degradation tracking
-                director.GetAlly("Reverie").UseAbility("Arcane Symphony");
-                skyIxVanguard.UseAbility("Void Step");
+                // ⚡ Bolt: Using cached ally reference to avoid repeated O(1) dictionary lookups.
+                if (reverieAlly != null) reverieAlly.UseAbility("Arcane Symphony");
+                if (skyIxVanguard != null) skyIxVanguard.UseAbility("Void Step");
 
                 // Decrement global variance based on local structural shard completion
                 voidVarianceDelta -= 0.11f;
 
                 // Real-time update to HDRP custom material instances via property IDs
+                // ⚡ Bolt: Using cached Renderer and Property IDs for O(1) shader updates.
                 if (platformRenderer != null)
                 {
                     platformRenderer.GetPropertyBlock(_propBlock);
-                    _propBlock.SetFloat("_VoidPulseRate", voidVarianceDelta);
-                    _propBlock.SetFloat("_EmissiveIntensity", voidVarianceDelta * 4.5f);
+                    _propBlock.SetFloat(VoidPulseRateId, voidVarianceDelta);
+                    _propBlock.SetFloat(EmissiveIntensityId, voidVarianceDelta * 4.5f);
                     platformRenderer.SetPropertyBlock(_propBlock);
                 }
 
