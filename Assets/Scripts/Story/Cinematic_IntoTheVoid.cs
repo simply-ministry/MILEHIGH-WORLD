@@ -26,6 +26,7 @@ namespace MilehighWorld.Cinematics
         [SerializeField] private TextMeshProUGUI speakerNameText = null!;
         [SerializeField] private TextMeshProUGUI dialogueText = null!;
         [SerializeField] private GameObject dialogueCanvas = null!;
+        [SerializeField] private GameObject skipHint = null!;
 
         [Header("Environmental Shaders")]
         [SerializeField] private Material hyperrealisticPlatformShader = null!;
@@ -39,11 +40,53 @@ namespace MilehighWorld.Cinematics
         private const float LinearOmenHexState = 6.0f;
         private const float IteratedSanctuary = 0.0777777777f;
 
+        private bool skipRequested = false;
+        private float idleTimer = 0f;
+        private bool playerInteracted = false;
+        private Vector3 originalSpeakerScale;
+
         private void Start()
         {
             // Lock timeScale for deterministic cinematic pacing
             Time.timeScale = 1.0f;
+
+            if (skipHint != null) skipHint.SetActive(false);
+
+            // Palette: Accessibility - High-contrast outlines for better readability
+            if (speakerNameText != null) ApplyHighContrastOutline(speakerNameText);
+            if (dialogueText != null) ApplyHighContrastOutline(dialogueText);
+
+            if (speakerNameText != null) originalSpeakerScale = speakerNameText.transform.localScale;
+
             _ = ExecuteConvergenceSequenceAsync();
+        }
+
+        private void ApplyHighContrastOutline(TextMeshProUGUI text)
+        {
+            text.fontMaterial.EnableKeyword(ShaderUtilities.Keyword_Outline);
+            text.fontMaterial.SetColor(ShaderUtilities.ID_OutlineColor, Color.black);
+            text.fontMaterial.SetFloat(ShaderUtilities.ID_OutlineWidth, 0.2f);
+        }
+
+        private void Update()
+        {
+            // Palette: Universal skip accessibility - Capture any key or click to bypass dialogue pacing
+            if (Input.anyKeyDown)
+            {
+                skipRequested = true;
+                playerInteracted = true;
+                idleTimer = 0f;
+                if (skipHint != null) skipHint.SetActive(false);
+            }
+            else
+            {
+                // Palette: Idle skip hint discoverability
+                idleTimer += Time.deltaTime;
+                if (!playerInteracted && idleTimer >= 2.0f && skipHint != null)
+                {
+                    skipHint.SetActive(true);
+                }
+            }
         }
 
         private async Task ExecuteConvergenceSequenceAsync()
@@ -61,9 +104,10 @@ namespace MilehighWorld.Cinematics
             // 3. Asynchronous Lexical Pacing
             dialogueCanvas.SetActive(true);
             await StreamDialogueAsync("King Cyrus", "Tremble, mortals, as the Age of Millenia crumbles before the might of the Void!", 0.04f);
-            await Task.Delay(500);
+            await WaitForSecondsOrSkip(0.5f);
 
             await StreamDialogueAsync("Sky.ix", "Negative. The resonance is peaking. We are at 998 shards. Engaging Void Conduit.", 0.03f);
+            await WaitForSecondsOrSkip(0.5f);
 
             // 4. Parity Verification via OMEGA.ONE Fulcrum
             LogNarrativeTelemetry("Executing BackendSyncService Call: Validating Parity Resonance...");
@@ -77,6 +121,7 @@ namespace MilehighWorld.Cinematics
             if (resolution.WasActionSuccessful)
             {
                 await StreamDialogueAsync("Reverie", "The 999th shard is ours. Severing the loop... now!", 0.03f);
+                await WaitForSecondsOrSkip(0.5f);
                 await ExecuteSaveEveryoneProtocolAsync();
             }
             else
@@ -136,21 +181,97 @@ namespace MilehighWorld.Cinematics
         }
 
         /// <summary>
-        /// Zero-allocation typewriter effect for dialogue rendering.
+        /// Zero-allocation typewriter effect with rhythmic pacing and character-themed cues.
         /// </summary>
         private async Task StreamDialogueAsync(string speaker, string content, float charDelay)
         {
-            speakerNameText.text = $"<color=cyan>[{speaker}]</color>";
-            dialogueText.text = "";
+            // Palette: Reset interaction state for each new line
+            skipRequested = false;
+            playerInteracted = false;
 
-            for (int i = 0; i < content.Length; i++)
+            string newSpeakerText = $"<color={GetSpeakerColor(speaker)}>[{speaker}]</color>";
+            if (speakerNameText.text != newSpeakerText)
             {
-                dialogueText.text += content[i];
-
-                // Base-9 Frame Parity Alignment: Yield heavily on 9th iterations if needed,
-                // but for lexical pacing, we use a scaled delay.
-                await Task.Delay(Mathf.RoundToInt(charDelay * 1000));
+                speakerNameText.text = newSpeakerText;
+                _ = PopScaleAsync(speakerNameText.transform);
             }
+
+            // Pre-calculate layout with completion cue to avoid jarring shifts
+            string colorHex = GetSpeakerColor(speaker);
+            dialogueText.text = $"{content} <color={colorHex}>▽</color>";
+            dialogueText.maxVisibleCharacters = 0;
+            dialogueText.ForceMeshUpdate();
+
+            int totalCharacters = dialogueText.textInfo.characterCount;
+            int baseDelayMs = Mathf.RoundToInt(charDelay * 1000);
+
+            for (int i = 1; i <= totalCharacters; i++)
+            {
+                if (skipRequested)
+                {
+                    dialogueText.maxVisibleCharacters = totalCharacters;
+                    break;
+                }
+
+                dialogueText.maxVisibleCharacters = i;
+
+                // Get the character that was just revealed
+                char c = dialogueText.textInfo.characterInfo[i - 1].character;
+                int currentDelay = baseDelayMs;
+
+                // Rhythmic Pacing Logic: Apply pauses for punctuation to mimic natural speech
+                if (c == '.' || c == '?' || c == '!')
+                {
+                    bool isEllipsis = (i < totalCharacters && dialogueText.textInfo.characterInfo[i].character == '.');
+                    bool isEndOfSentence = (i == totalCharacters || char.IsWhiteSpace(dialogueText.textInfo.characterInfo[i].character));
+
+                    if (isEllipsis) currentDelay *= 5;
+                    else if (isEndOfSentence) currentDelay *= 15;
+                }
+                else if (c == ',' || c == ';' || c == ':')
+                {
+                    currentDelay *= 8;
+                }
+
+                if (skipRequested) break;
+                await Task.Delay(currentDelay);
+            }
+        }
+
+        private async Task PopScaleAsync(Transform target)
+        {
+            float duration = 0.2f;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                float scale = 1f + Mathf.Sin((elapsed / duration) * Mathf.PI) * 0.1f;
+                target.localScale = originalSpeakerScale * scale;
+                await Task.Yield();
+            }
+            target.localScale = originalSpeakerScale;
+        }
+
+        private async Task WaitForSecondsOrSkip(float seconds)
+        {
+            float elapsed = 0f;
+            while (elapsed < seconds && !skipRequested)
+            {
+                elapsed += Time.deltaTime;
+                await Task.Yield();
+            }
+            skipRequested = false; // Palette: Reset skip for the next dialogue beat
+        }
+
+        private string GetSpeakerColor(string speaker)
+        {
+            return speaker switch
+            {
+                "Sky.ix" => "#00FFFF",
+                "King Cyrus" => "#FFFF00",
+                "Reverie" => "#FF00FF",
+                _ => "#FFFFFF"
+            };
         }
 
         [Conditional("ENABLE_NARRATIVE_LOGS")]
