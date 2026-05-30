@@ -23,3 +23,7 @@
 ## 2025-06-18 - [Terminal Fuzzy Matching]
 **Learning:** Terminal-based interfaces are prone to user typos, especially when commands are technical. Providing "Did you mean?" suggestions using Levenshtein distance significantly reduces user frustration and improves the "intelligence" feel of the system.
 **Action:** Implement fuzzy matching suggestions for unknown commands in CLI-style interfaces to guide users toward valid inputs.
+
+## 2025-06-21 - [Terminal Convention Alignment]
+**Learning:** Users with CLI experience instinctively use standard shortcuts like `Ctrl+L` to clear the screen and `Escape` to reset an input line. Implementing these creates a "it just works" feeling for power users.
+**Action:** In terminal-style interfaces, always map standard shell shortcuts (Ctrl+L, Esc) to their corresponding UI actions to align with user mental models.
