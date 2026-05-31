@@ -112,7 +112,10 @@ namespace MilehighWorld.Systems.Agency
                 req.SetRequestHeader("Content-Type", "application/json");
 
                 // BOLT: Conservation of Nine - Yield if needed
-                if (Time.frameCount % 9 == 0) await Task.Yield();
+                if (Time.frameCount % 9 == 0)
+                {
+                    await Task.Yield();
+                }
 
                 // Using SendWebRequest and polling to avoid missing extension methods in sandbox
                 var operation = req.SendWebRequest();
@@ -140,7 +143,10 @@ namespace MilehighWorld.Systems.Agency
 
         private void EnactResolutionInGame(ActionResolutionResponse resolution)
         {
-            if (resolution == null) return;
+            if (resolution == null)
+            {
+                return;
+            }
 
             // PALETTE: Rich text for speaker identification and dialogue
             if (!string.IsNullOrEmpty(resolution.DialogueGenerated))

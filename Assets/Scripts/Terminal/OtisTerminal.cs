@@ -53,7 +53,10 @@ namespace MilehighWorld.World.Terminal
 
         private void Update()
         {
-            if (commandInput == null || !commandInput.isFocused) return;
+            if (commandInput == null || !commandInput.isFocused)
+            {
+                return;
+            }
 
             // Palette: Productivity - Ctrl+L shortcut to clear the terminal for better workspace management.
             bool isControlPressed = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
@@ -64,11 +67,20 @@ namespace MilehighWorld.World.Terminal
             }
 
             // Palette: Refined history navigation - ensure responsiveness by polling in Update.
-            if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(-1);
-            else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(1);
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                NavigateHistory(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                NavigateHistory(1);
+            }
 
             // Palette: Productivity - Tab-to-Autocomplete for common commands.
-            if (Input.GetKeyDown(KeyCode.Tab)) HandleAutocomplete();
+            if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                HandleAutocomplete();
+            }
         }
 
         private void HandleAutocomplete()
@@ -99,7 +111,10 @@ namespace MilehighWorld.World.Terminal
 
         public void ProcessCommand(string input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return;
+            }
 
             // UX Enhancement: Clear input and refocus immediately for better flow
             if (commandInput != null)
@@ -112,14 +127,20 @@ namespace MilehighWorld.World.Terminal
             if (input.Length > MaxInputLength)
             {
                 WriteToTerminal("\n[SECURITY]: <color=#FF0000>Input exceeds maximum length (256 characters).</color>");
-                if (commandInput != null) StartCoroutine(ShakeInputField());
+                if (commandInput != null)
+                {
+                    StartCoroutine(ShakeInputField());
+                }
                 return;
             }
 
             if (!SafeCommandRegex.IsMatch(input))
             {
                 WriteToTerminal("\n[SECURITY]: <color=#FF0000>Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.</color>");
-                if (commandInput != null) StartCoroutine(ShakeInputField());
+                if (commandInput != null)
+                {
+                    StartCoroutine(ShakeInputField());
+                }
                 return;
             }
 
@@ -128,7 +149,10 @@ namespace MilehighWorld.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory[^1] != input)
             {
                 _commandHistory.Add(input);
-                if (_commandHistory.Count > 100) _commandHistory.RemoveAt(0);
+                if (_commandHistory.Count > 100)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
             _historyIndex = _commandHistory.Count;
 
@@ -164,7 +188,10 @@ namespace MilehighWorld.World.Terminal
             else
             {
                 WriteToTerminal($"\n[SYSTEM]: <color=#FF0000>Unknown command or invalid argument count: '{parts[0]}'</color>");
-                if (commandInput != null) StartCoroutine(ShakeInputField());
+                if (commandInput != null)
+                {
+                    StartCoroutine(ShakeInputField());
+                }
             }
         }
 

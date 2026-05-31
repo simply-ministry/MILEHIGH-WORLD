@@ -56,7 +56,10 @@ namespace MilehighWorld.Editor
             {
                 foreach (var charProfile in data.characters)
                 {
-                    if (charProfile == null || !charProfile.IsValid()) continue;
+                    if (charProfile == null || !charProfile.IsValid())
+                    {
+                        continue;
+                    }
 
                     CharacterData asset = ScriptableObject.CreateInstance<CharacterData>();
                     asset.characterName = charProfile.name;
@@ -78,7 +81,10 @@ namespace MilehighWorld.Editor
 
         private static string GetSafeFileName(string input)
         {
-            if (string.IsNullOrEmpty(input)) return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            if (string.IsNullOrEmpty(input))
+            {
+                return "unnamed_character_" + System.Guid.NewGuid().ToString().Substring(0, 8);
+            }
 
             // Whitelist: Allow only alphanumeric, underscores, and hyphens.
             string sanitized = Regex.Replace(input, @"[^a-zA-Z0-9_\-]", "_");

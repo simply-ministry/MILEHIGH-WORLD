@@ -83,7 +83,10 @@ namespace MilehighWorld.Core
             {
                 foreach (var charProfile in campaignData.characters)
                 {
-                    if (charProfile != null) SpawnOrUpdateCharacter(charProfile);
+                    if (charProfile != null)
+                    {
+                        SpawnOrUpdateCharacter(charProfile);
+                    }
                 }
             }
 
@@ -91,7 +94,10 @@ namespace MilehighWorld.Core
             {
                 foreach (var interaction in scenario.interactiveObjects)
                 {
-                    if (interaction != null) ApplyInteraction(interaction);
+                    if (interaction != null)
+                    {
+                        ApplyInteraction(interaction);
+                    }
                 }
             }
         }
