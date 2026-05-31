@@ -101,6 +101,8 @@ namespace UnityEngine
         public static int RoundToInt(float value) => (int)value;
         public static int Clamp(int value, int min, int max) => value < min ? min : (value > max ? max : value);
         public static float Clamp(float value, float min, float max) => value < min ? min : (value > max ? max : value);
+        public static int Min(int a, int b) => a < b ? a : b;
+        public static float Min(float a, float b) => a < b ? a : b;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
     }
@@ -165,9 +167,10 @@ namespace UnityEngine
     {
         public static bool anyKeyDown;
         public static bool GetKeyDown(KeyCode code) => false;
+        public static bool GetKey(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
@@ -210,6 +213,12 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
+        public SubmitEvent onSubmit { get; set; } = new SubmitEvent();
+    }
+
+    public class SubmitEvent
+    {
+        public void AddListener(Action<string> call) {}
     }
 
     public class TMP_TextInfo
