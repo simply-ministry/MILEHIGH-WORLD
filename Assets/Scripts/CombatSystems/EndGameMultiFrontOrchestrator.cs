@@ -4,14 +4,12 @@ using System.Threading.Tasks;
 using UnityEngine;
 using MilehighWorld.Core;
 using MilehighWorld.Simulation;
+using Milehigh.World.CoreLogic;
 
 namespace MilehighWorld.CombatSystems
 {
     public class EndGameMultiFrontOrchestrator : MonoBehaviour
     {
-        private const int TARGET_PARITY_NODE = 999;
-        private readonly double eventHorizonLimit = 1.4446678659d;
-
         [Header("Global Material Overrides")]
         [SerializeField] private Renderer platformRenderer;
         [SerializeField] private GameObject onalymNexusGateway;
@@ -19,6 +17,7 @@ namespace MilehighWorld.CombatSystems
         private static MaterialPropertyBlock? _propBlock;
 
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups.
+        // ⚡ Bolt: Cache shader property IDs to avoid string lookups in high-frequency loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -29,8 +28,7 @@ namespace MilehighWorld.CombatSystems
             // 1. Unpack entity targets from registry
             var micahBulwark = director.GetAlly("Micah");
             var skyIxVanguard = director.GetAlly("Sky.ix");
-            var aeronGuardian = director.GetAlly("Aeron");
-            var cirrusDragon = director.GetAlly("Cirrus");
+            var reverieAlly = director.GetAlly("Reverie");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
 
             // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
@@ -45,6 +43,15 @@ namespace MilehighWorld.CombatSystems
 
             if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
+            // ⚡ Bolt: Pre-cache components outside the loop.
+            Rigidbody? squadMassOverride = null;
+            if (micahBulwark != null && micahBulwark.PrefabReference != null)
+            {
+                squadMassOverride = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
+                // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
+                if (squadMassOverride != null) squadMassOverride.mass = 900.0f;
+            }
+
             // 2. Main multi-threaded evaluation loop for the convergence
             while (voidVarianceDelta > 0.0f)
             {
@@ -58,11 +65,14 @@ namespace MilehighWorld.CombatSystems
                 // ⚡ Bolt: Using pre-cached references and components to avoid O(N) lookups and native bridge overhead.
                 if (reverie != null) reverie.UseAbility("Arcane Symphony");
                 if (skyIxVanguard != null) skyIxVanguard.UseAbility("Void Step");
+                // Process the 1000 Fox Parade / Arcane Symphony visual degradation tracking
+                reverieAlly?.UseAbility("Arcane Symphony");
+                skyIxVanguard?.UseAbility("Void Step");
 
                 // Decrement global variance based on local structural shard completion
                 voidVarianceDelta -= 0.11f;
 
-                // Real-time update to HDRP custom material instances via property IDs
+                // Real-time update to material instances via property IDs
                 if (platformRenderer != null)
                 {
                     platformRenderer.GetPropertyBlock(_propBlock);
@@ -83,10 +93,10 @@ namespace MilehighWorld.CombatSystems
             // 4. Finalize checksum at the 999th logic shard checkpoint
             if (synchronizer != null)
             {
-                synchronizer.SynchronizeShard(TARGET_PARITY_NODE, combinedTraumaModifier);
+                synchronizer.SynchronizeShard(RealityConstants.MaxShardParity, combinedTraumaModifier);
 
                 // Toggle active rendering state on the Onalym gateway to seal the sector
-                onalymNexusGateway.SetActive(false);
+                if (onalymNexusGateway != null) onalymNexusGateway.SetActive(false);
                 Time.timeScale = 1.0f; // Restore baseline standard simulation time execution
 
                 Debug.Log("<color=#00FF00>[SYSTEM]: Save Everyone Protocol success. Parity resonance locked at True Monad (1.0). Millenia online.</color>");

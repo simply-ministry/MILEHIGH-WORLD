@@ -4,14 +4,12 @@ using System.Threading.Tasks;
 using UnityEngine;
 using MilehighWorld.Core;
 using MilehighWorld.Simulation;
+using Milehigh.World.CoreLogic;
 
 namespace MilehighWorld.CombatSystems
 {
     public class EndGameOrchestrationBridge : MonoBehaviour
     {
-        private const int TARGET_SHARDS = 999;
-        private double absoluteTensionBase = 1.4446678659d;
-
         [Header("Entity Allocations")]
         [SerializeField] private GameObject anastasiaAnchor = null!;
         [SerializeField] private GameObject delilahTargetMesh = null!;
@@ -19,6 +17,12 @@ namespace MilehighWorld.CombatSystems
         private static MaterialPropertyBlock? _propBlock;
 
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-ID lookups in hot loops.
+        [SerializeField] private GameObject? anastasiaAnchor;
+        [SerializeField] private GameObject? delilahTargetMesh;
+
+        private static MaterialPropertyBlock? _propBlock;
+
+        // ⚡ Bolt: Cache shader property IDs to avoid expensive string-to-int lookups in hot loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -49,6 +53,19 @@ namespace MilehighWorld.CombatSystems
 
                 // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
                 if (aeronRB != null) aeronRB.mass = 900.0f;
+                Rigidbody? aeronRB = null;
+                if (aeron != null && aeron.PrefabReference != null)
+                {
+                    aeronRB = aeron.PrefabReference.GetComponent<Rigidbody>();
+                    // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
+                    if (aeronRB != null) aeronRB.mass = 900.0f;
+                }
+
+                Renderer? delilahRenderer = null;
+                if (delilahTargetMesh != null)
+                {
+                    delilahTargetMesh.TryGetComponent<Renderer>(out delilahRenderer);
+                }
 
                 // Force Absolute Compression Limit on background environment loops
                 Time.timeScale = 0.0777777777f;
@@ -62,6 +79,9 @@ namespace MilehighWorld.CombatSystems
                 float parityResonance = 0.15f;
                 float deltaStep = (ingrisVanguard.PrefabReference != null) ? 0.09f : 0.009f;
 
+                // ⚡ Bolt: Pre-calculate loop-invariant or frequent values.
+                float deltaStep = ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
+
                 while (voidVarianceDelta > 0.001f)
                 {
                     // Real-Time database check to verify Anastasia's structural tracking integrity
@@ -72,6 +92,7 @@ namespace MilehighWorld.CombatSystems
                     }
 
                     // Execute Defense Subroutines using cached references
+                    // Execute Layer 1 Defense Subroutine (Dreamscape & Spatial Audio Sync)
                     yuna?.UseAbility("Nine-Tailed Foxfire");
                     reverie?.UseAbility("Arcane Symphony");
                     zaia?.UseAbility("Spatial Warp");
@@ -81,6 +102,7 @@ namespace MilehighWorld.CombatSystems
                     parityResonance += (1.0f - voidVarianceDelta) * 0.077f;
 
                     // ⚡ Bolt: Using cached Renderer and Property IDs for O(1) shader updates.
+                    // ⚡ Bolt: Using cached renderer and Property IDs for O(1) shader updates.
                     if (delilahRenderer != null)
                     {
                         delilahRenderer.GetPropertyBlock(_propBlock);
@@ -95,7 +117,7 @@ namespace MilehighWorld.CombatSystems
                 // 5. Finalize Parity Lock at the absolute digital root of nine
                 if (synchronizer != null)
                 {
-                    synchronizer.SynchronizeShard(TARGET_SHARDS, parityResonance);
+                    synchronizer.SynchronizeShard(RealityConstants.MaxShardParity, parityResonance);
                     Debug.Log("<color=#00FF00>[SYSTEM]: Save Everyone Protocol Initiated via Bloodline Cipher. Delilah Purged.</color>");
                 }
             }
