@@ -96,7 +96,6 @@ namespace Milehigh.Core
                 if (prefab != null)
                 {
                     characterObj = UnityEngine.Object.Instantiate(prefab, characterSpawnRoot);
-                    characterObj = Object.Instantiate(prefab, characterSpawnRoot);
                     characterObj.name = profile.name;
                     _objectCache[profile.name] = characterObj;
                 }
@@ -162,42 +161,20 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException.
+            // 🛡️ Sentinel: Defensive programming - ensure interaction and objectId are not null.
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block access to core architectural singletons and system managers.
-            // 🛡️ Sentinel: Defensive programming - Null check before access to prevent NRE and stack trace leakage.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block access to core architectural singletons that should not be manipulated via campaign data.
+            // Block critical system managers and architectural singletons from being manipulated via external data.
             if (interaction.objectId == "CampaignManager" ||
                 interaction.objectId == "SceneDirector" ||
                 interaction.objectId == "CameraManager" ||
                 interaction.objectId == "AlliancePowerManager" ||
                 interaction.objectId == "CombatManager" ||
                 interaction.objectId == "GlobalResonanceManager" ||
-            // 🛡️ Sentinel: Defensive programming - verify parameters are not null.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block access to core architectural singletons and managers.
-            // 🛡️ Sentinel: Defensive programming - ensure interaction is not null.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block access to core architectural singletons.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block critical system managers and architectural singletons from being manipulated via external data.
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs
-            // We block core architectural singletons from being manipulated via external data.
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
-                interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
-                interaction.objectId == "BicameralBattleEngine")
+                interaction.objectId == "BicameralBattleEngine" ||
+                interaction.objectId == "SkyIxController" ||
+                interaction.objectId == "CinematicController")
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
                 return;
