@@ -17,7 +17,6 @@ namespace MilehighWorld.CombatSystems
         private static MaterialPropertyBlock? _propBlock;
 
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups.
-        // ⚡ Bolt: Cache shader property IDs to avoid string lookups in high-frequency loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -25,15 +24,13 @@ namespace MilehighWorld.CombatSystems
         {
             Debug.Log("<color=#E0BBE4>[SYSTEM]: multi_front_battle_loop initiated. Synchronizing thread data...</color>");
 
-            // 1. Unpack entity targets from registry
+            // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
             var micahBulwark = director.GetAlly("Micah");
             var skyIxVanguard = director.GetAlly("Sky.ix");
             var reverieAlly = director.GetAlly("Reverie");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
 
-            // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
-            var reverie = director.GetAlly("Reverie");
-            var micahRB = micahBulwark?.PrefabReference?.GetComponent<Rigidbody>();
+            Rigidbody? micahRB = (micahBulwark?.PrefabReference != null) ? micahBulwark.PrefabReference.GetComponent<Rigidbody>() : null;
 
             // ⚡ Bolt: Setting constant values once outside the loop to eliminate redundant native writes.
             if (micahRB != null) micahRB.mass = 900.0f;
@@ -42,15 +39,6 @@ namespace MilehighWorld.CombatSystems
             float combinedTraumaModifier = 0.85f; // Clamped index based on Micah + Cirrus profiles
 
             if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
-
-            // ⚡ Bolt: Pre-cache components outside the loop.
-            Rigidbody? squadMassOverride = null;
-            if (micahBulwark != null && micahBulwark.PrefabReference != null)
-            {
-                squadMassOverride = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
-                // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
-                if (squadMassOverride != null) squadMassOverride.mass = 900.0f;
-            }
 
             // 2. Main multi-threaded evaluation loop for the convergence
             while (voidVarianceDelta > 0.0f)
@@ -62,10 +50,7 @@ namespace MilehighWorld.CombatSystems
                     return;
                 }
 
-                // ⚡ Bolt: Using pre-cached references and components to avoid O(N) lookups and native bridge overhead.
-                if (reverie != null) reverie.UseAbility("Arcane Symphony");
-                if (skyIxVanguard != null) skyIxVanguard.UseAbility("Void Step");
-                // Process the 1000 Fox Parade / Arcane Symphony visual degradation tracking
+                // ⚡ Bolt: Using pre-cached references to avoid O(N) lookups and native bridge overhead.
                 reverieAlly?.UseAbility("Arcane Symphony");
                 skyIxVanguard?.UseAbility("Void Step");
 
