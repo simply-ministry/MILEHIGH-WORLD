@@ -10,8 +10,8 @@ namespace Milehigh.World.Terminal
 {
     public class OtisTerminal : MonoBehaviour
     {
-        [SerializeField] private TMP_InputField commandInput;
-        [SerializeField] private TextMeshProUGUI outputDisplay;
+        [SerializeField] private TMP_InputField commandInput = null!;
+        [SerializeField] private TextMeshProUGUI outputDisplay = null!;
 
         [Header("Typewriter Settings")]
         [SerializeField] private float typingSpeed = 0.02f;
@@ -25,6 +25,8 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
+
+        private static readonly string[] ValidCommands = { "help", "clear" };
         private string _lastCommand = "";
         private readonly string[] _availableCommands = { "help", "clear", "infiniteration" };
         private readonly List<string> _commandHistory = new List<string>();
@@ -81,17 +83,7 @@ namespace Milehigh.World.Terminal
             // 🎨 Palette: Command History Navigation (Up/Down Arrows)
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
-                NavigateHistory(-1);
-            }
-            else if (Input.GetKeyDown(KeyCode.DownArrow))
-            {
-                NavigateHistory(1);
-            }
-            // 🎨 Palette: Tab Completion for common commands
-            else if (Input.GetKeyDown(KeyCode.Tab))
-            {
-                string currentText = commandInput.text.ToLower();
-                if (!string.IsNullOrEmpty(currentText))
+                if (_commandHistory.Count > 0)
                 {
                     string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentText));
                     if (match != null && match != currentText)
@@ -133,6 +125,7 @@ namespace Milehigh.World.Terminal
             }
             else if (Input.GetKeyDown(KeyCode.DownArrow))
             {
+                if (_historyIndex > -1)
                 _historyIndex = Mathf.Clamp(_historyIndex - 1, -1, _commandHistory.Count - 1);
                 commandInput.text = _historyIndex == -1 ? "" : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                 commandInput.MoveTextEnd(false);
@@ -141,9 +134,18 @@ namespace Milehigh.World.Terminal
                 if (_historyIndex > 0)
                 {
                     _historyIndex--;
-                    commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
+                    commandInput.text = _historyIndex == -1 ? "" : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                     commandInput.MoveTextEnd(false);
                 }
+            }
+            // 🎨 Palette: Tab Completion for common commands
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentText = commandInput.text.Trim().ToLower();
+                if (!string.IsNullOrEmpty(currentText))
+                {
+                    string? match = ValidCommands.FirstOrDefault(c => c.StartsWith(currentText));
+                    if (match != null)
                 else if (_historyIndex == 0)
                 {
                     _historyIndex = -1;
@@ -168,6 +170,9 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            // 🎨 Palette: Reset history index on command submission
+            _historyIndex = -1;
+
             // 🛡️ Sentinel: Early exit and basic echo for empty input.
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -176,6 +181,13 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
+            // Sanitize input to escape rich text tags.
+            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
+
+            if (input.Length > MaxInputLength)
+            {
+                WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
             // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
@@ -190,11 +202,17 @@ namespace Milehigh.World.Terminal
             {
                 string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters.");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
                 CleanupInputAfterCommand();
                 return;
             }
 
+            // 🎨 Palette: Echo validated user command to terminal.
+            // 🛡️ Sentinel: Ensures sanitized input is echoed, preventing UI injection via Rich Text tags.
+            WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
+
+            // Update command history
             // 🎨 Palette: Echo validated user command to terminal and update history.
             WriteToTerminal($"\n<color=#888888>> {input}</color>");
 
@@ -371,6 +389,9 @@ namespace Milehigh.World.Terminal
                 }
                 else if (c == ',' || c == ':' || c == ';')
                 {
+                    delay += commaDelay;
+                }
+
                     totalDelay += commaDelay;
                 }
 
