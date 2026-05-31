@@ -23,3 +23,7 @@
 ## 2025-06-18 - [Terminal Fuzzy Matching]
 **Learning:** Terminal-based interfaces are prone to user typos, especially when commands are technical. Providing "Did you mean?" suggestions using Levenshtein distance significantly reduces user frustration and improves the "intelligence" feel of the system.
 **Action:** Implement fuzzy matching suggestions for unknown commands in CLI-style interfaces to guide users toward valid inputs.
+
+## 2025-06-21 - [Terminal Power-User Shortcuts]
+**Learning:** Power-user shortcuts (like Ctrl+L for clear or Esc for clear-line) significantly enhance the "terminal-native" feel for experienced users, but remain entirely undiscoverable unless explicitly documented in the 'help' command.
+**Action:** Always pair new keyboard shortcuts with updated help documentation and muted shortcut hints.

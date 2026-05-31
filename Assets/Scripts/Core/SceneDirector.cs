@@ -162,6 +162,10 @@ namespace Milehigh.Core
         private void ApplyInteraction(ObjectInteraction interaction)
         {
             // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
+            // 🛡️ Sentinel: Defensive programming and IDOR protection.
+            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
+
+            // 🛡️ Sentinel: Defensive programming - ensure interaction and objectId are not null.
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
@@ -170,6 +174,14 @@ namespace Milehigh.Core
                 interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
                 interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
                 interaction.objectId == "BicameralBattleEngine" || interaction.objectId == "SkyIxController" ||
+            if (interaction.objectId == "CampaignManager" ||
+                interaction.objectId == "SceneDirector" ||
+                interaction.objectId == "CameraManager" ||
+                interaction.objectId == "AlliancePowerManager" ||
+                interaction.objectId == "CombatManager" ||
+                interaction.objectId == "GlobalResonanceManager" ||
+                interaction.objectId == "BicameralBattleEngine" ||
+                interaction.objectId == "SkyIxController" ||
                 interaction.objectId == "CinematicController")
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
