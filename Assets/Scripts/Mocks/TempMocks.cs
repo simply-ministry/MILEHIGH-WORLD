@@ -6,13 +6,14 @@ namespace UnityEngine
 {
     public class Object
     {
+        public string name { get; set; } = "";
         public static T FindObjectOfType<T>() where T : class => null!;
         public static T[] FindObjectsOfType<T>() where T : class => new T[0];
         public static void Destroy(Object obj) {}
         public static void DontDestroyOnLoad(Object obj) {}
-        public static T Instantiate<T>(T original, Transform parent) where T : class => null;
-        public static T Instantiate<T>(T original) where T : class => null;
-        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : class => null;
+        public static T Instantiate<T>(T original, Transform parent) where T : class => null!;
+        public static T Instantiate<T>(T original) where T : class => null!;
+        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : class => null!;
     }
     public class MonoBehaviour : Object
     {
@@ -22,19 +23,14 @@ namespace UnityEngine
     }
     public class GameObject : Object
     {
-        public string name { get; set; } = "";
         public Transform transform { get; } = new Transform();
         public T GetComponent<T>() where T : class => null!;
         public bool TryGetComponent<T>(out T component) where T : class { component = null!; return false; }
         public T AddComponent<T>() where T : class => null!;
         public void SetActive(bool value) {}
-        public static GameObject Find(string name) => null;
         public static GameObject Find(string name) => null!;
-        public static T Instantiate<T>(T original, Transform parent) where T : class => null!;
-        public static T Instantiate<T>(T original) where T : class => null!;
-        public static T Instantiate<T>(T original, Vector3 position, Quaternion rotation) where T : class => null!;
         public GameObject() {}
-        public GameObject(string name) {}
+        public GameObject(string name) { this.name = name; }
         public int GetInstanceID() => 0;
     }
     public class Transform : Object
@@ -171,15 +167,7 @@ namespace UnityEngine
         public static bool GetKeyDown(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow, Tab }
-    public enum KeyCode { Space, Return, UpArrow }
     public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
-    public enum KeyCode { Space, Return, UpArrow, Tab, DownArrow }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow }
-    public enum KeyCode { Space, Return, UpArrow, Tab, DownArrow }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
-    public enum KeyCode { Space, Return, UpArrow, Tab }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
@@ -202,46 +190,15 @@ namespace TMPro
     {
         public virtual string text { get; set; } = "";
         public int maxVisibleCharacters { get; set; }
-        public int maxVisibleCharacters { get; set; }
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public int maxVisibleCharacters { get; set; }
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
         public void ForceMeshUpdate() {}
-    }
-    public class TextMeshProUGUI : TMP_Text
-    {
-        public string text { get; set; } = "";
-        public int maxVisibleCharacters { get; set; }
-    }
-
-    public class TextMeshProUGUI : TMP_Text
-    {
-        public int maxVisibleCharacters { get; set; }
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public virtual string text { get; set; } = "";
-        public int maxVisibleCharacters { get; set; }
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public string text { get; set; } = "";
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-        public int characterCount { get; set; }
-        public TMP_CharacterInfo[] characterInfo { get; set; } = new TMP_CharacterInfo[0];
-    }
-    public class TextMeshProUGUI : TMP_Text
-    {
-        public void ForceMeshUpdate() {}
-        public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
-        public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
     }
     public class TextMeshProUGUI : TMP_Text
     {
         public override string text { get; set; } = "";
         public UnityEngine.Color color { get; set; }
-        public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
-    }
-    public class TextMeshProUGUI : TMP_Text
-    {
+        public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
+        public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
     }
 
     public class TMP_InputField : UnityEngine.UI.Selectable
@@ -253,7 +210,6 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
-        public UnityEngine.UI.Graphic placeholder { get; set; }
     }
 
     public class TMP_TextInfo
