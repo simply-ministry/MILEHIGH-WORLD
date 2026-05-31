@@ -33,7 +33,7 @@ namespace Milehigh.World.Terminal
         private int _historyIndex = -1;
 
         private string _lastCommand = "";
-        private static readonly string[] _availableCommands = { "help", "clear" };
+        private static readonly string[] _availableCommands = { "help", "clear", "history" };
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -166,6 +166,18 @@ namespace Milehigh.World.Terminal
                     }
                 }
             }
+            // 🎨 Palette: Escape to clear current input line
+            else if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                commandInput.text = "";
+            }
+            // 🎨 Palette: Ctrl+L to clear terminal screen
+            else if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
+            {
+                outputDisplay.text = "";
+                outputDisplay.maxVisibleCharacters = 0;
+                WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+            }
         }
 
         public void ProcessCommand(string input)
@@ -236,6 +248,17 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            if (command == "history")
+            {
+                string historyOutput = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
+                for (int i = 0; i < _commandHistory.Count; i++)
+                {
+                    historyOutput += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
+                }
+                WriteToTerminal(historyOutput);
+                return;
+            }
+
             if (command == "help")
             {
                 WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
@@ -245,8 +268,9 @@ namespace Milehigh.World.Terminal
                                 "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
                 CleanupInputAfterCommand();
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
+                                "\n - <color=#00FFFF>history</color>: Show command history." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
-                                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
+                                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 return;
             }
 
