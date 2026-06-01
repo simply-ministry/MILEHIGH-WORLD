@@ -161,19 +161,10 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
-            // 🛡️ Sentinel: Defensive programming and IDOR protection.
+            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and IDOR attacks.
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
-            // 🛡️ Sentinel: Defensive programming - ensure interaction and objectId are not null.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block critical system managers and architectural singletons from being manipulated via external data.
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
-                interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
-                interaction.objectId == "BicameralBattleEngine" || interaction.objectId == "SkyIxController" ||
+            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             if (interaction.objectId == "CampaignManager" ||
                 interaction.objectId == "SceneDirector" ||
                 interaction.objectId == "CameraManager" ||
@@ -182,7 +173,8 @@ namespace Milehigh.Core
                 interaction.objectId == "GlobalResonanceManager" ||
                 interaction.objectId == "BicameralBattleEngine" ||
                 interaction.objectId == "SkyIxController" ||
-                interaction.objectId == "CinematicController")
+                interaction.objectId == "CinematicController" ||
+                interaction.objectId == "TimelineSimulationEngine")
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
                 return;
