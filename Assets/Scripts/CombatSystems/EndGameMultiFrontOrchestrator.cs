@@ -17,7 +17,6 @@ namespace MilehighWorld.CombatSystems
         private static MaterialPropertyBlock? _propBlock;
 
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups.
-        // ⚡ Bolt: Cache shader property IDs to avoid string lookups in high-frequency loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -32,7 +31,6 @@ namespace MilehighWorld.CombatSystems
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
 
             // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
-            var reverie = director.GetAlly("Reverie");
             var micahRB = micahBulwark?.PrefabReference?.GetComponent<Rigidbody>();
 
             // ⚡ Bolt: Setting constant values once outside the loop to eliminate redundant native writes.
@@ -43,14 +41,8 @@ namespace MilehighWorld.CombatSystems
 
             if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
-            // ⚡ Bolt: Pre-cache components outside the loop.
-            Rigidbody? squadMassOverride = null;
-            if (micahBulwark != null && micahBulwark.PrefabReference != null)
-            {
-                squadMassOverride = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
-                // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
-                if (squadMassOverride != null) squadMassOverride.mass = 900.0f;
-            }
+            // ⚡ Bolt: Pre-cache MaterialPropertyBlock once before the loop.
+            if (platformRenderer != null) platformRenderer.GetPropertyBlock(_propBlock);
 
             // 2. Main multi-threaded evaluation loop for the convergence
             while (voidVarianceDelta > 0.0f)
@@ -62,12 +54,9 @@ namespace MilehighWorld.CombatSystems
                     return;
                 }
 
-                // ⚡ Bolt: Using pre-cached references and components to avoid O(N) lookups and native bridge overhead.
-                if (reverie != null) reverie.UseAbility("Arcane Symphony");
+                // ⚡ Bolt: Using pre-cached references to avoid O(N) lookups and deduplicating redundant calls.
+                if (reverieAlly != null) reverieAlly.UseAbility("Arcane Symphony");
                 if (skyIxVanguard != null) skyIxVanguard.UseAbility("Void Step");
-                // Process the 1000 Fox Parade / Arcane Symphony visual degradation tracking
-                reverieAlly?.UseAbility("Arcane Symphony");
-                skyIxVanguard?.UseAbility("Void Step");
 
                 // Decrement global variance based on local structural shard completion
                 voidVarianceDelta -= 0.11f;
@@ -75,7 +64,6 @@ namespace MilehighWorld.CombatSystems
                 // Real-time update to material instances via property IDs
                 if (platformRenderer != null)
                 {
-                    platformRenderer.GetPropertyBlock(_propBlock);
                     // ⚡ Bolt: Use cached property IDs for O(1) shader updates.
                     _propBlock.SetFloat(VoidPulseRateId, voidVarianceDelta);
                     _propBlock.SetFloat(EmissiveIntensityId, voidVarianceDelta * 4.5f);

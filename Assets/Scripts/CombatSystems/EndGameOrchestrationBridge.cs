@@ -11,18 +11,12 @@ namespace MilehighWorld.CombatSystems
     public class EndGameOrchestrationBridge : MonoBehaviour
     {
         [Header("Entity Allocations")]
-        [SerializeField] private GameObject anastasiaAnchor = null!;
-        [SerializeField] private GameObject delilahTargetMesh = null!;
-
-        private static MaterialPropertyBlock? _propBlock;
-
-        // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-ID lookups in hot loops.
         [SerializeField] private GameObject? anastasiaAnchor;
         [SerializeField] private GameObject? delilahTargetMesh;
 
         private static MaterialPropertyBlock? _propBlock;
 
-        // ⚡ Bolt: Cache shader property IDs to avoid expensive string-to-int lookups in hot loops.
+        // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-ID lookups in hot loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
 
@@ -48,11 +42,6 @@ namespace MilehighWorld.CombatSystems
                 var aeron = director.GetAlly("Aeron");
                 var zaia = director.GetAlly("Zaia");
 
-                Rigidbody? aeronRB = (aeron?.PrefabReference != null) ? aeron.PrefabReference.GetComponent<Rigidbody>() : null;
-                Renderer? delilahRenderer = (delilahTargetMesh != null) ? delilahTargetMesh.GetComponent<Renderer>() : null;
-
-                // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
-                if (aeronRB != null) aeronRB.mass = 900.0f;
                 Rigidbody? aeronRB = null;
                 if (aeron != null && aeron.PrefabReference != null)
                 {
@@ -65,6 +54,8 @@ namespace MilehighWorld.CombatSystems
                 if (delilahTargetMesh != null)
                 {
                     delilahTargetMesh.TryGetComponent<Renderer>(out delilahRenderer);
+                    // ⚡ Bolt: Hoist MaterialPropertyBlock fetching outside the loop.
+                    if (delilahRenderer != null) delilahRenderer.GetPropertyBlock(_propBlock);
                 }
 
                 // Force Absolute Compression Limit on background environment loops
@@ -72,15 +63,13 @@ namespace MilehighWorld.CombatSystems
 
                 // 2. Instantiate Ingris Archetype into active memory allocation array
                 NovomindadCharacter ingrisVanguard = new NovomindadCharacter("Ingris", new List<string> { "Plasma Gauntlets", "Phoenix Dive", "Rebirth Protocol" });
-                EnemyCharacter? delilahDesolate = director.GetEnemy("Delilah");
 
                 // 3. Multithreaded Evaluation Loop for Dual-Layer Defense Matrix
                 float voidVarianceDelta = 0.98f;
                 float parityResonance = 0.15f;
-                float deltaStep = (ingrisVanguard.PrefabReference != null) ? 0.09f : 0.009f;
 
-                // ⚡ Bolt: Pre-calculate loop-invariant or frequent values.
-                float deltaStep = ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
+                // ⚡ Bolt: Pre-calculate loop-invariant values.
+                float deltaStep = (ingrisVanguard.PrefabReference != null) ? 0.09f : 0.009f;
 
                 while (voidVarianceDelta > 0.001f)
                 {
@@ -92,7 +81,6 @@ namespace MilehighWorld.CombatSystems
                     }
 
                     // Execute Defense Subroutines using cached references
-                    // Execute Layer 1 Defense Subroutine (Dreamscape & Spatial Audio Sync)
                     yuna?.UseAbility("Nine-Tailed Foxfire");
                     reverie?.UseAbility("Arcane Symphony");
                     zaia?.UseAbility("Spatial Warp");
@@ -101,11 +89,9 @@ namespace MilehighWorld.CombatSystems
                     voidVarianceDelta -= deltaStep;
                     parityResonance += (1.0f - voidVarianceDelta) * 0.077f;
 
-                    // ⚡ Bolt: Using cached Renderer and Property IDs for O(1) shader updates.
                     // ⚡ Bolt: Using cached renderer and Property IDs for O(1) shader updates.
                     if (delilahRenderer != null)
                     {
-                        delilahRenderer.GetPropertyBlock(_propBlock);
                         _propBlock.SetFloat(VoidPulseRateId, voidVarianceDelta);
                         _propBlock.SetFloat(EmissiveIntensityId, voidVarianceDelta * 3.0f);
                         delilahRenderer.SetPropertyBlock(_propBlock);
