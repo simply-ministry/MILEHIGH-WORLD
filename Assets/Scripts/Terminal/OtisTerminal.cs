@@ -26,6 +26,11 @@ namespace Milehigh.World.Terminal
         private List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
 
+        private string _lastCommand = "";
+        private readonly string[] _availableCommands = { "help", "clear" };
+
+        // 🎨 Palette: Available commands for autocomplete
+        private static readonly string[] ValidCommands = { "help", "clear" };
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private string _lastCommand = "";
@@ -87,6 +92,8 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
+            // 🎨 Palette: Command History (Up/Down Arrow) to recall previous inputs
+            if (Input.GetKeyDown(KeyCode.UpArrow) && _commandHistory.Count > 0)
             // 🎨 Palette: History Navigation
             if (Input.GetKeyDown(KeyCode.UpArrow))
             {
@@ -96,6 +103,14 @@ namespace Milehigh.World.Terminal
             {
                 NavigateHistory(-1);
             }
+            // 🎨 Palette: Tab Completion for common commands
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                string currentText = commandInput.text.Trim().ToLower();
+                if (!string.IsNullOrEmpty(currentText))
+                {
+                    string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentText));
+                    if (match != null)
             else if (Input.GetKeyDown(KeyCode.Tab))
             {
                 HandleTabCompletion();
@@ -227,15 +242,26 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            // 🛡️ Sentinel: Reset history index and cleanup input immediately for UX and flow.
+            _historyIndex = -1;
+            CleanupInputAfterCommand();
+
+            // 🛡️ Sentinel: Early exit and basic echo for empty or whitespace-only input.
             _historyIndex = -1;
 
             if (string.IsNullOrWhiteSpace(input))
             {
                 WriteToTerminal("\n<color=#888888>></color>");
-                CleanupInputAfterCommand();
                 return;
             }
 
+            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
+
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
+            if (input.Length > MaxInputLength)
+            {
+                WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length (256 characters).");
             // 🛡️ Sentinel: Sanitize input to escape rich text tags BEFORE any validation or echoing.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
@@ -255,6 +281,13 @@ namespace Milehigh.World.Terminal
             if (!SafeCommandRegex.IsMatch(input))
             {
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.");
+                return;
+            }
+
+            // 🛡️ Sentinel: Echo validated user command to terminal.
+            // Ensures validated input is echoed, preventing UI injection via Rich Text tags.
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
                 CleanupInputAfterCommand();
                 return;
@@ -275,6 +308,8 @@ namespace Milehigh.World.Terminal
             {
                 _commandHistory.Add(input);
             }
+
+            _lastCommand = input;
 
             string[] parts = input.Trim().Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             string[] parts = input.Trim().Split(' ');
@@ -318,6 +353,7 @@ namespace Milehigh.World.Terminal
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>history</color>: Show command history." +
                                 "\n - <color=#00FFFF>[cmd] [arg1] [arg2]</color>: Execute extended system commands." +
+                                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History</color>");
                                 "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Ctrl+L] Clear, [Esc] Reset</color>");
                                 "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
                                 "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
@@ -457,6 +493,11 @@ namespace Milehigh.World.Terminal
                 }
                 else if (c == ',' || c == ':' || c == ';')
                 {
+                    delay += commaDelay;
+                }
+
+                // ⚡ Bolt: Zero-allocation yield via shared cache
+                yield return GetWait(delay);
                     totalDelay += commaDelay;
                 }
                 else if (c == ',' || c == ':' || c == ';') totalDelay += commaDelay;

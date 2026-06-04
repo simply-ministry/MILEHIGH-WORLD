@@ -105,6 +105,10 @@
 **Learning:** Security blocklists must be comprehensive and regularly updated to include new architectural components. Code rot and redundant logic paths increase the risk of security validation being bypassed or misconfigured.
 **Prevention:** Maintain a centralized, hardened list of protected system objects. Consolidate interaction logic into a clean "Validate-then-Execute" pipeline to ensure consistent security enforcement.
 
+## 2026-06-21 - [Consolidation of Security Controls and Code Rot Mitigation]
+**Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete blocklist in `SceneDirector.cs` and UI Injection/DoS via code rot in `OtisTerminal.cs`.
+**Learning:** Code rot (specifically redundant field declarations and conflicting logic blocks) masks missing security controls and introduces bugs like double instantiation. In `OtisTerminal.cs`, redundant echo paths bypassed input validation, potentially allowing Rich Text UI injection.
+**Prevention:** Consolidate interactive input and external data processing into a single, linear "Validate -> Sanitize -> Execute" pipeline. Ensure security validation (length, regex, range) is the first line of defense before any echoing or state changes occur.
 ## 2024-05-27 - [IDOR Bypass and DoS via Code Rot and Missing Validation]
 **Vulnerability:** Insecure Direct Object Reference (IDOR) bypass in `SceneDirector.cs` due to a syntax error (dangling `||`) that truncated the blocklist check, and a physics-based Denial of Service (DoS) vulnerability in `HorizonGameData.cs` where `NaN` or `Infinity` values were not validated.
 **Learning:** Code rot, specifically malformed conditional logic, can silently disable security controls. Furthermore, numeric validation is critical in engine-integrated systems to prevent terminal instability from malicious data.
