@@ -6,9 +6,6 @@ namespace Milehigh.Physics
     {
         public float buoyancy = 1.0f;
 
-        private void FixedUpdate()
-        {
-            // Apply buoyancy logic
-        }
+        // ⚡ Bolt: Removed empty FixedUpdate() method to eliminate unnecessary engine-to-script callback overhead.
     }
 }
