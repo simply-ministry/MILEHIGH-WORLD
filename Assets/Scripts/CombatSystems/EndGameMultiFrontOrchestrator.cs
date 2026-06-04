@@ -16,6 +16,7 @@ namespace MilehighWorld.CombatSystems
 
         private static MaterialPropertyBlock? _propBlock;
 
+        // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups in high-frequency loops.
         // ⚡ Bolt: Cache shader property IDs to avoid string lookups in the hot loop.
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
@@ -28,10 +29,10 @@ namespace MilehighWorld.CombatSystems
             // 1. Unpack entity targets from registry
             var micahBulwark = director.GetAlly("Micah");
             var skyIxVanguard = director.GetAlly("Sky.ix");
-            var reverieAlly = director.GetAlly("Reverie");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
 
             // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
+            var reverie = director.GetAlly("Reverie");
             var micahRB = micahBulwark?.PrefabReference?.GetComponent<Rigidbody>();
 
             // ⚡ Bolt: Setting constant values once outside the loop to eliminate redundant native writes.
@@ -51,12 +52,12 @@ namespace MilehighWorld.CombatSystems
             // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
             if (micahRB != null) micahRB.mass = 900.0f;
             // ⚡ Bolt: Pre-cache components outside the loop.
-            Rigidbody? squadMassOverride = null;
+            Rigidbody? micahRB = null;
             if (micahBulwark != null && micahBulwark.PrefabReference != null)
             {
-                squadMassOverride = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
+                micahRB = micahBulwark.PrefabReference.GetComponent<Rigidbody>();
                 // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
-                if (squadMassOverride != null) squadMassOverride.mass = 900.0f;
+                if (micahRB != null) micahRB.mass = 900.0f;
             }
 
             // 2. Main multi-threaded evaluation loop for the convergence
