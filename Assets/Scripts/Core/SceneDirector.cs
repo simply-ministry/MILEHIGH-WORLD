@@ -13,6 +13,14 @@ namespace Milehigh.Core
         public List<GameObject> characterPrefabs = new List<GameObject>();
         public Transform characterSpawnRoot = null!;
 
+        // 🛡️ Sentinel: Hardened blocklist to prevent Insecure Direct Object Reference (IDOR) attacks on critical system managers.
+        private static readonly HashSet<string> ProtectedSystemObjects = new HashSet<string>
+        {
+            "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager",
+            "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
+            "SkyIxController", "CinematicController", "TimelineSimulationEngine"
+        };
+
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
@@ -161,28 +169,10 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and stack trace leakage.
-            // 🛡️ Sentinel: Defensive programming and IDOR protection.
+            // 🛡️ Sentinel: Consolidate redundant checks and implement hardened IDOR protection.
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
-            // 🛡️ Sentinel: Defensive programming - ensure interaction and objectId are not null.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block critical system managers and architectural singletons from being manipulated via external data.
-            if (interaction.objectId == "CampaignManager" || interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" || interaction.objectId == "AlliancePowerManager" ||
-                interaction.objectId == "CombatManager" || interaction.objectId == "GlobalResonanceManager" ||
-                interaction.objectId == "BicameralBattleEngine" || interaction.objectId == "SkyIxController" ||
-            if (interaction.objectId == "CampaignManager" ||
-                interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" ||
-                interaction.objectId == "AlliancePowerManager" ||
-                interaction.objectId == "CombatManager" ||
-                interaction.objectId == "GlobalResonanceManager" ||
-                interaction.objectId == "BicameralBattleEngine" ||
-                interaction.objectId == "SkyIxController" ||
-                interaction.objectId == "CinematicController")
+            if (ProtectedSystemObjects.Contains(interaction.objectId))
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
                 return;
