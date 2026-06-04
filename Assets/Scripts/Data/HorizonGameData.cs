@@ -102,6 +102,17 @@ namespace Milehigh.Data
                 Debug.LogError("[Security] Interaction: Action too long.");
                 return false;
             }
+
+            // 🛡️ Sentinel: Validate numeric fields to prevent physics-based Denial of Service (DoS) attacks.
+            if (float.IsNaN(floatValue) || float.IsInfinity(floatValue) ||
+                float.IsNaN(x) || float.IsInfinity(x) ||
+                float.IsNaN(y) || float.IsInfinity(y) ||
+                float.IsNaN(z) || float.IsInfinity(z))
+            {
+                Debug.LogError($"[Security] Interaction: Numeric value out of range (NaN or Infinity) for {objectId}.");
+                return false;
+            }
+
             return true;
         }
     }

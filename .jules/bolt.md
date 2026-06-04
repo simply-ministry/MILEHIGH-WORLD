@@ -95,3 +95,7 @@
 ## 2024-05-18 - Optimized Combat Loop Orchestration
 **Learning:** In 'EndGameOrchestrationBridge.cs', the main combat loop was performing O(N) 'GetAlly' lookups and 'GetComponent' calls every frame. Hoisting these lookups outside the loop and using 'Shader.PropertyToID' for shader parameter updates provides a significant CPU performance win by eliminating redundant dictionary searches and string-to-int hashing in the Unity engine.
 **Action:** Always pre-cache character references and component lookups outside of high-frequency loops (Update, Coroutines, or async Tasks). Use Property IDs for any per-frame material updates.
+
+## 2024-05-30 - Combat Orchestrator Code Rot and Logic Precision
+**Learning:** Found that `EndGameOrchestrationBridge.cs` suffered from extreme code rot where multiple redundant "Bolt" optimization blocks were appended, leading to duplicate `SerializeField` and `static readonly int` declarations that break compilation. Additionally, found a subtle logic error where `deltaStep` was calculated based on a null-check of a locally instantiated class instead of its internal Unity `PrefabReference`, rendering the performance branch dead.
+**Action:** When optimizing hot loops in this codebase, first audit the file for previous conflicting optimizations and consolidate them. Ensure ternary logic for performance branches (like `deltaStep`) is grounded in the actual presence of Unity engine references, not just the C# wrapper instance.

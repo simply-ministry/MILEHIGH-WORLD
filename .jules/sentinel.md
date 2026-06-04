@@ -104,3 +104,12 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete security blocklist in `SceneDirector.cs`. Malicious external data could target critical system managers like `CombatManager` or `GlobalResonanceManager` because they were omitted from the initial security check. Additionally, severe code rot (duplicate variable declarations and redundant logic) obscured these gaps.
 **Learning:** Security blocklists must be comprehensive and regularly updated to include new architectural components. Code rot and redundant logic paths increase the risk of security validation being bypassed or misconfigured.
 **Prevention:** Maintain a centralized, hardened list of protected system objects. Consolidate interaction logic into a clean "Validate-then-Execute" pipeline to ensure consistent security enforcement.
+
+## 2024-05-27 - [IDOR Bypass and DoS via Code Rot and Missing Validation]
+**Vulnerability:** Insecure Direct Object Reference (IDOR) bypass in `SceneDirector.cs` due to a syntax error (dangling `||`) that truncated the blocklist check, and a physics-based Denial of Service (DoS) vulnerability in `HorizonGameData.cs` where `NaN` or `Infinity` values were not validated.
+**Learning:** Code rot, specifically malformed conditional logic, can silently disable security controls. Furthermore, numeric validation is critical in engine-integrated systems to prevent terminal instability from malicious data.
+**Prevention:** Always verify that security blocklists are syntactically complete and maintain a "fail-fast" validation layer for all numeric inputs sourced from external data.
+## 2024-05-27 - [UI Injection via Code Rot in OtisTerminal]
+**Vulnerability:** Redundant member declarations and overlapping command processing logic in `OtisTerminal.cs` echoed user input to the terminal without escaping Rich Text tags (`<`, `>`). This allowed users to inject malicious tags (e.g., `<size=1000>`) to disrupt the UI.
+**Learning:** Code rot, specifically duplicate class members and fragmented logic paths, can hide missing security controls and make it difficult to ensure consistent input sanitization.
+**Prevention:** Consolidate interactive input processing into a single, clean pipeline and ensure that all untrusted input is sanitized (e.g., escaping rich text tags) before being echoed to the UI.
