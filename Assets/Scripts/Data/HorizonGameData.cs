@@ -114,6 +114,13 @@ namespace Milehigh.Data
                 float.IsInfinity(z) || float.IsNaN(z) || Mathf.Abs(z) > 10000f)
             {
                 Debug.LogError("[Security] Interaction: Vector coordinates out of range.");
+            // 🛡️ Sentinel: Validate numeric fields to prevent physics-based Denial of Service (DoS) attacks.
+            if (float.IsNaN(floatValue) || float.IsInfinity(floatValue) ||
+                float.IsNaN(x) || float.IsInfinity(x) ||
+                float.IsNaN(y) || float.IsInfinity(y) ||
+                float.IsNaN(z) || float.IsInfinity(z))
+            {
+                Debug.LogError($"[Security] Interaction: Numeric value out of range (NaN or Infinity) for {objectId}.");
                 return false;
             }
 

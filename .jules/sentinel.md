@@ -109,3 +109,25 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete blocklist in `SceneDirector.cs` and UI Injection/DoS via code rot in `OtisTerminal.cs`.
 **Learning:** Code rot (specifically redundant field declarations and conflicting logic blocks) masks missing security controls and introduces bugs like double instantiation. In `OtisTerminal.cs`, redundant echo paths bypassed input validation, potentially allowing Rich Text UI injection.
 **Prevention:** Consolidate interactive input and external data processing into a single, linear "Validate -> Sanitize -> Execute" pipeline. Ensure security validation (length, regex, range) is the first line of defense before any echoing or state changes occur.
+## 2024-05-27 - [IDOR Bypass and DoS via Code Rot and Missing Validation]
+**Vulnerability:** Insecure Direct Object Reference (IDOR) bypass in `SceneDirector.cs` due to a syntax error (dangling `||`) that truncated the blocklist check, and a physics-based Denial of Service (DoS) vulnerability in `HorizonGameData.cs` where `NaN` or `Infinity` values were not validated.
+**Learning:** Code rot, specifically malformed conditional logic, can silently disable security controls. Furthermore, numeric validation is critical in engine-integrated systems to prevent terminal instability from malicious data.
+**Prevention:** Always verify that security blocklists are syntactically complete and maintain a "fail-fast" validation layer for all numeric inputs sourced from external data.
+## 2024-05-27 - [UI Injection via Code Rot in OtisTerminal]
+**Vulnerability:** Redundant member declarations and overlapping command processing logic in `OtisTerminal.cs` echoed user input to the terminal without escaping Rich Text tags (`<`, `>`). This allowed users to inject malicious tags (e.g., `<size=1000>`) to disrupt the UI.
+**Learning:** Code rot, specifically duplicate class members and fragmented logic paths, can hide missing security controls and make it difficult to ensure consistent input sanitization.
+**Prevention:** Consolidate interactive input processing into a single, clean pipeline and ensure that all untrusted input is sanitized (e.g., escaping rich text tags) before being echoed to the UI.
+
+## 2024-05-28 - [IDOR Protection Hardening and Code Rot Consolidation]
+**Vulnerability:** Incomplete IDOR blocklist in  and a syntax error (dangling `||` operator) caused by redundant, rotted code blocks that potentially bypassed security checks. Critical system managers like `TimelineSimulationEngine` were omitted from the protection list.
+**Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
+**Prevention:** Consolidate validation logic into a single, well-defined pipeline. Regularly audit blocklists against the actual list of architectural singletons in the project.
+
+## 2024-05-28 - [IDOR Protection Hardening and Code Rot Consolidation]
+**Vulnerability:** Incomplete IDOR blocklist in SceneDirector.cs and a syntax error (dangling '||' operator) caused by redundant, rotted code blocks that potentially bypassed security checks. Critical system managers like TimelineSimulationEngine were omitted from the protection list.
+**Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
+**Prevention:** Consolidate validation logic into a single, well-defined pipeline. Regularly audit blocklists against the actual list of architectural singletons in the project.
+## 2025-05-20 - [IDOR Protection Hardening and Code Rot Consolidation]
+**Vulnerability:** `SceneDirector.cs` had a fragmented IDOR blocklist and redundant null checks (code rot), which masked a missing protection for `TimelineSimulationEngine`.
+**Learning:** Overlapping and redundant security checks often lead to logic errors and maintenance gaps. Consolidating security validation into a single, linear pipeline ensures all checks are executed and simplifies auditing.
+**Prevention:** Always prioritize a "Validate-then-Execute" pipeline and maintain a comprehensive, single-source-of-truth blocklist for sensitive architectural components.
