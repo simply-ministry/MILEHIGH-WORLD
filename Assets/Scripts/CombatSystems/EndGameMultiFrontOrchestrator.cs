@@ -26,11 +26,13 @@ namespace MilehighWorld.CombatSystems
         {
             Debug.Log("<color=#E0BBE4>[SYSTEM]: multi_front_battle_loop initiated. Synchronizing thread data...</color>");
 
+            // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
             // 1. Unpack entity targets from registry and hoist lookups outside the hot loop.
             var micahBulwark = director.GetAlly("Micah");
             var skyIxVanguard = director.GetAlly("Sky.ix");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
 
+            Rigidbody? micahRB = (micahBulwark?.PrefabReference != null) ? micahBulwark.PrefabReference.GetComponent<Rigidbody>() : null;
             // ⚡ Bolt: Hoist character references and component lookups outside the hot loop.
             var reverie = director.GetAlly("Reverie");
             var kingCyrusBoss = director.GetEnemy("KingCyrus");
@@ -81,6 +83,9 @@ namespace MilehighWorld.CombatSystems
                     return;
                 }
 
+                // ⚡ Bolt: Using pre-cached references to avoid O(N) lookups and native bridge overhead.
+                reverieAlly?.UseAbility("Arcane Symphony");
+                skyIxVanguard?.UseAbility("Void Step");
                 // ⚡ Bolt: Removed redundant UseAbility calls. Using pre-cached references to avoid O(N) lookups.
                 // ⚡ Bolt: Using pre-cached references to avoid O(N) lookups and deduplicating redundant calls.
                 if (reverieAlly != null) reverieAlly.UseAbility("Arcane Symphony");
