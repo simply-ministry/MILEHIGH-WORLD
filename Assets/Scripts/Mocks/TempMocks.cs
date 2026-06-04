@@ -40,7 +40,7 @@ namespace UnityEngine
         public Vector3 localPosition { get; set; }
         public Vector3 localScale { get; set; }
         public static Vector3 one => new Vector3(1, 1, 1);
-        public Transform parent { get; set; }
+        public Transform parent { get; set; } = null!;
         public Transform Find(string name) => null!;
     }
     public struct Vector3
@@ -77,8 +77,8 @@ namespace UnityEngine
     }
     public class CreateAssetMenuAttribute : Attribute
     {
-        public string fileName;
-        public string menuName;
+        public string fileName { get; set; } = "";
+        public string menuName { get; set; } = "";
     }
     public class TextAreaAttribute : Attribute
     {
@@ -101,6 +101,8 @@ namespace UnityEngine
         public static int RoundToInt(float value) => (int)value;
         public static int Clamp(int value, int min, int max) => value < min ? min : (value > max ? max : value);
         public static float Clamp(float value, float min, float max) => value < min ? min : (value > max ? max : value);
+        public static int Min(int a, int b) => a < b ? a : b;
+        public static float Min(float a, float b) => a < b ? a : b;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
     }
@@ -165,19 +167,32 @@ namespace UnityEngine
     {
         public static bool anyKeyDown;
         public static bool GetKeyDown(KeyCode code) => false;
+        public static bool GetKey(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
     }
 }
 
+namespace UnityEngine.Events
+{
+    public class UnityEvent<T>
+    {
+        public void AddListener(Action<T> action) {}
+        public void RemoveListener(Action<T> action) {}
+    }
+}
+
 namespace UnityEngine.UI
 {
     public class Selectable : UnityEngine.MonoBehaviour {}
-    public class Graphic : UnityEngine.MonoBehaviour {}
+    public class Graphic : UnityEngine.MonoBehaviour
+    {
+        public UnityEngine.Color color { get; set; } = new UnityEngine.Color();
+    }
     public class Text : Graphic
     {
         public string text { get; set; } = "";
@@ -196,7 +211,6 @@ namespace TMPro
     public class TextMeshProUGUI : TMP_Text
     {
         public override string text { get; set; } = "";
-        public UnityEngine.Color color { get; set; }
         public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
     }
@@ -210,6 +224,7 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
+        public UnityEngine.Events.UnityEvent<string> onSubmit { get; } = new UnityEngine.Events.UnityEvent<string>();
     }
 
     public class TMP_TextInfo
