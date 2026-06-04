@@ -226,6 +226,12 @@ namespace TMPro
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
+        public SubmitEvent onSubmit { get; set; } = new SubmitEvent();
+    }
+
+    public class SubmitEvent
+    {
+        public void AddListener(Action<string> call) {}
         public UnityEngine.Events.UnityEvent<string> onSubmit { get; } = new UnityEngine.Events.UnityEvent<string>();
     }
 

@@ -18,11 +18,14 @@ namespace Milehigh.World.Terminal
         [SerializeField] private float punctuationDelay = 0.15f;
         [SerializeField] private float commaDelay = 0.08f;
 
-        // 🛡️ Sentinel: Security constants for input validation to prevent DoS and malformed input processing.
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
+        private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
+        private List<string> _commandHistory = new List<string>();
+        private int _historyIndex = -1;
+
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private List<string> _commandHistory = new List<string>();
@@ -83,6 +86,9 @@ namespace Milehigh.World.Terminal
             {
                 NavigateHistory(-1);
             }
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                HandleTabCompletion();
             else if (Input.GetKeyDown(KeyCode.DownArrow))
             {
                 NavigateHistory(-1);
@@ -96,8 +102,25 @@ namespace Milehigh.World.Terminal
                     commandInput.MoveTextEnd(false);
                 }
             }
-            else if (Input.GetKeyDown(KeyCode.DownArrow))
+            else if (Input.GetKeyDown(KeyCode.Escape))
             {
+                commandInput.text = "";
+            }
+            else if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
+            {
+                ClearTerminal();
+            }
+        }
+
+        private void NavigateHistory(int direction)
+        {
+            if (_commandHistory.Count == 0) return;
+
+            _historyIndex = Mathf.Clamp(_historyIndex + direction, -1, _commandHistory.Count - 1);
+
+            if (_historyIndex == -1)
+            {
+                commandInput.text = "";
                 if (_historyIndex > -1)
                 {
                     _historyIndex--;
@@ -119,15 +142,25 @@ namespace Milehigh.World.Terminal
                     }
                 }
             }
-            // 🎨 Palette: Escape to clear current input line
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else
             {
+                commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                 commandInput.text = "";
                 commandInput.ActivateInputField();
             }
-            // 🎨 Palette: Ctrl+L to clear terminal screen
-            else if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
+            commandInput.MoveTextEnd(false);
+        }
+
+        private void HandleTabCompletion()
+        {
+            string currentInput = commandInput.text.Trim().ToLower();
+            if (string.IsNullOrEmpty(currentInput)) return;
+
+            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
+            if (!string.IsNullOrEmpty(match))
             {
+                commandInput.text = match;
+                commandInput.MoveTextEnd(false);
                 ClearTerminal();
             }
         }
@@ -183,6 +216,9 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🛡️ Sentinel: Sanitize input to escape rich text tags BEFORE any validation or echoing.
+            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
+
             // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
@@ -204,6 +240,9 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🛡️ Sentinel: Echo sanitized input.
+            WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
+
             // 🎨 Palette: Echo validated user command to terminal.
             WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
 
@@ -217,6 +256,7 @@ namespace Milehigh.World.Terminal
                 _commandHistory.Add(input);
             }
 
+            string[] parts = input.Trim().Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             string[] parts = input.Trim().Split(' ');
             string command = parts[0].ToLower();
 
@@ -240,6 +280,10 @@ namespace Milehigh.World.Terminal
             {
                 WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                                 "\n - <color=#00FFFF>help</color>: Show this message." +
+                                "\n - <color=#00FFFF>clear</color>: Clear terminal." +
+                                "\n - <color=#00FFFF>history</color>: Show command history." +
+                                "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
+                                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                                 "\n - <color=#00FFFF>history</color>: Show command history." +
                                 "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
@@ -253,17 +297,13 @@ namespace Milehigh.World.Terminal
             }
             else if (parts.Length >= 3)
             {
-                int index = input.IndexOf(parts[2]);
-                if (index != -1)
-                {
-                    string argument = input.Substring(index);
-                    ExecuteExtendedCommand(parts[0], argument);
-                    WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: Command '{parts[0]}' executed.");
-                }
+                ExecuteExtendedCommand(parts[0], input.Substring(input.IndexOf(parts[1])));
+                WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: Command '{parts[0]}' executed.");
             }
             else if (command == "infiniteration") ExecuteInfiniteration();
             else
             {
+                string suggestion = GetFuzzyMatch(command);
                 // 🎨 Palette: Fuzzy Matching for unknown commands.
                 string suggestion = GetFuzzyMatch(command);
                 string suggestion = GetFuzzyMatch(parts[0]);
@@ -298,6 +338,12 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
+            int n = s.Length;
+            int m = t.Length;
+            if (n == 0) return m;
+            if (m == 0) return n;
+
+            int[,] d = new int[n + 1, m + 1];
             int n = s.Length, m = t.Length;
             int[,] d = new int[n + 1, m + 1];
             if (n == 0) return m; if (m == 0) return n;
@@ -319,6 +365,11 @@ namespace Milehigh.World.Terminal
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
+            if (_typewriterCoroutine != null)
+            {
+                StopCoroutine(_typewriterCoroutine);
+                outputDisplay.maxVisibleCharacters = int.MaxValue;
+            }
             if (_typewriterCoroutine != null) { StopCoroutine(_typewriterCoroutine); outputDisplay.maxVisibleCharacters = int.MaxValue; }
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
@@ -329,6 +380,20 @@ namespace Milehigh.World.Terminal
             int startCount = outputDisplay.textInfo.characterCount;
             outputDisplay.maxVisibleCharacters = startCount;
             int startVisibleCount = outputDisplay.textInfo.characterCount;
+            outputDisplay.text += message;
+            outputDisplay.ForceMeshUpdate();
+            int endVisibleCount = outputDisplay.textInfo.characterCount;
+
+            for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
+            {
+                outputDisplay.maxVisibleCharacters = startVisibleCount + i;
+                char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
+                float delay = typingSpeed;
+
+                if (c == '.' || c == '!' || c == '?') delay += punctuationDelay;
+                else if (c == ',' || c == ':' || c == ';') delay += commaDelay;
+
+                yield return GetWait(delay);
 
             outputDisplay.text += message;
             outputDisplay.ForceMeshUpdate();
@@ -373,14 +438,18 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null) yield break;
             Vector3 originalPos = commandInput.transform.localPosition;
+            float elapsed = 0f;
+            while (elapsed < 0.2f)
             float elapsed = 0f, duration = 0.2f, magnitude = 5f;
             while (elapsed < duration)
             {
-                float x = UnityEngine.Random.Range(-1f, 1f) * magnitude;
+                float x = UnityEngine.Random.Range(-5f, 5f);
                 commandInput.transform.localPosition = originalPos + new Vector3(x, 0, 0);
                 elapsed += Time.deltaTime; yield return null;
             }
             commandInput.transform.localPosition = originalPos;
         }
+
+        private void ExecuteExtendedCommand(string cmd, string args) { }
     }
 }
