@@ -113,3 +113,8 @@
 **Vulnerability:** Redundant member declarations and overlapping command processing logic in `OtisTerminal.cs` echoed user input to the terminal without escaping Rich Text tags (`<`, `>`). This allowed users to inject malicious tags (e.g., `<size=1000>`) to disrupt the UI.
 **Learning:** Code rot, specifically duplicate class members and fragmented logic paths, can hide missing security controls and make it difficult to ensure consistent input sanitization.
 **Prevention:** Consolidate interactive input processing into a single, clean pipeline and ensure that all untrusted input is sanitized (e.g., escaping rich text tags) before being echoed to the UI.
+
+## 2025-05-20 - [IDOR Protection Hardening and Code Rot Consolidation]
+**Vulnerability:** `SceneDirector.cs` had a fragmented IDOR blocklist and redundant null checks (code rot), which masked a missing protection for `TimelineSimulationEngine`.
+**Learning:** Overlapping and redundant security checks often lead to logic errors and maintenance gaps. Consolidating security validation into a single, linear pipeline ensures all checks are executed and simplifies auditing.
+**Prevention:** Always prioritize a "Validate-then-Execute" pipeline and maintain a comprehensive, single-source-of-truth blocklist for sensitive architectural components.
