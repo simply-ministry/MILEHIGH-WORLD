@@ -40,7 +40,7 @@ namespace UnityEngine
         public Vector3 localPosition { get; set; }
         public Vector3 localScale { get; set; }
         public static Vector3 one => new Vector3(1, 1, 1);
-        public Transform parent { get; set; }
+        public Transform parent { get; set; } = null!;
         public Transform Find(string name) => null!;
     }
     public struct Vector3
@@ -77,8 +77,10 @@ namespace UnityEngine
     }
     public class CreateAssetMenuAttribute : Attribute
     {
-        public string fileName;
-        public string menuName;
+        public string fileName = "";
+        public string menuName = "";
+        public string fileName { get; set; } = "";
+        public string menuName { get; set; } = "";
     }
     public class TextAreaAttribute : Attribute
     {
@@ -177,10 +179,22 @@ namespace UnityEngine
     }
 }
 
+namespace UnityEngine.Events
+{
+    public class UnityEvent<T>
+    {
+        public void AddListener(Action<T> action) {}
+        public void RemoveListener(Action<T> action) {}
+    }
+}
+
 namespace UnityEngine.UI
 {
     public class Selectable : UnityEngine.MonoBehaviour {}
-    public class Graphic : UnityEngine.MonoBehaviour {}
+    public class Graphic : UnityEngine.MonoBehaviour
+    {
+        public UnityEngine.Color color { get; set; } = new UnityEngine.Color();
+    }
     public class Text : Graphic
     {
         public string text { get; set; } = "";
@@ -199,7 +213,6 @@ namespace TMPro
     public class TextMeshProUGUI : TMP_Text
     {
         public override string text { get; set; } = "";
-        public UnityEngine.Color color { get; set; }
         public UnityEngine.Material fontMaterial { get; } = new UnityEngine.Material();
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
     }
@@ -219,6 +232,7 @@ namespace TMPro
     public class SubmitEvent
     {
         public void AddListener(Action<string> call) {}
+        public UnityEngine.Events.UnityEvent<string> onSubmit { get; } = new UnityEngine.Events.UnityEvent<string>();
     }
 
     public class TMP_TextInfo
@@ -234,6 +248,14 @@ namespace TMPro
     {
         public static int ID_OutlineWidth;
         public static int ID_OutlineColor;
+    }
+}
+
+namespace UnityEngine.Events
+{
+    public class UnityEvent<T>
+    {
+        public void AddListener(Action<T> action) {}
     }
 }
 
