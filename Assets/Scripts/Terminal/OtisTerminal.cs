@@ -23,7 +23,7 @@ namespace Milehigh.World.Terminal
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
-        private List<string> _commandHistory = new List<string>();
+        private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
 
         private string _lastCommand = "";
@@ -92,6 +92,54 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
+            // 🎨 Palette: Unified Input Handling (History & Autocomplete)
+            if (Input.GetKeyDown(KeyCode.UpArrow))
+            {
+                NavigateHistory(1);
+            }
+            else if (Input.GetKeyDown(KeyCode.DownArrow))
+            {
+                NavigateHistory(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.Tab))
+            {
+                HandleAutocomplete();
+            }
+        }
+
+        private void NavigateHistory(int direction)
+        {
+            if (_commandHistory.Count == 0) return;
+
+            // We move backwards in history from the end
+            int newIndex = _historyIndex + direction;
+
+            if (newIndex >= _commandHistory.Count)
+            {
+                newIndex = _commandHistory.Count - 1;
+            }
+
+            if (newIndex < -1)
+            {
+                newIndex = -1;
+            }
+
+            if (newIndex != _historyIndex)
+            {
+                _historyIndex = newIndex;
+                if (_historyIndex == -1)
+                {
+                    commandInput.text = "";
+                }
+                else
+                {
+                    commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
+                }
+                commandInput.MoveTextEnd(false);
+            }
+        }
+
+        private void HandleAutocomplete()
             // 🎨 Palette: Command History (Up/Down Arrow) to recall previous inputs
             if (Input.GetKeyDown(KeyCode.UpArrow) && _commandHistory.Count > 0)
             // 🎨 Palette: History Navigation
@@ -191,6 +239,11 @@ namespace Milehigh.World.Terminal
             string currentInput = commandInput.text.Trim().ToLower();
             if (string.IsNullOrEmpty(currentInput)) return;
 
+            string? match = ValidCommands.FirstOrDefault(c => c.StartsWith(currentInput));
+            if (match != null)
+            {
+                commandInput.text = match;
+                commandInput.MoveTextEnd(false);
             string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
             if (!string.IsNullOrEmpty(match))
             {
@@ -242,6 +295,7 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            // 🛡️ Sentinel: Early exit for empty or whitespace-only input.
             // 🛡️ Sentinel: Reset history index and cleanup input immediately for UX and flow.
             _historyIndex = -1;
             CleanupInputAfterCommand();
@@ -255,12 +309,14 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
             // 🛡️ Sentinel: Input validation and DoS protection BEFORE echoing to prevent UI injection (e.g. Rich Text tags).
             if (input.Length > MaxInputLength)
             {
-                WriteToTerminal($"\n<color=#888888>> {sanitizedInput.Substring(0, 16)}...</color>");
+                string sanitizedInputPreview = input.Replace("<", "&lt;").Replace(">", "&gt;").Substring(0, 16);
+                WriteToTerminal($"\n<color=#888888>> {sanitizedInputPreview}...</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length (256 characters).");
             // 🛡️ Sentinel: Sanitize input to escape rich text tags BEFORE any validation or echoing.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
@@ -280,10 +336,14 @@ namespace Milehigh.World.Terminal
 
             if (!SafeCommandRegex.IsMatch(input))
             {
+                string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
                 WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters. Use only A-Z, 0-9, spaces, '.', '_', and '-'.");
                 return;
             }
+
+            // 🎨 Palette: Echo validated user command to terminal and update history.
+            WriteToTerminal($"\n<color=#888888>> {input}</color>");
 
             // 🛡️ Sentinel: Echo validated user command to terminal.
             // Ensures validated input is echoed, preventing UI injection via Rich Text tags.
@@ -308,6 +368,9 @@ namespace Milehigh.World.Terminal
             {
                 _commandHistory.Add(input);
             }
+            _historyIndex = -1;
+
+            CleanupInputAfterCommand();
 
             _lastCommand = input;
 
@@ -362,6 +425,72 @@ namespace Milehigh.World.Terminal
             }
             else if (command == "infiniteration")
             {
+                int index = input.IndexOf(parts[2]);
+                if (index != -1)
+                {
+                    string argument = input.Substring(index);
+                    ExecuteExtendedCommand(parts[0], argument);
+                    WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: Command '{parts[0]}' executed.");
+                    return;
+                }
+            }
+
+            // 🎨 Palette: "Did you mean?" fuzzy matching for unknown commands
+            string? suggestion = GetClosestCommand(command);
+            string errorMsg = $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.</color>";
+            if (suggestion != null)
+            {
+                errorMsg += $" <color=#FFFF00>Did you mean '{suggestion}'?</color>";
+            }
+            errorMsg += " Type <color=#00FFFF>'help'</color> for options.";
+
+            WriteToTerminal(errorMsg);
+            if (commandInput != null) StartCoroutine(ShakeInputField());
+        }
+
+        private string? GetClosestCommand(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return null;
+
+            string? bestMatch = null;
+            int minDistance = 3; // Max threshold for "closeness"
+
+            foreach (string cmd in ValidCommands)
+            {
+                int distance = ComputeLevenshteinDistance(input, cmd);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestMatch = cmd;
+                }
+            }
+
+            return bestMatch;
+        }
+
+        private int ComputeLevenshteinDistance(string s, string t)
+        {
+            int n = s.Length;
+            int m = t.Length;
+            int[,] d = new int[n + 1, m + 1];
+
+            if (n == 0) return m;
+            if (m == 0) return n;
+
+            for (int i = 0; i <= n; d[i, 0] = i++) ;
+            for (int j = 0; j <= m; d[0, j] = j++) ;
+
+            for (int i = 1; i <= n; i++)
+            {
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = (t[j - 1] == s[i - 1]) ? 0 : 1;
+                    d[i, j] = Mathf.Min(
+                        Mathf.Min(d[i - 1, j] + 1, d[i, j - 1] + 1),
+                        d[i - 1, j - 1] + cost);
+                }
+            }
+            return d[n, m];
                 ExecuteInfiniteration();
             }
             else if (parts.Length >= 3)
@@ -456,6 +585,7 @@ namespace Milehigh.World.Terminal
             for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
             {
                 outputDisplay.maxVisibleCharacters = startVisibleCount + i;
+
                 char c = outputDisplay.textInfo.characterInfo[startVisibleCount + i - 1].character;
                 float delay = typingSpeed;
 
