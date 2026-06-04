@@ -16,6 +16,7 @@ namespace MilehighWorld.CombatSystems
 
         private static MaterialPropertyBlock? _propBlock;
 
+        // ⚡ Bolt: Cache shader property IDs to avoid string lookups in the hot loop.
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-int lookups.
         // ⚡ Bolt: Cache shader property IDs to avoid string lookups in high-frequency loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
@@ -43,6 +44,12 @@ namespace MilehighWorld.CombatSystems
 
             if (_propBlock == null) _propBlock = new MaterialPropertyBlock();
 
+            // ⚡ Bolt: Pre-cache ally references and components outside the hot loop to reduce CPU overhead.
+            var reverie = director.GetAlly("Reverie");
+            var micahRB = micahBulwark?.PrefabReference?.GetComponent<Rigidbody>();
+
+            // ⚡ Bolt: Set mass once outside the loop as it remains constant during this phase.
+            if (micahRB != null) micahRB.mass = 900.0f;
             // ⚡ Bolt: Pre-cache components outside the loop.
             Rigidbody? squadMassOverride = null;
             if (micahBulwark != null && micahBulwark.PrefabReference != null)
@@ -62,6 +69,8 @@ namespace MilehighWorld.CombatSystems
                     return;
                 }
 
+                // ⚡ Bolt: Using cached ally references and components to eliminate per-frame dictionary lookups and native bridge calls.
+                reverie?.UseAbility("Arcane Symphony");
                 // ⚡ Bolt: Using pre-cached references and components to avoid O(N) lookups and native bridge overhead.
                 if (reverie != null) reverie.UseAbility("Arcane Symphony");
                 if (skyIxVanguard != null) skyIxVanguard.UseAbility("Void Step");
@@ -72,6 +81,10 @@ namespace MilehighWorld.CombatSystems
                 // Decrement global variance based on local structural shard completion
                 voidVarianceDelta -= 0.11f;
 
+                // ⚡ Bolt: Use cached Property IDs and MaterialPropertyBlock for efficient shader updates.
+                if (platformRenderer != null)
+                {
+                    platformRenderer.GetPropertyBlock(_propBlock);
                 // Real-time update to material instances via property IDs
                 if (platformRenderer != null)
                 {
