@@ -77,8 +77,6 @@ namespace UnityEngine
     }
     public class CreateAssetMenuAttribute : Attribute
     {
-        public string fileName = "";
-        public string menuName = "";
         public string fileName { get; set; } = "";
         public string menuName { get; set; } = "";
     }
@@ -105,6 +103,7 @@ namespace UnityEngine
         public static float Clamp(float value, float min, float max) => value < min ? min : (value > max ? max : value);
         public static int Min(int a, int b) => a < b ? a : b;
         public static float Min(float a, float b) => a < b ? a : b;
+        public static float Abs(float f) => f < 0 ? -f : f;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
     }
@@ -251,13 +250,6 @@ namespace TMPro
     }
 }
 
-namespace UnityEngine.Events
-{
-    public class UnityEvent<T>
-    {
-        public void AddListener(Action<T> action) {}
-    }
-}
 
 namespace UnityEditor
 {
