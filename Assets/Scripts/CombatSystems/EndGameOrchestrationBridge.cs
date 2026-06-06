@@ -16,12 +16,6 @@ namespace MilehighWorld.CombatSystems
 
         private static MaterialPropertyBlock? _propBlock;
 
-        // ⚡ Bolt: Cache shader property IDs to avoid expensive string-to-int lookups in hot loops.
-        [SerializeField] private GameObject? anastasiaAnchor;
-        [SerializeField] private GameObject? delilahTargetMesh;
-
-        private static MaterialPropertyBlock? _propBlock;
-
         // ⚡ Bolt: Cache shader property IDs to eliminate per-frame string-to-ID lookups in hot loops.
         private static readonly int VoidPulseRateId = Shader.PropertyToID("_VoidPulseRate");
         private static readonly int EmissiveIntensityId = Shader.PropertyToID("_EmissiveIntensity");
@@ -48,7 +42,6 @@ namespace MilehighWorld.CombatSystems
                 var aeron = director.GetAlly("Aeron");
                 var zaia = director.GetAlly("Zaia");
 
-                Rigidbody? aeronRB = null;
                 if (aeron != null && aeron.PrefabReference != null)
                 {
                     if (aeron.PrefabReference.TryGetComponent<Rigidbody>(out var aeronRB))
@@ -61,10 +54,11 @@ namespace MilehighWorld.CombatSystems
                 Renderer? delilahRenderer = null;
                 if (delilahTargetMesh != null)
                 {
-                    delilahTargetMesh.TryGetComponent<Renderer>(out delilahRenderer);
-                    // ⚡ Bolt: Hoist GetPropertyBlock out of the loop.
-                    // ⚡ Bolt: Hoist MaterialPropertyBlock fetching outside the loop.
-                    if (delilahRenderer != null) delilahRenderer.GetPropertyBlock(_propBlock);
+                    if (delilahTargetMesh.TryGetComponent<Renderer>(out delilahRenderer))
+                    {
+                        // ⚡ Bolt: Hoist MaterialPropertyBlock fetching outside the loop.
+                        delilahRenderer.GetPropertyBlock(_propBlock);
+                    }
                 }
 
                 // Force Absolute Compression Limit on background environment loops
@@ -76,10 +70,8 @@ namespace MilehighWorld.CombatSystems
                 // 3. Multithreaded Evaluation Loop for Dual-Layer Defense Matrix
                 float voidVarianceDelta = 0.98f;
                 float parityResonance = 0.15f;
-                // ⚡ Bolt: Pre-calculate loop-invariant or frequent values.
-                float deltaStep = ingrisVanguard.PrefabReference != null ? 0.09f : 0.009f;
 
-                // ⚡ Bolt: Pre-calculate loop-invariant values.
+                // ⚡ Bolt: Pre-calculate loop-invariant values based on the ACTUAL Unity reference presence.
                 float deltaStep = (ingrisVanguard.PrefabReference != null) ? 0.09f : 0.009f;
 
                 while (voidVarianceDelta > 0.001f)
