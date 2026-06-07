@@ -27,3 +27,7 @@
 ## 2025-06-21 - [Terminal Power-User Shortcuts]
 **Learning:** Power-user shortcuts (like Ctrl+L for clear or Esc for clear-line) significantly enhance the "terminal-native" feel for experienced users, but remain entirely undiscoverable unless explicitly documented in the 'help' command.
 **Action:** Always pair new keyboard shortcuts with updated help documentation and muted shortcut hints.
+
+## 2025-06-25 - [Contextual UX Education]
+**Learning:** Users are most likely to seek help for a feature (like history) when they try to use it and fail. Providing contextual tips (e.g., in empty states) is more effective than static documentation for teaching power-user shortcuts.
+**Action:** Always include helpful, contextual hints in "empty states" to guide users toward relevant shortcuts or features.
