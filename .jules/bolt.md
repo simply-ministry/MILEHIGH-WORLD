@@ -99,3 +99,11 @@
 ## 2024-05-30 - Combat Orchestrator Code Rot and Logic Precision
 **Learning:** Found that `EndGameOrchestrationBridge.cs` suffered from extreme code rot where multiple redundant "Bolt" optimization blocks were appended, leading to duplicate `SerializeField` and `static readonly int` declarations that break compilation. Additionally, found a subtle logic error where `deltaStep` was calculated based on a null-check of a locally instantiated class instead of its internal Unity `PrefabReference`, rendering the performance branch dead.
 **Action:** When optimizing hot loops in this codebase, first audit the file for previous conflicting optimizations and consolidate them. Ensure ternary logic for performance branches (like `deltaStep`) is grounded in the actual presence of Unity engine references, not just the C# wrapper instance.
+
+## 2024-06-05 - MaterialPropertyBlock Hoisting and Async Loop Safety
+**Learning:** Hoisting 'GetPropertyBlock' out of high-frequency async loops ('await Task.Yield()') eliminates redundant native-to-managed memory copies every frame. Additionally, wrapping async combat sequences in 'try-finally' blocks is critical to guarantee 'Time.timeScale' restoration, preventing permanent simulation slowdowns if the task is cancelled or errors occur.
+**Action:** Always hoist 'GetPropertyBlock' before entering loops and use 'try-finally' for any engine-wide state changes like 'Time.timeScale'.
+
+## 2024-06-05 - Combat Orchestrator Consolidation
+**Learning:** 'EndGameMultiFrontOrchestrator.cs' was prone to severe code rot and syntax errors (missing braces) due to multiple overlapping and triplicated optimization attempts. Consolidation into a single, clean 'Bolt' pattern is necessary to maintain both performance and compilation integrity.
+**Action:** When encountering triplicated logic or conflicting 'Bolt' comments, consolidate into a single optimized implementation and verify with a standalone 'dotnet build'.
