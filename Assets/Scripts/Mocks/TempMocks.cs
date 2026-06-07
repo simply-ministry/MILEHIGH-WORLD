@@ -55,12 +55,13 @@ namespace UnityEngine
     public struct Quaternion
     {
         public float x, y, z, w;
+        public static Quaternion identity => new Quaternion();
     }
     public class Debug
     {
         public static void Log(object message) {}
         public static void LogWarning(object message) {}
-        public static void LogError(object message) {}
+        public static void LogError(object message) { Console.WriteLine(message); }
     }
     public class JsonUtility
     {
@@ -105,6 +106,7 @@ namespace UnityEngine
         public static float Min(float a, float b) => a < b ? a : b;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
+        public static Vector3 insideUnitSphere => new Vector3();
     }
     public class Color
     {
