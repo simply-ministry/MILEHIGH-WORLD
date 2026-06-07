@@ -1,0 +1,12 @@
+/app/bin/Debug/net9.0/OtisTerminal.deps.json
+/app/bin/Debug/net9.0/OtisTerminal.dll
+/app/bin/Debug/net9.0/OtisTerminal.pdb
+/app/obj/Debug/net9.0/OtisTerminal.GeneratedMSBuildEditorConfig.editorconfig
+/app/obj/Debug/net9.0/OtisTerminal.AssemblyInfoInputs.cache
+/app/obj/Debug/net9.0/OtisTerminal.AssemblyInfo.cs
+/app/obj/Debug/net9.0/OtisTerminal.csproj.CoreCompileInputs.cache
+/app/obj/Debug/net9.0/OtisTerminal.sourcelink.json
+/app/obj/Debug/net9.0/OtisTerminal.dll
+/app/obj/Debug/net9.0/refint/OtisTerminal.dll
+/app/obj/Debug/net9.0/OtisTerminal.pdb
+/app/obj/Debug/net9.0/ref/OtisTerminal.dll

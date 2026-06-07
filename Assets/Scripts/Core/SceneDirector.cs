@@ -18,7 +18,9 @@ namespace Milehigh.Core
         {
             "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager",
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
-            "SkyIxController", "CinematicController", "TimelineSimulationEngine"
+            "SkyIxController", "CinematicController", "TimelineSimulationEngine",
+            "AsyncSceneLoader", "OtisTerminal"
+            "OtisTerminal", "AsyncSceneLoader"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -169,36 +171,17 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and information leakage via stack traces.
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and IDOR protection.
+            // 🛡️ Sentinel: Consolidate validation into a single pipeline to resolve code rot and syntax errors.
+            // Defensive programming to prevent NullReferenceException and IDOR protection.
+            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
+
+            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
+            // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
+            // Prevents NullReferenceException (information disclosure) and IDOR attacks.
             if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
             // Block critical system managers and architectural singletons from being manipulated via external data.
-            // 🛡️ Sentinel: Defensive programming to prevent NullReferenceException and IDOR attacks.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
-            // 🛡️ Sentinel: Defensive programming and IDOR protection.
-            // Consolidate validation into a single pipeline to resolve code rot and syntax errors.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block all critical system managers and architectural singletons from being manipulated via external data.
-            if (interaction.objectId == "CampaignManager" ||
-                interaction.objectId == "SceneDirector" ||
-                interaction.objectId == "CameraManager" ||
-                interaction.objectId == "AlliancePowerManager" ||
-                interaction.objectId == "CombatManager" ||
-                interaction.objectId == "GlobalResonanceManager" ||
-                interaction.objectId == "BicameralBattleEngine" ||
-                interaction.objectId == "SkyIxController" ||
-                interaction.objectId == "CinematicController")
-                interaction.objectId == "CinematicController" ||
-                interaction.objectId == "TimelineSimulationEngine")
-            // 🛡️ Sentinel: Consolidate redundant checks and implement hardened IDOR protection.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
             if (ProtectedSystemObjects.Contains(interaction.objectId))
             {
                 Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");

@@ -55,12 +55,13 @@ namespace UnityEngine
     public struct Quaternion
     {
         public float x, y, z, w;
+        public static Quaternion identity => new Quaternion();
     }
     public class Debug
     {
         public static void Log(object message) {}
         public static void LogWarning(object message) {}
-        public static void LogError(object message) {}
+        public static void LogError(object message) { Console.WriteLine(message); }
     }
     public class JsonUtility
     {
@@ -77,8 +78,6 @@ namespace UnityEngine
     }
     public class CreateAssetMenuAttribute : Attribute
     {
-        public string fileName = "";
-        public string menuName = "";
         public string fileName { get; set; } = "";
         public string menuName { get; set; } = "";
     }
@@ -105,8 +104,10 @@ namespace UnityEngine
         public static float Clamp(float value, float min, float max) => value < min ? min : (value > max ? max : value);
         public static int Min(int a, int b) => a < b ? a : b;
         public static float Min(float a, float b) => a < b ? a : b;
+        public static float Abs(float f) => f < 0 ? -f : f;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;
+        public static Vector3 insideUnitSphere => new Vector3();
     }
     public class Color
     {
@@ -221,7 +222,7 @@ namespace TMPro
     {
         public string text { get; set; } = "";
         public int characterLimit { get; set; }
-        public bool isFocused { get; }
+        public bool isFocused { get; } = false;
         public void ActivateInputField() {}
         public void MoveTextEnd(bool shift) {}
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
@@ -251,13 +252,6 @@ namespace TMPro
     }
 }
 
-namespace UnityEngine.Events
-{
-    public class UnityEvent<T>
-    {
-        public void AddListener(Action<T> action) {}
-    }
-}
 
 namespace UnityEditor
 {
