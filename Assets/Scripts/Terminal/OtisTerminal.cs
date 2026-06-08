@@ -47,7 +47,7 @@ namespace Milehigh.World.Terminal
             {
                 commandInput.characterLimit = MaxInputLength;
                 if (commandInput.placeholder is TMP_Text placeholderText)
-                    placeholderText.text = "Enter command...";
+                    placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
             }
             ClearTerminal();
@@ -77,10 +77,7 @@ namespace Milehigh.World.Terminal
                 _historyIndex = -1;
                 commandInput.ActivateInputField();
             }
-            else if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && Input.GetKeyDown(KeyCode.L))
-            {
-                ClearTerminal();
-            }
+            else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) ClearTerminal();
         }
 
         private void NavigateHistory(int direction)
@@ -98,14 +95,7 @@ namespace Milehigh.World.Terminal
             if (newIndex != _historyIndex)
             {
                 _historyIndex = newIndex;
-                if (_historyIndex == -1)
-                {
-                    commandInput.text = _persistentInput;
-                }
-                else
-                {
-                    commandInput.text = _commandHistory[_commandHistory.Count - 1 - _historyIndex];
-                }
+                commandInput.text = (_historyIndex == -1) ? _persistentInput : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
                 commandInput.MoveTextEnd(false);
             }
         }
@@ -141,8 +131,6 @@ namespace Milehigh.World.Terminal
             // 🛡️ Sentinel: Input validation and DoS protection
             if (input.Length > MaxInputLength)
             {
-                string preview = sanitizedInput.Length > 16 ? sanitizedInput.Substring(0, 16) + "..." : sanitizedInput;
-                WriteToTerminal($"\n<color=#888888>> {preview}</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
                 CleanupInput();
                 return;
@@ -164,6 +152,7 @@ namespace Milehigh.World.Terminal
             {
                 _commandHistory.Add(input);
             }
+            _persistentInput = "";
 
             string[] parts = input.Trim().Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
             string command = parts[0].ToLower();
@@ -189,6 +178,7 @@ namespace Milehigh.World.Terminal
                     output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
                 }
             }
+                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
             WriteToTerminal(output);
         }
 
@@ -200,6 +190,11 @@ namespace Milehigh.World.Terminal
                             "\n - <color=#00FFFF>history</color>: Show command history." +
                             "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
                             "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
+                "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
+                "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
         }
 
         private void ExecuteInfiniteration()
@@ -214,6 +209,8 @@ namespace Milehigh.World.Terminal
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
+            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
             StartCoroutine(ShakeInputField());
         }
 
@@ -243,6 +240,9 @@ namespace Milehigh.World.Terminal
 
             int n = s.Length;
             int m = t.Length;
+            int n = s.Length, m = t.Length;
+            if (n == 0) return m;
+            if (m == 0) return n;
 
             if (n < m) { string temp = s; s = t; t = temp; int tmp = n; n = m; m = tmp; }
 
