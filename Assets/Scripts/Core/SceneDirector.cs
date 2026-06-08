@@ -20,7 +20,6 @@ namespace Milehigh.Core
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
             "SkyIxController", "CinematicController", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal"
-            "OtisTerminal", "AsyncSceneLoader"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -171,10 +170,6 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Consolidate validation into a single pipeline to resolve code rot and syntax errors.
-            // Defensive programming to prevent NullReferenceException and IDOR protection.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
-
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
             // Prevents NullReferenceException (information disclosure) and IDOR attacks.
