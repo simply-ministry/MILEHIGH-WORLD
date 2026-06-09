@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -178,23 +179,17 @@ namespace Milehigh.World.Terminal
                     output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
             WriteToTerminal(output);
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
+                "\n - <color=#00FFFF>help</color>: Show this message." +
+                "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
+                "\n - <color=#00FFFF>history</color>: Show command history." +
+                "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
+                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
         }
 
         private void ExecuteInfiniteration()
@@ -233,21 +228,19 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
-            // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space instead of O(N*M).
-            // This significantly reduces heap allocations during fuzzy command matching.
+            // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space and stackalloc to eliminate heap allocations.
+            // This significantly reduces GC pressure during fuzzy command matching.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
             if (string.IsNullOrEmpty(t)) return s.Length;
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
-            if (n == 0) return m;
-            if (m == 0) return n;
-
             if (n < m) { string temp = s; s = t; t = temp; int tmp = n; n = m; m = tmp; }
 
-            int[] v0 = new int[m + 1];
-            int[] v1 = new int[m + 1];
+            // Use stackalloc for small strings to avoid heap allocation.
+            // Max command length is 256, but typical commands are much shorter.
+            Span<int> v0 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
+            Span<int> v1 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
 
             for (int i = 0; i <= m; i++) v0[i] = i;
 

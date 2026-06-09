@@ -96,6 +96,10 @@
 **Learning:** In 'EndGameOrchestrationBridge.cs', the main combat loop was performing O(N) 'GetAlly' lookups and 'GetComponent' calls every frame. Hoisting these lookups outside the loop and using 'Shader.PropertyToID' for shader parameter updates provides a significant CPU performance win by eliminating redundant dictionary searches and string-to-int hashing in the Unity engine.
 **Action:** Always pre-cache character references and component lookups outside of high-frequency loops (Update, Coroutines, or async Tasks). Use Property IDs for any per-frame material updates.
 
+## 2025-05-20 - Levenshtein Distance GC Optimization
+**Learning:** Fuzzy matching for terminal commands can cause GC pressure if it allocates arrays on the heap every time an unknown command is typed. Using `stackalloc` with `Span<int>` for common string lengths allows the algorithm to run entirely on the stack.
+**Action:** Use `stackalloc Span<int>` for O(M) space Levenshtein implementations when handling short strings (e.g., < 128 chars) to eliminate heap allocations and reduce GC pressure.
+
 ## 2024-05-30 - Combat Orchestrator Code Rot and Logic Precision
 **Learning:** Found that `EndGameOrchestrationBridge.cs` suffered from extreme code rot where multiple redundant "Bolt" optimization blocks were appended, leading to duplicate `SerializeField` and `static readonly int` declarations that break compilation. Additionally, found a subtle logic error where `deltaStep` was calculated based on a null-check of a locally instantiated class instead of its internal Unity `PrefabReference`, rendering the performance branch dead.
 **Action:** When optimizing hot loops in this codebase, first audit the file for previous conflicting optimizations and consolidate them. Ensure ternary logic for performance branches (like `deltaStep`) is grounded in the actual presence of Unity engine references, not just the C# wrapper instance.
