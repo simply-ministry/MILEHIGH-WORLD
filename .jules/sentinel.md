@@ -140,3 +140,8 @@
 **Vulnerability:** A syntax error in `SceneDirector.cs` (a dangling `||` operator in an `if` condition) truncated the IDOR blocklist check, allowing unauthorized manipulation of critical system managers.
 **Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
 **Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist) -> Execute. Avoid redundant, rotted code blocks that obscure the primary security path.
+
+## 2024-05-28 - [IDOR Protection and Build Hygiene]
+**Vulnerability:** Incomplete IDOR blocklist in SceneDirector.cs and repository pollution via build artifacts (bin/, obj/, .dll, .pdb).
+**Learning:** Security auditing must extend beyond code to include repository hygiene. Committing build artifacts can obscure source changes and introduce supply chain risks.
+**Prevention:** Maintain a strict .gitignore and always audit the protected object list when new high-level orchestrators or managers are added.

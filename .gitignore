@@ -1,0 +1,11 @@
+# Unity ignore files
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.user
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.log
