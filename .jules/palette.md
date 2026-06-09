@@ -31,3 +31,11 @@
 ## 2025-06-25 - [Contextual UX Education]
 **Learning:** Users are most likely to seek help for a feature (like history) when they try to use it and fail. Providing contextual tips (e.g., in empty states) is more effective than static documentation for teaching power-user shortcuts.
 **Action:** Always include helpful, contextual hints in "empty states" to guide users toward relevant shortcuts or features.
+
+## 2025-11-23 - [Terminal Retro Cursor Stability]
+**Learning:** Implementing a blinking retro cursor ('█') using `maxVisibleCharacters` requires defensive checks to prevent negative values when the output display is empty, which can cause TextMeshPro to show all characters instead of hiding the cursor.
+**Action:** Use `Mathf.Max(0, totalChars - 1)` when toggling the cursor off to ensure the terminal remains visually stable even when cleared.
+
+## 2025-11-23 - [Repository Pollution via Build Artifacts]
+**Learning:** Committing build outputs (bin/, obj/, .dll, .pdb) into the repository is a major violation of repository hygiene that can lead to PR rejection.
+**Action:** Always verify that the repository is clean of build-generated artifacts using `rm -rf bin/ obj/ ./*.dll ./*.pdb` before submitting.
