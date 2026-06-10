@@ -1,10 +1,12 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Linq;
+using System.Text;
 
 namespace Milehigh.World.Terminal
 {
@@ -26,6 +28,8 @@ namespace Milehigh.World.Terminal
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private string _persistentInput = "";
+        private bool _isCursorVisible = true;
+        private const char TerminalCursor = '█';
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -51,6 +55,7 @@ namespace Milehigh.World.Terminal
                 commandInput.onSubmit.AddListener(ProcessCommand);
             }
             ClearTerminal();
+            StartCoroutine(HandleBlinkingCursor());
         }
 
         private void OnEnable() => commandInput?.ActivateInputField();
@@ -60,7 +65,10 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
-            WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
+            WriteToTerminal($"Last Login: {timestamp} on ttys000" +
+                "\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
         }
 
         private void Update()
@@ -168,28 +176,26 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
-            string output = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
+
             if (_commandHistory.Count == 0)
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
+            {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+            }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
-                    output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
+                    sb.Append($"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>");
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
-            WriteToTerminal(output);
+            WriteToTerminal(sb.ToString());
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
                 "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
                 "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
@@ -208,9 +214,8 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
         }
 
@@ -240,7 +245,6 @@ namespace Milehigh.World.Terminal
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
             if (n == 0) return m;
             if (m == 0) return n;
 
@@ -279,54 +283,61 @@ namespace Milehigh.World.Terminal
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
-                outputDisplay.maxVisibleCharacters = int.MaxValue;
+                if (outputDisplay.text.EndsWith(TerminalCursor))
+                    outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
             }
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
 
         private IEnumerator TypewriterEffect(string message)
         {
-            // 🎨 Palette: Prevent "flash" by setting maxVisibleCharacters before appending
-            outputDisplay.ForceMeshUpdate();
-            int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.maxVisibleCharacters = startVisibleCount;
+            string baseText = outputDisplay.text;
+            if (baseText.EndsWith(TerminalCursor)) baseText = baseText.Substring(0, baseText.Length - 1);
 
-            outputDisplay.text += message;
-            outputDisplay.ForceMeshUpdate();
-            int endVisibleCount = outputDisplay.textInfo.characterCount;
+            outputDisplay.maxVisibleCharacters = int.MaxValue;
 
-            for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
+            for (int i = 0; i < message.Length; i++)
             {
-                int currentIndex = startVisibleCount + i;
-                outputDisplay.maxVisibleCharacters = currentIndex;
+                outputDisplay.text = baseText + message.Substring(0, i + 1) + TerminalCursor;
 
-                char c = outputDisplay.textInfo.characterInfo[currentIndex - 1].character;
+                char c = message[i];
                 float totalDelay = typingSpeed;
 
                 if (c == '.' || c == '!' || c == '?')
                 {
-                    bool isEndOfSentence = true;
-                    if (currentIndex < endVisibleCount)
+                    if (i + 1 == message.Length || char.IsWhiteSpace(message[i + 1]))
                     {
-                        char nextChar = outputDisplay.textInfo.characterInfo[currentIndex].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                    }
-
-                    if (isEndOfSentence)
-                    {
-                        bool isEllipsis = (c == '.' && currentIndex - 2 >= 0 && outputDisplay.textInfo.characterInfo[currentIndex - 2].character == '.');
+                        bool isEllipsis = (i >= 2 && message[i - 1] == '.' && message[i - 2] == '.');
                         totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
                     }
                 }
-                else if (c == ',' || c == ':' || c == ';')
-                {
-                    totalDelay += commaDelay;
-                }
+                else if (c == ',' || c == ':' || c == ';') totalDelay += commaDelay;
 
-                // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
                 yield return GetWait(totalDelay);
             }
             _typewriterCoroutine = null;
+        }
+
+        private IEnumerator HandleBlinkingCursor()
+        {
+            while (true)
+            {
+                if (_typewriterCoroutine == null && outputDisplay != null)
+                {
+                    _isCursorVisible = !_isCursorVisible;
+
+                    // Ensure cursor exists at end of text for blinking
+                    if (!outputDisplay.text.EndsWith(TerminalCursor))
+                    {
+                        outputDisplay.text += TerminalCursor;
+                        outputDisplay.ForceMeshUpdate();
+                    }
+
+                    int totalChars = outputDisplay.textInfo.characterCount;
+                    outputDisplay.maxVisibleCharacters = _isCursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
+                }
+                yield return GetWait(0.5f);
+            }
         }
 
         private IEnumerator ShakeInputField()

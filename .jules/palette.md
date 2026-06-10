@@ -31,3 +31,7 @@
 ## 2025-06-25 - [Contextual UX Education]
 **Learning:** Users are most likely to seek help for a feature (like history) when they try to use it and fail. Providing contextual tips (e.g., in empty states) is more effective than static documentation for teaching power-user shortcuts.
 **Action:** Always include helpful, contextual hints in "empty states" to guide users toward relevant shortcuts or features.
+
+## 2025-06-28 - [Following Cursor UX]
+**Learning:** For a retro terminal typewriter effect, having the cursor "follow" the text reveal (by appending it to the end of the substring being revealed) creates a much more immersive experience than having it jump only after the full message is revealed.
+**Action:** In typewriter coroutines, update the text string per step to include the cursor, then transition to an idle blinking state using zero-allocation maxVisibleCharacters toggling.
