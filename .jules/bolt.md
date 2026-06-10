@@ -107,3 +107,7 @@
 ## 2024-06-05 - Combat Orchestrator Consolidation
 **Learning:** 'EndGameMultiFrontOrchestrator.cs' was prone to severe code rot and syntax errors (missing braces) due to multiple overlapping and triplicated optimization attempts. Consolidation into a single, clean 'Bolt' pattern is necessary to maintain both performance and compilation integrity.
 **Action:** When encountering triplicated logic or conflicting 'Bolt' comments, consolidate into a single optimized implementation and verify with a standalone 'dotnet build'.
+
+## 2026-05-14 - [Terminal Optimization & Repository Hygiene]
+**Learning:** Optimized fuzzy matching in `OtisTerminal.cs` using `stackalloc Span<int>` to eliminate heap allocations for common command lengths, but discovered that running `dotnet build` locally generates transient `bin/` and `obj/` artifacts that must be explicitly purged. These artifacts cause massive repository pollution and are a common rejection reason.
+**Action:** Use `stackalloc Span<T>` for O(N) space algorithms with small bounds to minimize GC pressure. Always run `rm -rf bin/ obj/` before submission after performing standalone compilation checks.
