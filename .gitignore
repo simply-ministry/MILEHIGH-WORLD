@@ -1,0 +1,8 @@
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.user
+.vscode/
+.Jules/
+.conda/
