@@ -1,0 +1,7 @@
+[Bb]in/
+[Oo]bj/
+*.user
+*.userprefs
+*.pidb
+*.suo
+*.sln.docstates
