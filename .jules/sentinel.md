@@ -140,3 +140,8 @@
 **Vulnerability:** A syntax error in `SceneDirector.cs` (a dangling `||` operator in an `if` condition) truncated the IDOR blocklist check, allowing unauthorized manipulation of critical system managers.
 **Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
 **Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist) -> Execute. Avoid redundant, rotted code blocks that obscure the primary security path.
+
+## 2025-05-22 - [Case-Sensitive IDOR Bypass and Terminal Spoofing]
+**Vulnerability:** The IDOR blocklist in `SceneDirector.cs` used a default case-sensitive HashSet, allowing potential bypasses via casing variations (e.g., "campaignmanager"). Additionally, `OtisTerminal.cs` used `\s` in its validation regex, which includes newline characters, making the terminal vulnerable to UI spoofing.
+**Learning:** Security blocklists using string matching must account for casing variations to prevent trivial bypasses. Furthermore, input validation regexes should be as restrictive as possible; using broad character classes like `\s` can introduce unexpected vulnerabilities like terminal spoofing.
+**Prevention:** Always initialize security-critical HashSets or Dictionaries with `StringComparer.OrdinalIgnoreCase`. Use explicit character sets like `[ \t]` instead of `\s` when newline characters should be excluded from validated input.
