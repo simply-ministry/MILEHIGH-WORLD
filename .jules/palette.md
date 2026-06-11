@@ -31,3 +31,7 @@
 ## 2025-06-25 - [Contextual UX Education]
 **Learning:** Users are most likely to seek help for a feature (like history) when they try to use it and fail. Providing contextual tips (e.g., in empty states) is more effective than static documentation for teaching power-user shortcuts.
 **Action:** Always include helpful, contextual hints in "empty states" to guide users toward relevant shortcuts or features.
+
+## 2026-06-11 - [Retro Terminal Cursor Feedback]
+**Learning:** A blinking block cursor ('█') provides essential visual feedback in terminal interfaces, signaling that the system is active during typewriter effects and ready for input when idle.
+**Action:** Implement 'following' cursors in CLI-style reveals and use zero-allocation visibility toggles (maxVisibleCharacters) for idle blinking.
