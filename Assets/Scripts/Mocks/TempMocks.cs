@@ -104,6 +104,8 @@ namespace UnityEngine
         public static float Clamp(float value, float min, float max) => value < min ? min : (value > max ? max : value);
         public static int Min(int a, int b) => a < b ? a : b;
         public static float Min(float a, float b) => a < b ? a : b;
+        public static int Max(int a, int b) => a > b ? a : b;
+        public static float Max(float a, float b) => a > b ? a : b;
         public static float Abs(float f) => f < 0 ? -f : f;
         public const float PI = 3.14159265f;
         public static float Sin(float f) => 0;

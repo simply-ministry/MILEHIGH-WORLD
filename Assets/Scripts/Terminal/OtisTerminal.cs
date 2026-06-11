@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Linq;
+using System.Text;
 
 namespace Milehigh.World.Terminal
 {
@@ -60,7 +61,9 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
-            WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+            string lastLogin = System.DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
+            WriteToTerminal($"Last login: {lastLogin} on ttys000" +
+                "\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
         }
 
         private void Update()
@@ -168,30 +171,27 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
-            string output = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
             if (_commandHistory.Count == 0)
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
+            {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+            }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
-                    output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
+                    sb.Append($"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>");
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
-            WriteToTerminal(output);
+            WriteToTerminal(sb.ToString());
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
+                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal display." +
                 "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                 "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
                 "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
@@ -208,9 +208,8 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
         }
 
@@ -240,7 +239,6 @@ namespace Milehigh.World.Terminal
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
             if (n == 0) return m;
             if (m == 0) return n;
 
@@ -279,6 +277,9 @@ namespace Milehigh.World.Terminal
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
+                // 🎨 Palette: When skipping, ensure we don't leave a trailing cursor from the coroutine
+                string currentText = outputDisplay.text;
+                if (currentText.EndsWith("█")) outputDisplay.text = currentText.Substring(0, currentText.Length - 1);
                 outputDisplay.maxVisibleCharacters = int.MaxValue;
             }
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
@@ -291,14 +292,24 @@ namespace Milehigh.World.Terminal
             int startVisibleCount = outputDisplay.textInfo.characterCount;
             outputDisplay.maxVisibleCharacters = startVisibleCount;
 
-            outputDisplay.text += message;
-            outputDisplay.ForceMeshUpdate();
-            int endVisibleCount = outputDisplay.textInfo.characterCount;
+            // Remove cursor from previous message if it exists
+            if (outputDisplay.text.EndsWith("█"))
+            {
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.ForceMeshUpdate();
+                startVisibleCount = outputDisplay.textInfo.characterCount;
+            }
 
-            for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
+            string messageWithCursor = message + "█";
+            outputDisplay.text += messageWithCursor;
+            outputDisplay.ForceMeshUpdate();
+            int endVisibleCount = outputDisplay.textInfo.characterCount; // includes the cursor
+
+            // We want to reveal up to endVisibleCount - 1 (the cursor) and keep the cursor visible
+            for (int i = 1; i <= endVisibleCount - startVisibleCount - 1; i++)
             {
                 int currentIndex = startVisibleCount + i;
-                outputDisplay.maxVisibleCharacters = currentIndex;
+                outputDisplay.maxVisibleCharacters = currentIndex + 1; // +1 to show the cursor
 
                 char c = outputDisplay.textInfo.characterInfo[currentIndex - 1].character;
                 float totalDelay = typingSpeed;
@@ -306,7 +317,7 @@ namespace Milehigh.World.Terminal
                 if (c == '.' || c == '!' || c == '?')
                 {
                     bool isEndOfSentence = true;
-                    if (currentIndex < endVisibleCount)
+                    if (currentIndex < endVisibleCount - 1)
                     {
                         char nextChar = outputDisplay.textInfo.characterInfo[currentIndex].character;
                         if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
@@ -323,10 +334,27 @@ namespace Milehigh.World.Terminal
                     totalDelay += commaDelay;
                 }
 
-                // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
                 yield return GetWait(totalDelay);
             }
+
             _typewriterCoroutine = null;
+            StartCoroutine(HandleBlinkingCursor());
+        }
+
+        private IEnumerator HandleBlinkingCursor()
+        {
+            if (outputDisplay == null) yield break;
+
+            while (_typewriterCoroutine == null)
+            {
+                int totalChars = outputDisplay.textInfo.characterCount;
+                // Toggle cursor visibility using maxVisibleCharacters
+                outputDisplay.maxVisibleCharacters = totalChars;
+                yield return GetWait(0.5f);
+                if (_typewriterCoroutine != null) break;
+                outputDisplay.maxVisibleCharacters = Mathf.Max(0, totalChars - 1);
+                yield return GetWait(0.5f);
+            }
         }
 
         private IEnumerator ShakeInputField()
