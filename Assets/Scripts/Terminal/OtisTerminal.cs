@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Linq;
@@ -84,7 +86,6 @@ namespace Milehigh.World.Terminal
         {
             if (_commandHistory.Count == 0) return;
 
-            // Save current input if we are starting to navigate from the prompt
             if (_historyIndex == -1 && direction == 1)
             {
                 _persistentInput = commandInput.text;
@@ -125,10 +126,8 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            // 🛡️ Sentinel: Sanitize input to escape rich text tags BEFORE any validation or echoing.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
-            // 🛡️ Sentinel: Input validation and DoS protection
             if (input.Length > MaxInputLength)
             {
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
@@ -144,17 +143,14 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            // 🎨 Palette: Echo sanitized input
             WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
 
-            // Update command history
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
             }
-            _persistentInput = "";
 
-            string[] parts = input.Trim().Split(' ', System.StringSplitOptions.RemoveEmptyEntries);
+            string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string command = parts[0].ToLower();
 
             if (command == "clear") ClearTerminal();
@@ -168,28 +164,27 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
-            string output = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
+            // ⚡ Bolt: Using StringBuilder to eliminate multiple string allocations during history listing.
+            var sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
+
             if (_commandHistory.Count == 0)
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
+            {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+            }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
-                    output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
+                    sb.Append($"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>");
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
-            WriteToTerminal(output);
+            WriteToTerminal(sb.ToString());
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
                 "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
                 "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
@@ -208,7 +203,6 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
             StartCoroutine(ShakeInputField());
@@ -233,21 +227,20 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
-            // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space instead of O(N*M).
-            // This significantly reduces heap allocations during fuzzy command matching.
+            // ⚡ Bolt: High-performance Levenshtein distance using stack memory to eliminate GC pressure.
+            // Using O(M) space complexity and Span<int> for safe stack-allocated memory access.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
             if (string.IsNullOrEmpty(t)) return s.Length;
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
-            if (n == 0) return m;
-            if (m == 0) return n;
 
-            if (n < m) { string temp = s; s = t; t = temp; int tmp = n; n = m; m = tmp; }
+            if (n < m) { (s, t) = (t, s); (n, m) = (m, n); }
 
-            int[] v0 = new int[m + 1];
-            int[] v1 = new int[m + 1];
+            // Use stack allocation for small strings (common in terminal commands) to avoid heap allocations.
+            // Max command length is 256, so 257 ints = 1028 bytes, well within safe stack limits.
+            Span<int> v0 = stackalloc int[m + 1];
+            Span<int> v1 = stackalloc int[m + 1];
 
             for (int i = 0; i <= m; i++) v0[i] = i;
 
@@ -259,7 +252,7 @@ namespace Milehigh.World.Terminal
                     int cost = (s[i] == t[j]) ? 0 : 1;
                     v1[j + 1] = Mathf.Min(Mathf.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
                 }
-                for (int j = 0; j <= m; j++) v0[j] = v1[j];
+                v1.CopyTo(v0);
             }
             return v0[m];
         }
@@ -286,7 +279,6 @@ namespace Milehigh.World.Terminal
 
         private IEnumerator TypewriterEffect(string message)
         {
-            // 🎨 Palette: Prevent "flash" by setting maxVisibleCharacters before appending
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
             outputDisplay.maxVisibleCharacters = startVisibleCount;
@@ -323,7 +315,6 @@ namespace Milehigh.World.Terminal
                     totalDelay += commaDelay;
                 }
 
-                // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
                 yield return GetWait(totalDelay);
             }
             _typewriterCoroutine = null;
