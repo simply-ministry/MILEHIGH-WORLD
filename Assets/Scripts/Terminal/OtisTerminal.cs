@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -5,6 +6,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Linq;
+using System.Text;
 
 namespace Milehigh.World.Terminal
 {
@@ -168,18 +170,26 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
-            string output = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
+            // ⚡ Bolt: Using StringBuilder to eliminate O(N^2) string allocations in the history display loop.
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
+
             if (_commandHistory.Count == 0)
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
+            {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+            }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
-                    output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
+                    sb.Append("\n ");
+                    sb.Append(i + 1);
+                    sb.Append(": <color=#00FFFF>");
+                    sb.Append(_commandHistory[i]);
+                    sb.Append("</color>");
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
-            WriteToTerminal(output);
+            WriteToTerminal(sb.ToString());
         }
 
         private void DisplayHelp()
@@ -190,11 +200,6 @@ namespace Milehigh.World.Terminal
                             "\n - <color=#00FFFF>history</color>: Show command history." +
                             "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
                             "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
         }
 
         private void ExecuteInfiniteration()
@@ -208,9 +213,8 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
         }
 
@@ -233,21 +237,20 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
-            // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space instead of O(N*M).
-            // This significantly reduces heap allocations during fuzzy command matching.
+            // ⚡ Bolt: Zero-allocation Levenshtein Distance using stackalloc for small inputs (up to 128 chars).
+            // This eliminates heap allocations during high-frequency fuzzy matching when an unknown command is entered.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
             if (string.IsNullOrEmpty(t)) return s.Length;
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
             if (n == 0) return m;
             if (m == 0) return n;
 
-            if (n < m) { string temp = s; s = t; t = temp; int tmp = n; n = m; m = tmp; }
+            if (n < m) { (s, t) = (t, s); (n, m) = (m, n); }
 
-            int[] v0 = new int[m + 1];
-            int[] v1 = new int[m + 1];
+            Span<int> v0 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
+            Span<int> v1 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
 
             for (int i = 0; i <= m; i++) v0[i] = i;
 
@@ -259,7 +262,7 @@ namespace Milehigh.World.Terminal
                     int cost = (s[i] == t[j]) ? 0 : 1;
                     v1[j + 1] = Mathf.Min(Mathf.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
                 }
-                for (int j = 0; j <= m; j++) v0[j] = v1[j];
+                v1.CopyTo(v0);
             }
             return v0[m];
         }

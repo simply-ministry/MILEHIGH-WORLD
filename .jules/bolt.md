@@ -107,3 +107,7 @@
 ## 2024-06-05 - Combat Orchestrator Consolidation
 **Learning:** 'EndGameMultiFrontOrchestrator.cs' was prone to severe code rot and syntax errors (missing braces) due to multiple overlapping and triplicated optimization attempts. Consolidation into a single, clean 'Bolt' pattern is necessary to maintain both performance and compilation integrity.
 **Action:** When encountering triplicated logic or conflicting 'Bolt' comments, consolidate into a single optimized implementation and verify with a standalone 'dotnet build'.
+
+## 2026-06-12 - Zero-Allocation Fuzzy Matching and History Buffering
+**Learning:** Terminal-style components in this codebase frequently suffer from code rot and inefficient string handling. Implementing 'stackalloc Span<int>' for Levenshtein distance and 'StringBuilder' for history display eliminates major GC allocation spikes during UI interactions.
+**Action:** Always prefer 'StringBuilder' for iterative string building and 'Span<T>' with stack allocation for temporary buffers in high-frequency string algorithms.
