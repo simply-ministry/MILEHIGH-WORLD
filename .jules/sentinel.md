@@ -140,3 +140,8 @@
 **Vulnerability:** A syntax error in `SceneDirector.cs` (a dangling `||` operator in an `if` condition) truncated the IDOR blocklist check, allowing unauthorized manipulation of critical system managers.
 **Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
 **Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist) -> Execute. Avoid redundant, rotted code blocks that obscure the primary security path.
+
+## 2025-05-28 - [IDOR Case-Bypass and Code Rot in Terminal Logic]
+**Vulnerability:** Insecure Direct Object Reference (IDOR) bypass in `SceneDirector.cs` via case-insensitive object name matching, and potential security validation bypass in `OtisTerminal.cs` due to extreme code rot (redundant loops and orphaned string blocks).
+**Learning:** Security blocklists using default string comparisons are vulnerable to case-variation bypasses (e.g., 'scenedirector' vs 'SceneDirector'). Furthermore, rotted code with duplicate logic paths makes it difficult to ensure that all execution branches are properly validated and sanitized.
+**Prevention:** Use `StringComparer.OrdinalIgnoreCase` for all security-critical string lookups and blocklists. Consolidate interactive input processing into a single, linear pipeline to eliminate redundant and unvalidated execution paths.
