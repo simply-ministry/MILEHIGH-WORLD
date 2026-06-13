@@ -19,7 +19,7 @@ namespace Milehigh.World.Terminal
         [SerializeField] private float commaDelay = 0.08f;
 
         private const int MaxInputLength = 256;
-        private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
+        private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
@@ -178,23 +178,17 @@ namespace Milehigh.World.Terminal
                     output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
             WriteToTerminal(output);
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
+                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
+                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
         }
 
         private void ExecuteInfiniteration()
@@ -208,7 +202,6 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
             StartCoroutine(ShakeInputField());
@@ -240,7 +233,6 @@ namespace Milehigh.World.Terminal
 
             int n = s.Length;
             int m = t.Length;
-            int n = s.Length, m = t.Length;
             if (n == 0) return m;
             if (m == 0) return n;
 

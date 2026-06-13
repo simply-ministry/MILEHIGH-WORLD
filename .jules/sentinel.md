@@ -140,3 +140,13 @@
 **Vulnerability:** A syntax error in `SceneDirector.cs` (a dangling `||` operator in an `if` condition) truncated the IDOR blocklist check, allowing unauthorized manipulation of critical system managers.
 **Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
 **Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist) -> Execute. Avoid redundant, rotted code blocks that obscure the primary security path.
+
+## 2025-05-24 - [Case-Insensitive IDOR Bypass in SceneDirector]
+**Vulnerability:** The `ProtectedSystemObjects` blocklist in `SceneDirector.cs` was initialized as a case-sensitive `HashSet<string>`. This allowed potential IDOR bypasses where an attacker could provide an ID like `scenedirector` or `CAMPAIGNMANAGER` to circumvent the security check while still successfully resolving the object via Unity's (often case-tolerant) lookup methods or the application's internal caches.
+**Learning:** Security blocklists must account for the normalization behavior of the underlying systems they protect. If the target system is case-insensitive, the security check must also be case-insensitive.
+**Prevention:** Always use `StringComparer.OrdinalIgnoreCase` when creating HashSets or Dictionaries intended for security validation of string-based IDs.
+
+## 2025-05-24 - [Terminal Spoofing and Injection via Newline Characters]
+**Vulnerability:** The `SafeCommandRegex` in `OtisTerminal.cs` used the generic `\s` whitespace shorthand, which includes newline (`\n`) and carriage return (`\r`) characters. This could allow an attacker to inject multi-line inputs that might spoof terminal output or bypass certain single-line processing assumptions.
+**Learning:** Overly permissive whitespace validation in interactive consoles can lead to UI spoofing or command injection vulnerabilities.
+**Prevention:** Use explicit whitespace character classes (e.g., `[ \t]`) instead of `\s` when validating single-line command inputs to ensure control characters like newlines are strictly forbidden.
