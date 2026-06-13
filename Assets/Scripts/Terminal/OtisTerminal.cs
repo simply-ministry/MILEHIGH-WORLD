@@ -60,7 +60,10 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
-            WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+
+            string lastLogin = System.DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
+            WriteToTerminal($"<color=#888888>Last login: {lastLogin} on ttys000</color>");
+            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
         }
 
         private void Update()
@@ -170,7 +173,9 @@ namespace Milehigh.World.Terminal
         {
             string output = "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>";
             if (_commandHistory.Count == 0)
+            {
                 output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
+            }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
@@ -178,18 +183,12 @@ namespace Milehigh.World.Terminal
                     output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
                 }
             }
-                for (int i = 0; i < _commandHistory.Count; i++) output += $"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>";
             WriteToTerminal(output);
         }
 
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF>help</color>: Show this message." +
-                            "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF>history</color>: Show command history." +
-                            "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
                 "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
                 "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
@@ -208,9 +207,8 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
         }
 
@@ -238,8 +236,6 @@ namespace Milehigh.World.Terminal
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
             if (string.IsNullOrEmpty(t)) return s.Length;
 
-            int n = s.Length;
-            int m = t.Length;
             int n = s.Length, m = t.Length;
             if (n == 0) return m;
             if (m == 0) return n;
