@@ -107,3 +107,7 @@
 ## 2024-06-05 - Combat Orchestrator Consolidation
 **Learning:** 'EndGameMultiFrontOrchestrator.cs' was prone to severe code rot and syntax errors (missing braces) due to multiple overlapping and triplicated optimization attempts. Consolidation into a single, clean 'Bolt' pattern is necessary to maintain both performance and compilation integrity.
 **Action:** When encountering triplicated logic or conflicting 'Bolt' comments, consolidate into a single optimized implementation and verify with a standalone 'dotnet build'.
+
+## 2024-05-24 - OtisTerminal Memory and GC Optimization
+**Learning:** High-frequency operations like fuzzy command matching and terminal history rendering in 'OtisTerminal.cs' were generating significant heap allocations through 'int[]' arrays and string concatenations. In modern .NET (9.0+), 'stackalloc Span<int>' can be used to eliminate heap allocations for common input sizes, and 'StringBuilder' reduces (N^2)$ allocation overhead for string building.
+**Action:** Use 'stackalloc Span<T>' for small, short-lived buffers and 'StringBuilder' for iterative string construction to reduce GC pressure and improve UI responsiveness.
