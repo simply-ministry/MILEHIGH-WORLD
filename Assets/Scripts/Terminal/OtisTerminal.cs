@@ -174,17 +174,17 @@ namespace Milehigh.World.Terminal
             StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
             if (_commandHistory.Count == 0)
             {
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
                 sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
             }
             else
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
-                    sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(_commandHistory[i]).Append("</color>");
+                    // 🛡️ Sentinel: Sanitize history entries to prevent Rich Text UI injection.
+                    string sanitizedEntry = _commandHistory[i].Replace("<", "&lt;").Replace(">", "&gt;");
+                    sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(sanitizedEntry).Append("</color>");
                 }
             }
-            WriteToTerminal(output);
             WriteToTerminal(sb.ToString());
         }
 
@@ -193,10 +193,6 @@ namespace Milehigh.World.Terminal
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                             "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
                             "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                             "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                             "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
                             "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
