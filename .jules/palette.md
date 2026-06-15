@@ -31,3 +31,7 @@
 ## 2025-06-25 - [Contextual UX Education]
 **Learning:** Users are most likely to seek help for a feature (like history) when they try to use it and fail. Providing contextual tips (e.g., in empty states) is more effective than static documentation for teaching power-user shortcuts.
 **Action:** Always include helpful, contextual hints in "empty states" to guide users toward relevant shortcuts or features.
+
+## 2025-06-28 - [Terminal Blinking Cursor Integration]
+**Learning:** When implementing a blinking cursor in a typewriter-reveal UI (TextMeshPro), appending the cursor ('█') to the text buffer and managing its visibility by toggling `maxVisibleCharacters` between `N` and `N+1` (where N is the current revealed character count) provides a stable, flicker-free effect that respects Rich Text tags.
+**Action:** Coordinate cursor visibility coroutines with typewriter reveal logic to ensure the cursor always trails the most recently revealed character.

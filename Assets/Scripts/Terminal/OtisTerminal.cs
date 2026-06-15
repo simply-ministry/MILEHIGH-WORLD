@@ -25,6 +25,8 @@ namespace Milehigh.World.Terminal
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
+        private Coroutine? _cursorCoroutine;
+        private bool _cursorVisible = true;
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private string _persistentInput = "";
@@ -55,14 +57,29 @@ namespace Milehigh.World.Terminal
             ClearTerminal();
         }
 
-        private void OnEnable() => commandInput?.ActivateInputField();
+        private void OnEnable()
+        {
+            commandInput?.ActivateInputField();
+            _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
+        }
+
+        private void OnDisable()
+        {
+            if (_cursorCoroutine != null)
+            {
+                StopCoroutine(_cursorCoroutine);
+                _cursorCoroutine = null;
+            }
+        }
 
         private void ClearTerminal()
         {
             if (outputDisplay == null) return;
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
-            WriteToTerminal("<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
+            WriteToTerminal($"<color=#888888>Last login: {timestamp} on ttys000</color>");
+            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
         }
 
         private void Update()
@@ -174,7 +191,6 @@ namespace Milehigh.World.Terminal
             StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
             if (_commandHistory.Count == 0)
             {
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
                 sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
             }
             else
@@ -184,7 +200,6 @@ namespace Milehigh.World.Terminal
                     sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(_commandHistory[i]).Append("</color>");
                 }
             }
-            WriteToTerminal(output);
             WriteToTerminal(sb.ToString());
         }
 
@@ -192,10 +207,6 @@ namespace Milehigh.World.Terminal
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                             "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                             "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                             "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                             "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
@@ -290,7 +301,8 @@ namespace Milehigh.World.Terminal
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
-                outputDisplay.maxVisibleCharacters = int.MaxValue;
+                // Ensure all characters (excluding the cursor we're about to add) are visible
+                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
             }
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
@@ -300,16 +312,25 @@ namespace Milehigh.World.Terminal
             // 🎨 Palette: Prevent "flash" by setting maxVisibleCharacters before appending
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.maxVisibleCharacters = startVisibleCount;
 
-            outputDisplay.text += message;
+            // Remove the trailing cursor if it exists before appending
+            if (outputDisplay.text.EndsWith("█"))
+            {
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                startVisibleCount--;
+            }
+
+            outputDisplay.maxVisibleCharacters = startVisibleCount;
+            outputDisplay.text += message + "█"; // Append message and the cursor
             outputDisplay.ForceMeshUpdate();
-            int endVisibleCount = outputDisplay.textInfo.characterCount;
+            int totalChars = outputDisplay.textInfo.characterCount;
+            int endVisibleCount = totalChars - 1; // Exclude cursor from typewriter reveal
 
             for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
             {
                 int currentIndex = startVisibleCount + i;
-                outputDisplay.maxVisibleCharacters = currentIndex;
+                // Reveal character and ensure cursor remains visible at the end
+                outputDisplay.maxVisibleCharacters = _cursorVisible ? currentIndex + 1 : currentIndex;
 
                 char c = outputDisplay.textInfo.characterInfo[currentIndex - 1].character;
                 float totalDelay = typingSpeed;
@@ -337,7 +358,32 @@ namespace Milehigh.World.Terminal
                 // ⚡ Bolt: Single zero-allocation yield per character reveal via shared cache.
                 yield return GetWait(totalDelay);
             }
+
             _typewriterCoroutine = null;
+            // Final cursor sync
+            UpdateCursorVisibility();
+        }
+
+        private IEnumerator HandleBlinkingCursor()
+        {
+            while (true)
+            {
+                _cursorVisible = !_cursorVisible;
+                UpdateCursorVisibility();
+                yield return GetWait(0.53f); // Standard terminal blink rate
+            }
+        }
+
+        private void UpdateCursorVisibility()
+        {
+            if (outputDisplay == null) return;
+
+            int totalChars = outputDisplay.textInfo.characterCount;
+            if (totalChars == 0 || !outputDisplay.text.EndsWith("█")) return;
+
+            if (_typewriterCoroutine != null) return; // Managed by typewriter during reveal
+
+            outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
         }
 
         private IEnumerator ShakeInputField()
