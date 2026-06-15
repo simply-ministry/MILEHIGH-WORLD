@@ -70,7 +70,9 @@ namespace Milehigh.Core
             if (scenario == null) return;
 
             _objectCache.Clear();
-            foreach (var go in UnityEngine.Object.FindObjectsOfType<GameObject>())
+            // ⚡ Bolt: Replace FindObjectsOfType with FindObjectsByType(FindObjectsSortMode.None) for improved performance.
+            // This avoids redundant sorting and uses a more optimized engine path in modern Unity versions.
+            foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
             {
                 if (go != null && !string.IsNullOrEmpty(go.name))
                 {
