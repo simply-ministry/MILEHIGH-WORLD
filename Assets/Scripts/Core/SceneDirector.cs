@@ -21,14 +21,15 @@ namespace Milehigh.Core
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
             "SkyIxController", "CinematicController", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal", "RealityAnchor", "LatticeSynchronizer",
-            "EndGameMultiFrontOrchestrator", "EndGameOrchestrationBridge"
+            "EndGameMultiFrontOrchestrator", "EndGameOrchestrationBridge", "EventSystem",
+            "Main Camera"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
         private Dictionary<string, GameObject?> _prefabCache = new Dictionary<string, GameObject?>();
         private Dictionary<int, CharacterControllerBase?> _controllerCache = new Dictionary<int, CharacterControllerBase?>();
 
-        private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_\s\(\)\-\.\[\]]+$", RegexOptions.Compiled);
+        private static readonly Regex SafeNameRegex = new Regex(@"^[a-zA-Z0-9_ \t\(\)\-\.\[\]]+$", RegexOptions.Compiled);
 
         private void Awake()
         {
@@ -175,19 +176,29 @@ namespace Milehigh.Core
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
             // Prevents NullReferenceException (information disclosure) and IDOR attacks.
-            if (interaction == null || string.IsNullOrEmpty(interaction.objectId)) return;
+            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
+
+            string objectId = interaction.objectId.Trim();
 
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
             // Block critical system managers and architectural singletons from being manipulated via external data.
-            if (ProtectedSystemObjects.Contains(interaction.objectId))
+            if (ProtectedSystemObjects.Contains(objectId))
             {
-                Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {interaction.objectId}");
+                Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {objectId}");
                 return;
             }
 
-            GameObject? target = GetCachedObject(interaction.objectId);
+            GameObject? target = GetCachedObject(objectId);
             if (target != null)
             {
+                // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
+                // to prevent potential bypasses if the object was retrieved via a different alias or path.
+                if (ProtectedSystemObjects.Contains(target.name.Trim()))
+                {
+                    Debug.LogError($"[Security] Blocked unauthorized interaction attempt to resolved system object: {target.name}");
+                    return;
+                }
+
                 if (interaction.isVector)
                 {
                     target.transform.position = interaction.GetVectorValue();
