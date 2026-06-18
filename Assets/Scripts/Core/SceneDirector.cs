@@ -14,7 +14,6 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // 🛡️ Sentinel: Hardened blocklist to prevent Insecure Direct Object Reference (IDOR) attacks on critical system managers.
-        // Uses OrdinalIgnoreCase for defense-in-depth against case-insensitive bypass attempts.
         // Initialized with OrdinalIgnoreCase to provide defense-in-depth against case-insensitive IDOR bypass attempts.
         private static readonly HashSet<string> ProtectedSystemObjects = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
         {
@@ -22,12 +21,8 @@ namespace Milehigh.Core
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
             "SkyIxController", "CinematicController", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal", "EndGameMultiFrontOrchestrator",
-            "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor"
-            "AsyncSceneLoader", "OtisTerminal", "RealityAnchor", "LatticeSynchronizer",
-            "EndGameMultiFrontOrchestrator", "EndGameOrchestrationBridge",
+            "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor",
             "EventSystem", "Main Camera"
-            "EndGameMultiFrontOrchestrator", "EndGameOrchestrationBridge", "EventSystem",
-            "Main Camera"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -182,7 +177,6 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
             // Prevents NullReferenceException (information disclosure) and IDOR attacks.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
@@ -198,26 +192,6 @@ namespace Milehigh.Core
             }
 
             GameObject? target = GetCachedObject(cleanId);
-            if (target != null)
-            {
-                // 🛡️ Sentinel: Secondary security check. Verify the resolved object name against the blocklist
-                // as defense-in-depth against path-based or hierarchy-based bypasses (e.g. "/CampaignManager").
-                string targetName = target.name.Trim();
-                if (ProtectedSystemObjects.Contains(targetName))
-                {
-                    Debug.LogError($"[Security] Blocked resolved interaction to protected system object: {targetName}");
-
-            string objectId = interaction.objectId.Trim();
-
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            // Block critical system managers and architectural singletons from being manipulated via external data.
-            if (ProtectedSystemObjects.Contains(objectId))
-            {
-                Debug.LogError($"[Security] Blocked unauthorized interaction attempt to system object: {objectId}");
-                return;
-            }
-
-            GameObject? target = GetCachedObject(objectId);
             if (target != null)
             {
                 // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
