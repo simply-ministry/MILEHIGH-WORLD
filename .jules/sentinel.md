@@ -140,3 +140,13 @@
 **Vulnerability:** A syntax error in `SceneDirector.cs` (a dangling `||` operator in an `if` condition) truncated the IDOR blocklist check, allowing unauthorized manipulation of critical system managers.
 **Learning:** Code rot, especially when it results in multiple overlapping validation blocks, often leads to syntax errors that are overlooked during quick audits. These errors can silently disable security controls.
 **Prevention:** Consolidate security-critical logic into a single, clean, and properly sequenced pipeline: Validate Input -> Check Authorization (Blocklist) -> Execute. Avoid redundant, rotted code blocks that obscure the primary security path.
+
+## 2025-05-22 - Case-Insensitive IDOR Protection in Scene Interaction
+**Vulnerability:** Insecure Direct Object Reference (IDOR) via case-sensitive blocklist checks in SceneDirector.cs.
+**Learning:** Blocklists for untrusted input identifiers are fragile if they don't account for casing variations, especially if the underlying lookup (like GameObject.Find) or the input source might normalize or ignore casing.
+**Prevention:** Always use 'StringComparer.OrdinalIgnoreCase' when initializing blocklists or performing security-critical string comparisons for external identifiers.
+
+## 2025-06-17 - Double-Validation for IDOR Protection
+**Vulnerability:** Insecure Direct Object Reference (IDOR) via `GameObject.Find` in `SceneDirector.cs`. Previous protections only checked the input string against a blocklist. An attacker could potentially use whitespace or other string variations to bypass the initial string check while still resolving to a protected object.
+**Learning:** Checking only the input string is insufficient if the underlying lookup system (`GameObject.Find`) might resolve different or rotted string variations to the same sensitive object.
+**Prevention:** Implement "Double Validation": Validate the untrusted input string against the blocklist, resolve the object, and then *re-validate* the resolved object's actual name against the blocklist before performing any operations.
