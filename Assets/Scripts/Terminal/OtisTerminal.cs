@@ -20,7 +20,6 @@ namespace Milehigh.World.Terminal
         [Header("Typewriter Settings")]
         [SerializeField] private float typingSpeed = 0.02f;
         [SerializeField] private float punctuationDelay = 0.15f;
-        [SerializeField] private float commaDelay = 0.08f;
 
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
@@ -58,11 +57,13 @@ namespace Milehigh.World.Terminal
                 commandInput.onSubmit.AddListener(ProcessCommand);
             }
             ClearTerminal();
+            _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
         }
 
         private void OnEnable()
         {
             commandInput?.ActivateInputField();
+            if (_cursorCoroutine == null) _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
             _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
         }
 
@@ -91,6 +92,26 @@ namespace Milehigh.World.Terminal
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
             WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
+        }
+
+        private IEnumerator HandleBlinkingCursor()
+        {
+            while (true)
+            {
+                _cursorVisible = !_cursorVisible;
+                UpdateCursorDisplay();
+                yield return GetWait(0.5f);
+            }
+        }
+
+        private void UpdateCursorDisplay()
+        {
+            if (outputDisplay == null || _typewriterCoroutine != null) return;
+
+            outputDisplay.ForceMeshUpdate();
+            int totalChars = outputDisplay.textInfo.characterCount;
+            // Palette: Use maxVisibleCharacters to toggle the cursor '█' visibility at the end of the text.
+            outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
         }
 
         private void Update()
@@ -256,6 +277,11 @@ namespace Milehigh.World.Terminal
         private void DisplayHelp()
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
+                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                            "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
+                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
                 "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
                 "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
@@ -304,6 +330,7 @@ namespace Milehigh.World.Terminal
             _lastSuggestion = suggestion;
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
+                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands. Type 'help' for options.</color>");
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
                 "\n<color=#AAAAAA>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
@@ -388,6 +415,12 @@ namespace Milehigh.World.Terminal
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
+            if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
+
+            // Palette: Remove previous cursor before appending new message
+            if (outputDisplay.text.EndsWith("█"))
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+
             if (_typewriterCoroutine != null)
             {
                 StopCoroutine(_typewriterCoroutine);
@@ -399,8 +432,12 @@ namespace Milehigh.World.Terminal
 
         private IEnumerator TypewriterEffect(string message)
         {
-            // 🎨 Palette: Prevent "flash" by setting maxVisibleCharacters before appending
             outputDisplay.ForceMeshUpdate();
+            int startCount = outputDisplay.textInfo.characterCount;
+
+            outputDisplay.text += message + "█";
+            outputDisplay.ForceMeshUpdate();
+            int totalCount = outputDisplay.textInfo.characterCount;
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
             // Remove the trailing cursor if it exists before appending
@@ -416,8 +453,16 @@ namespace Milehigh.World.Terminal
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1; // Exclude cursor from typewriter reveal
 
-            for (int i = 1; i <= endVisibleCount - startVisibleCount; i++)
+            for (int i = startCount; i < totalCount; i++)
             {
+                outputDisplay.maxVisibleCharacters = i;
+                char c = outputDisplay.textInfo.characterInfo[Mathf.Max(0, i - 1)].character;
+                yield return GetWait((c == '.' || c == '!' || c == '?') ? punctuationDelay : typingSpeed);
+            }
+
+            _typewriterCoroutine = null;
+            _cursorVisible = true;
+            UpdateCursorDisplay();
                 int currentIndex = startVisibleCount + i;
                 // Reveal character and ensure cursor remains visible at the end
                 outputDisplay.maxVisibleCharacters = _cursorVisible ? currentIndex + 1 : currentIndex;
