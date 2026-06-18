@@ -21,7 +21,7 @@ namespace Milehigh.World.Terminal
         [SerializeField] private float commaDelay = 0.08f;
 
         private const int MaxInputLength = 256;
-        private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9\s._\-]+$", RegexOptions.Compiled);
+        private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private string _persistentInput = "";
+        private string _lastSuggestion = "";
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -78,7 +79,7 @@ namespace Milehigh.World.Terminal
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
-            WriteToTerminal($"<color=#888888>Last login: {timestamp} on ttys000</color>");
+            WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
         }
 
@@ -122,7 +123,15 @@ namespace Milehigh.World.Terminal
         private void HandleTabCompletion()
         {
             string currentInput = commandInput.text.Trim().ToLower();
-            if (string.IsNullOrEmpty(currentInput)) return;
+            if (string.IsNullOrEmpty(currentInput))
+            {
+                if (!string.IsNullOrEmpty(_lastSuggestion))
+                {
+                    commandInput.text = _lastSuggestion;
+                    commandInput.MoveTextEnd(false);
+                }
+                return;
+            }
 
             string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
             if (!string.IsNullOrEmpty(match))
@@ -136,10 +145,11 @@ namespace Milehigh.World.Terminal
         {
             _historyIndex = -1;
             _persistentInput = "";
+            _lastSuggestion = "";
 
             if (string.IsNullOrWhiteSpace(input))
             {
-                WriteToTerminal("\n<color=#888888>></color>");
+                WriteToTerminal("\n<color=#AAAAAA>></color>");
                 CleanupInput();
                 return;
             }
@@ -157,13 +167,15 @@ namespace Milehigh.World.Terminal
 
             if (!SafeCommandRegex.IsMatch(input))
             {
-                WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
+                WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
                 WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
                 CleanupInput();
                 return;
             }
 
             // 🎨 Palette: Echo sanitized input
+            WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
+            // 🎨 Palette: Echo sanitized input after validation passes
             WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
 
             // Update command history
@@ -191,7 +203,7 @@ namespace Milehigh.World.Terminal
             StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
             if (_commandHistory.Count == 0)
             {
-                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+                sb.Append("\n <color=#AAAAAA>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
             }
             else
             {
@@ -212,7 +224,7 @@ namespace Milehigh.World.Terminal
                             "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                             "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                             "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
+                            "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>");
         }
 
         private void ExecuteInfiniteration()
@@ -225,9 +237,10 @@ namespace Milehigh.World.Terminal
         private void HandleUnknownCommand(string command)
         {
             string suggestion = GetFuzzyMatch(command);
+            _lastSuggestion = suggestion;
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
+                "\n<color=#AAAAAA>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
             StartCoroutine(ShakeInputField());
         }
 
