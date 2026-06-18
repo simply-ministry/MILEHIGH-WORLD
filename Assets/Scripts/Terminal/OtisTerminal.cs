@@ -78,6 +78,12 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
+
+            // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
+            string timestamp = System.DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
+            WriteToTerminal($"<color=#00FF00>[SYSTEM]</color>: OTIS v2.4.0-VOID_LATTICE" +
+                            $"\nLast login: {timestamp} on ttys001" +
+                            $"\nWelcome to the Terminal. Type <color=#00FFFF>'help'</color> for available commands.");
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
             WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
@@ -219,6 +225,7 @@ namespace Milehigh.World.Terminal
                     sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(sanitizedEntry).Append("</color>");
                 }
             }
+            WriteToTerminal(output);
             WriteToTerminal(sb.ToString());
         }
 
@@ -226,6 +233,10 @@ namespace Milehigh.World.Terminal
         {
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                             "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
+                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                             "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal display." +
                             "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
                             "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
