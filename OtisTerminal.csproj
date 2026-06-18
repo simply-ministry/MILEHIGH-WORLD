@@ -8,5 +8,15 @@
   <ItemGroup>
     <Compile Include="Assets/Scripts/Terminal/OtisTerminal.cs" />
     <Compile Include="Assets/Scripts/Mocks/TempMocks.cs" />
+    <Compile Include="Assets/Scripts/Core/SceneDirector.cs" />
+    <Compile Include="Assets/Scripts/Core/CampaignManager.cs" />
+    <Compile Include="Assets/Scripts/Core/CombatManager.cs" />
+    <Compile Include="Assets/Scripts/Core/AlliancePowerManager.cs" />
+    <Compile Include="Assets/Scripts/Core/GlobalResonanceManager.cs" />
+    <Compile Include="Assets/Scripts/Core/WorldCharacterData.cs" />
+    <Compile Include="Assets/Scripts/Core/CharacterAbilitiesBase.cs" />
+    <Compile Include="Assets/Scripts/Data/CharacterData.cs" />
+    <Compile Include="Assets/Scripts/Data/HorizonGameData.cs" />
+    <Compile Include="Assets/Scripts/Characters/CharacterControllerBase.cs" />
   </ItemGroup>
 </Project>
