@@ -137,11 +137,6 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 o.Specular = lerp(o.Specular, o.Specular * iridescence, iridescenceMask);
             }
 
-            // BOLT: Removed dead Subsurface Scattering logic block that was being overwritten
-            // by the final Albedo assignment below. This saves GPU cycles and a texture sample.
-
-            o.Albedo = albedo.rgb;
-            o.Albedo = albedo.rgb;
             // --- Subsurface Scattering ---
             half sssMask = tex2D(_SSSMask, IN.uv_MainTex).r;
             if (sssMask > 0)
@@ -154,13 +149,10 @@ Shader "Milehigh/HyperPBRCharacter_4D"
                 half sss_sq = sss_base * sss_base;
                 half sss_4 = sss_sq * sss_sq;
                 half sss = sss_4 * sss_4 * _SSSScale;
-                // BOLT: Ensure albedo is assigned *before* SSS is added to avoid overwriting SSS calculation
-                o.Albedo = albedo.rgb;
+
+                // ⚡ Bolt: Additively apply SSS to albedo without redundant re-assignments.
+                // Note: o.Albedo is already initialized with texAlbedo.rgb at the start of surf().
                 o.Albedo += _SSSColor.rgb * sss * NdotL * sssMask;
-            }
-            else
-            {
-                o.Albedo = albedo.rgb;
             }
         }
         ENDCG
