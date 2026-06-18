@@ -14,6 +14,7 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // 🛡️ Sentinel: Hardened blocklist to prevent Insecure Direct Object Reference (IDOR) attacks on critical system managers.
+        // Uses OrdinalIgnoreCase for defense-in-depth against case-insensitive bypass attempts.
         // Initialized with OrdinalIgnoreCase to provide defense-in-depth against case-insensitive IDOR bypass attempts.
         private static readonly HashSet<string> ProtectedSystemObjects = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
         {
