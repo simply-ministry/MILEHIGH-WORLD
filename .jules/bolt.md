@@ -1,3 +1,6 @@
+## 2025-05-14 - GC optimization in Unity C#
+**Learning:** In Unity, `new WaitForSeconds(n)` in a coroutine loop and string concatenation in a UI loop are common sources of frame-time spikes due to GC pressure. Additionally, heap-allocating arrays for algorithms like Levenshtein distance during user input can be eliminated using `stackalloc` and `Span<T>`.
+**Action:** Always check for `new WaitForSeconds` in coroutines and string concatenation in high-frequency UI updates. Use `StringBuilder` for string building and `stackalloc Span<T>` for temporary buffer needs in performance-critical paths.
 ## 2024-05-24 - Unity GameObject.Find Performance Bottleneck
 **Learning:** In Unity 3D scripts like `SceneDirector.cs` within this project, methods frequently call `GameObject.Find()` to search for characters or interactive objects by name during scene setups. This forces Unity to traverse the entire scene hierarchy repeatedly (O(N) operation), which can cause noticeable load times or frame drops if called continuously or on large scenes.
 **Action:** Replace direct `GameObject.Find()` calls with a `Dictionary<string, GameObject>` cache when objects are fetched by name multiple times or instantiated dynamically. Check `cachedObj != null` to handle Unity's custom object destruction logic safely before returning a cached reference.
@@ -107,3 +110,20 @@
 ## 2024-06-05 - Combat Orchestrator Consolidation
 **Learning:** 'EndGameMultiFrontOrchestrator.cs' was prone to severe code rot and syntax errors (missing braces) due to multiple overlapping and triplicated optimization attempts. Consolidation into a single, clean 'Bolt' pattern is necessary to maintain both performance and compilation integrity.
 **Action:** When encountering triplicated logic or conflicting 'Bolt' comments, consolidate into a single optimized implementation and verify with a standalone 'dotnet build'.
+
+## 2026-06-12 - Zero-Allocation Fuzzy Matching and History Buffering
+**Learning:** Terminal-style components in this codebase frequently suffer from code rot and inefficient string handling. Implementing 'stackalloc Span<int>' for Levenshtein distance and 'StringBuilder' for history display eliminates major GC allocation spikes during UI interactions.
+**Action:** Always prefer 'StringBuilder' for iterative string building and 'Span<T>' with stack allocation for temporary buffers in high-frequency string algorithms.
+## 2024-05-24 - OtisTerminal Memory and GC Optimization
+**Learning:** High-frequency operations like fuzzy command matching and terminal history rendering in 'OtisTerminal.cs' were generating significant heap allocations through 'int[]' arrays and string concatenations. In modern .NET (9.0+), 'stackalloc Span<int>' can be used to eliminate heap allocations for common input sizes, and 'StringBuilder' reduces (N^2)$ allocation overhead for string building.
+**Action:** Use 'stackalloc Span<T>' for small, short-lived buffers and 'StringBuilder' for iterative string construction to reduce GC pressure and improve UI responsiveness.
+## 2025-05-20 - stackalloc Span<int> and Tuple Swap Limitations
+**Learning:** Using `stackalloc Span<int>` in Unity C# (especially with modern .NET SDKs like .NET 9/10) is a powerful way to eliminate heap allocations in algorithms like Levenshtein distance. However, `Span<T>` is a ref struct and cannot be used as a type argument in tuples, meaning `(v0, v1) = (v1, v0)` will fail with CS9244.
+**Action:** Use a temporary variable (`Span<int> temp = v0; v0 = v1; v1 = temp;`) for swapping spans to remain compatible with ref struct constraints while maintaining O(1) swap performance.
+## 2026-06-15 - [Unity Engine Object Lookup Optimization]
+**Learning:** In Unity 2021.3+, 'FindObjectsOfType' is O(n) but includes an expensive internal sort by Instance ID. Replacing it with 'FindObjectsByType<T>(FindObjectsSortMode.None)' bypasses this sort, providing a significant performance win for managers that rebuild caches from scene lookups.
+**Action:** Use 'FindObjectsByType' with 'FindObjectsSortMode.None' for bulk object discovery where order is irrelevant (e.g., dictionary population).
+
+## 2026-06-20 - [Robust Negative Caching in Unity]
+**Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
+**Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.

@@ -5,3 +5,23 @@
 *.pidb
 *.suo
 *.sln.docstates
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+*.dll
+*.pdb
+*.deps.json
+*.runtimeconfig.json
+
+# Unity temporary files
+[Tt]emp/
+[Ll]ibrary/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# OS generated files
+.DS_Store
+Thumbs.db
