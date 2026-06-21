@@ -453,6 +453,11 @@ namespace Milehigh.World.Terminal
         {
             // ⚡ Bolt: Using a single string literal for better interning and to resolve triplicated display logic.
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
+                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
+                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
                 "\n - <color=#00FFFF>help</color>: Show this message." +
                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
                 "\n - <color=#00FFFF>history</color>: Show command history." +
