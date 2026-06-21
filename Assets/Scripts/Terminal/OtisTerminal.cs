@@ -43,6 +43,11 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
 
+        // 🎨 Palette: Blinking cursor state
+        private const char CursorChar = '█';
+        private float _blinkTimer;
+        private bool _cursorVisible = true;
+
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
@@ -186,6 +191,8 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
+            HandleBlinkingCursor();
+
             if (commandInput == null || !commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
@@ -204,6 +211,49 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void HandleBlinkingCursor()
+        {
+            if (outputDisplay == null || _typewriterCoroutine != null) return;
+
+            _blinkTimer += Time.deltaTime;
+            if (_blinkTimer >= 0.5f)
+            {
+                _blinkTimer = 0;
+                _cursorVisible = !_cursorVisible;
+                int charCount = outputDisplay.textInfo.characterCount;
+                outputDisplay.maxVisibleCharacters = _cursorVisible ? charCount : charCount - 1;
+            }
+        }
+
+        private void NavigateHistory(int direction)
+        {
+            if (_commandHistory.Count == 0) return;
+
+            // Save current input if we are starting to navigate from the prompt
+            if (_historyIndex == -1 && direction == 1)
+            {
+                _persistentInput = commandInput.text;
+            }
+
+            int newIndex = Mathf.Clamp(_historyIndex + direction, -1, _commandHistory.Count - 1);
+            if (newIndex != _historyIndex)
+            {
+                _historyIndex = newIndex;
+                commandInput.text = (_historyIndex == -1) ? _persistentInput : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
+                commandInput.MoveTextEnd(false);
+            }
+        }
+
+        private void HandleTabCompletion()
+        {
+            string currentInput = commandInput.text.Trim().ToLower();
+            if (string.IsNullOrEmpty(currentInput)) return;
+            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
+            if (!string.IsNullOrEmpty(match))
+            {
+                commandInput.text = match;
+                commandInput.MoveTextEnd(false);
+            }
         private void ClearTerminal()
         {
             string currentInput = commandInput.text.Trim().ToLower();
@@ -237,6 +287,7 @@ namespace Milehigh.World.Terminal
 
             if (string.IsNullOrWhiteSpace(input))
             {
+                WriteToTerminal("\n<color=#888888>></color>");
                 WriteToTerminal("\n<color=#AAAAAA>></color>");
                 CleanupInput();
                 return;
@@ -306,6 +357,14 @@ namespace Milehigh.World.Terminal
             StringBuilder sb = new StringBuilder();
             sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
 
+        private void DisplayHelp()
+        {
+            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
+                "\n - <color=#00FFFF>help</color>: Show this message." +
+                "\n - <color=#00FFFF>clear</color>: Clear terminal." +
+                "\n - <color=#00FFFF>history</color>: Show command history." +
+                "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
+                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
             if (_commandHistory.Count == 0)
             {
                 sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
@@ -351,6 +410,7 @@ namespace Milehigh.World.Terminal
         {
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
+            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText} Type <color=#00FFFF>'help'</color> for options.</color>");
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
             _lastSuggestion = GetFuzzyMatch(command);
@@ -385,6 +445,11 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
+            int n = s.Length, m = t.Length;
+            if (n == 0) return m; if (m == 0) return n;
+            int[,] d = new int[n + 1, m + 1];
+            for (int i = 0; i <= n; d[i, 0] = i++) ;
+            for (int j = 0; j <= m; d[0, j] = j++) ;
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
             if (string.IsNullOrEmpty(t)) return s.Length;
 
@@ -449,6 +514,7 @@ namespace Milehigh.World.Terminal
             return v0[m];
         }
 
+        private void CleanupInput()
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
@@ -462,6 +528,17 @@ namespace Milehigh.World.Terminal
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
+
+            // 🎨 Palette: Remove cursor before appending new text
+            if (outputDisplay.text.EndsWith(CursorChar))
+            {
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+            }
+
+            if (_typewriterCoroutine != null)
+            {
+                StopCoroutine(_typewriterCoroutine);
+                outputDisplay.ForceMeshUpdate();
             // Remove previous cursor before appending new message
             if (outputDisplay.text.EndsWith("█"))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
@@ -493,6 +570,7 @@ namespace Milehigh.World.Terminal
 
         private IEnumerator TypewriterEffect(string message)
         {
+            // 🎨 Palette: Prevent "flash" by setting maxVisibleCharacters before appending
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
@@ -534,6 +612,17 @@ namespace Milehigh.World.Terminal
                 int currentIndex = i + 1;
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
+            // 🎨 Palette: Append message and cursor
+            outputDisplay.text += message + CursorChar;
+            outputDisplay.ForceMeshUpdate();
+            int endVisibleCount = outputDisplay.textInfo.characterCount;
+            int messageEndCount = endVisibleCount - 1;
+
+            for (int i = startVisibleCount + 1; i <= messageEndCount; i++)
+            {
+                outputDisplay.maxVisibleCharacters = i;
+
+                char c = outputDisplay.textInfo.characterInfo[i - 1].character;
             for (int i = 1; i <= (totalChars - startVisibleCount - 1); i++)
             {
             // Remove the trailing cursor if it exists before appending new text
@@ -610,6 +699,9 @@ namespace Milehigh.World.Terminal
                             totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
                         }
                     bool isEndOfSentence = true;
+                    if (i < endVisibleCount)
+                    {
+                        char nextChar = outputDisplay.textInfo.characterInfo[i].character;
                     if (currentIndex < endVisibleCount - 1)
                     if (i + 1 < endVisibleCount)
                     {
@@ -618,6 +710,7 @@ namespace Milehigh.World.Terminal
                     }
                     else if (c == ',' || c == ':' || c == ';')
                     {
+                        bool isEllipsis = (c == '.' && i - 2 >= 0 && outputDisplay.textInfo.characterInfo[i - 2].character == '.');
                         bool isEllipsis = (currentIndex - 2 >= 0 && outputDisplay.textInfo.characterInfo[currentIndex - 2].character == '.');
                         totalDelay += commaDelay;
                     }
@@ -644,6 +737,10 @@ namespace Milehigh.World.Terminal
                 yield return GetWait(totalDelay);
             }
 
+            // 🎨 Palette: Finalize with cursor visible
+            outputDisplay.maxVisibleCharacters = endVisibleCount;
+            _cursorVisible = true;
+            _blinkTimer = 0;
             _typewriterCoroutine = null;
             StartCoroutine(HandleBlinkingCursor());
             }
