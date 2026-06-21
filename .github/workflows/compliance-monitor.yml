@@ -40,7 +40,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Dependencies
-        run: pip install requests
+        run: pip install -r Compliance/Scripts/requirements.txt
 
       - name: Run Identity Audit (Dry Run)
         run: python Compliance/Scripts/identity_audit.py --output findings.json
