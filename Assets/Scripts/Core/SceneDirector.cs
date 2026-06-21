@@ -14,6 +14,7 @@ namespace Milehigh.Core
         public Transform characterSpawnRoot = null!;
 
         // 🛡️ Sentinel: Hardened blocklist to prevent Insecure Direct Object Reference (IDOR) attacks on critical system managers.
+        // Uses OrdinalIgnoreCase for defense-in-depth against case-insensitive bypass attempts.
         private static readonly HashSet<string> ProtectedSystemObjects = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
         {
             "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager",
@@ -139,6 +140,8 @@ namespace Milehigh.Core
 
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
             {
+                // System.Object.ReferenceEquals is required here because Unity's '== null' check returns true
+                // for destroyed native objects.
                 if (System.Object.ReferenceEquals(obj, null)) return null;
                 if (obj != null) return obj;
             }
@@ -177,7 +180,11 @@ namespace Milehigh.Core
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
+            // 🛡️ Sentinel: Double Validation Pipeline
+            // 1. Validate the untrusted input string against the blocklist.
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
+            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
+
             string cleanId = interaction.objectId.Trim();
             if (ProtectedSystemObjects.Contains(cleanId))
             {
@@ -188,11 +195,13 @@ namespace Milehigh.Core
             GameObject? target = GetCachedObject(cleanId);
             if (target != null)
             {
+                // 2. Resolve the object, and then RE-VALIDATE the resolved object's actual name.
+                // This prevents bypasses using paths or hierarchy-based lookups (e.g. "/CampaignManager").
                 // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
                 string targetName = target.name.Trim();
                 if (ProtectedSystemObjects.Contains(targetName))
                 {
-                    Debug.LogError($"[Security] Blocked resolved interaction to protected system object: {targetName}");
+                    Debug.LogError($"[Security] Blocked unauthorized interaction attempt to resolved system object: {targetName}");
                     return;
                 }
 
