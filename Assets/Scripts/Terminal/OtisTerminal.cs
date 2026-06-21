@@ -2,14 +2,11 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections;
 using System.Linq;
-using System.Text;
-using System;
 
 namespace Milehigh.World.Terminal
 {
@@ -21,8 +18,10 @@ namespace Milehigh.World.Terminal
         [Header("Typewriter Settings")]
         [SerializeField] private float typingSpeed = 0.02f;
         [SerializeField] private float punctuationDelay = 0.15f;
+        [SerializeField] private float commaDelay = 0.08f;
 
         private const int MaxInputLength = 256;
+        // 🛡️ Sentinel: Use explicit whitespace classes [ \t] instead of \s to prevent newline injection/terminal spoofing.
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -58,14 +57,12 @@ namespace Milehigh.World.Terminal
                 commandInput.onSubmit.AddListener(ProcessCommand);
             }
             ClearTerminal();
-            _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
         }
 
         private void OnEnable()
         {
             commandInput?.ActivateInputField();
             if (_cursorCoroutine == null) _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
-            _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
         }
 
         private void OnDisable()
@@ -75,44 +72,6 @@ namespace Milehigh.World.Terminal
                 StopCoroutine(_cursorCoroutine);
                 _cursorCoroutine = null;
             }
-        }
-
-        private void ClearTerminal()
-        {
-            if (outputDisplay == null) return;
-            outputDisplay.text = "";
-            outputDisplay.maxVisibleCharacters = 0;
-
-            string lastLogin = System.DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
-            WriteToTerminal($"<color=#888888>Last login: {lastLogin} on ttys000</color>");
-            // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
-            string timestamp = System.DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
-            WriteToTerminal($"<color=#00FF00>[SYSTEM]</color>: OTIS v2.4.0-VOID_LATTICE" +
-                            $"\nLast login: {timestamp} on ttys001" +
-                            $"\nWelcome to the Terminal. Type <color=#00FFFF>'help'</color> for available commands.");
-            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
-            WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
-            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type 'help' for commands.");
-        }
-
-        private IEnumerator HandleBlinkingCursor()
-        {
-            while (true)
-            {
-                _cursorVisible = !_cursorVisible;
-                UpdateCursorDisplay();
-                yield return GetWait(0.5f);
-            }
-        }
-
-        private void UpdateCursorDisplay()
-        {
-            if (outputDisplay == null || _typewriterCoroutine != null) return;
-
-            outputDisplay.ForceMeshUpdate();
-            int totalChars = outputDisplay.textInfo.characterCount;
-            // Palette: Use maxVisibleCharacters to toggle the cursor '█' visibility at the end of the text.
-            outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
         }
 
         private void Update()
@@ -130,6 +89,268 @@ namespace Milehigh.World.Terminal
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))) ClearTerminal();
+        }
+
+        private void ClearTerminal()
+        {
+            if (outputDisplay == null) return;
+            outputDisplay.text = "";
+            outputDisplay.maxVisibleCharacters = 0;
+
+            // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
+            // Using #AAAAAA for secondary text to meet WCAG AA contrast (4.5:1) on dark backgrounds.
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
+            WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>\n" +
+                            $"<color=#00FF00>[SYSTEM]</color>: OTIS v2.4.0-VOID_LATTICE" +
+                            $"\nWelcome to the Terminal. Type <color=#00FFFF>'help'</color> for available commands.");
+        }
+
+        public void ProcessCommand(string input)
+        {
+            _historyIndex = -1;
+            _persistentInput = "";
+            _lastSuggestion = "";
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                WriteToTerminal("\n<color=#AAAAAA>></color>");
+                CleanupInput();
+                return;
+            }
+
+            // 🛡️ Sentinel: Input validation pipeline: Validate -> Sanitize -> Echo -> Execute.
+            if (input.Length > MaxInputLength)
+            {
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
+                CleanupInput();
+                return;
+            }
+
+            // 🛡️ Sentinel: Escape Rich Text tags to prevent UI injection attacks.
+            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
+
+            if (!SafeCommandRegex.IsMatch(input))
+            {
+                WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
+                CleanupInput();
+                return;
+            }
+
+            // 🎨 Palette: Echo sanitized input exactly once after validation.
+            WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
+
+            if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
+            {
+                _commandHistory.Add(input);
+            }
+
+            string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string command = parts[0].ToLower();
+
+            if (command == "clear") ClearTerminal();
+            else if (command == "history") DisplayHistory();
+            else if (command == "help") DisplayHelp();
+            else if (command == "infiniteration") ExecuteInfiniteration();
+            else HandleUnknownCommand(command);
+
+            CleanupInput();
+        }
+
+        private void DisplayHistory()
+        {
+            // ⚡ Bolt: Using StringBuilder to eliminate O(N^2) string allocations in the history display loop.
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
+
+            if (_commandHistory.Count == 0)
+            {
+                sb.Append("\n <color=#AAAAAA>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
+            }
+            else
+            {
+                for (int i = 0; i < _commandHistory.Count; i++)
+                {
+                    // 🛡️ Sentinel: Sanitize history entries by escaping Rich Text tags to prevent UI injection/DoS.
+                    string sanitizedEntry = _commandHistory[i].Replace("<", "&lt;").Replace(">", "&gt;");
+                    sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(sanitizedEntry).Append("</color>");
+                }
+            }
+            WriteToTerminal(sb.ToString());
+        }
+
+        private void DisplayHelp()
+        {
+            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
+                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
+                            "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
+                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
+                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                            "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>");
+        }
+
+        private void ExecuteInfiniteration()
+        {
+            WriteToTerminal("\n<color=#00FF00>[ENGINE]</color>: Initializing Infiniteration Engine..." +
+                "\n<color=#FFFF00>Sequence:</color> 108-99-90-81-72-63-54-45-36-27-18-09-108" +
+                "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012");
+        }
+
+        private void HandleUnknownCommand(string command)
+        {
+            _lastSuggestion = GetFuzzyMatch(command);
+            bool hasSuggestion = !string.IsNullOrEmpty(_lastSuggestion);
+            string suggestionText = hasSuggestion ? $" Did you mean <color=#00FFFF>'{_lastSuggestion}'</color>?" : "";
+            string tip = hasSuggestion
+                ? "Press [Tab] to accept suggestion, or type 'help' for options."
+                : "Use [Tab] to auto-complete commands, or type 'help' for options.";
+
+            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
+                $"\n<color=#AAAAAA>Tip: {tip}</color>");
+            StartCoroutine(ShakeInputField());
+        }
+
+        private string GetFuzzyMatch(string input)
+        {
+            string bestMatch = "";
+            int minDistance = 3;
+            string lowerInput = input.ToLower();
+            foreach (string cmd in _availableCommands)
+            {
+                int dist = GetLevenshteinDistance(lowerInput, cmd);
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    bestMatch = cmd;
+                }
+            }
+            return bestMatch;
+        }
+
+        private int GetLevenshteinDistance(string s, string t)
+        {
+            if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
+            if (string.IsNullOrEmpty(t)) return s.Length;
+
+            int n = s.Length;
+            int m = t.Length;
+
+            if (n < m)
+            {
+                string tempS = s; s = t; t = tempS;
+                int tempN = n; n = m; m = tempN;
+            }
+
+            // ⚡ Bolt: Optimized Levenshtein Distance using Span<int> and stackalloc to eliminate heap allocations.
+            // Uses O(M) space and swaps span references to avoid redundant copies.
+            Span<int> v0 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
+            Span<int> v1 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
+
+            for (int i = 0; i <= m; i++) v0[i] = i;
+
+            for (int i = 0; i < n; i++)
+            {
+                v1[0] = i + 1;
+                for (int j = 0; j < m; j++)
+                {
+                    int cost = (s[i] == t[j]) ? 0 : 1;
+                    v1[j + 1] = Mathf.Min(Mathf.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
+                }
+
+                Span<int> temp = v0;
+                v0 = v1;
+                v1 = temp;
+            }
+            return v0[m];
+        }
+
+        private void WriteToTerminal(string message)
+        {
+            if (outputDisplay == null) return;
+
+            // Consolidate: Stop any existing typewriter to start new one, preventing overlap.
+            if (_typewriterCoroutine != null)
+            {
+                StopCoroutine(_typewriterCoroutine);
+                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
+            }
+
+            _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
+        }
+
+        private IEnumerator TypewriterEffect(string message)
+        {
+            outputDisplay.ForceMeshUpdate();
+            int startVisibleCount = outputDisplay.textInfo.characterCount;
+
+            // Remove the trailing cursor if it exists before appending new text
+            if (outputDisplay.text.EndsWith("█"))
+            {
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                startVisibleCount = Mathf.Max(0, startVisibleCount - 1);
+            }
+
+            outputDisplay.text += message + "█";
+            outputDisplay.ForceMeshUpdate();
+            int totalChars = outputDisplay.textInfo.characterCount;
+            int endVisibleCount = totalChars - 1; // Exclude cursor from typewriter reveal
+
+            for (int i = startVisibleCount; i < endVisibleCount; i++)
+            {
+                outputDisplay.maxVisibleCharacters = i + 1;
+
+                char c = outputDisplay.textInfo.characterInfo[i].character;
+                float totalDelay = typingSpeed;
+
+                if (c == '.' || c == '!' || c == '?')
+                {
+                    bool isEndOfSentence = true;
+                    if (i + 1 < endVisibleCount)
+                    {
+                        char nextChar = outputDisplay.textInfo.characterInfo[i + 1].character;
+                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                    }
+
+                    if (isEndOfSentence)
+                    {
+                        bool isEllipsis = (c == '.' && i - 1 >= 0 && outputDisplay.textInfo.characterInfo[i - 1].character == '.');
+                        totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
+                    }
+                }
+                else if (c == ',' || c == ':' || c == ';')
+                {
+                    totalDelay += commaDelay;
+                }
+
+                yield return GetWait(totalDelay);
+            }
+
+            _typewriterCoroutine = null;
+            _cursorVisible = true;
+            UpdateCursorVisibility();
+        }
+
+        private IEnumerator HandleBlinkingCursor()
+        {
+            while (true)
+            {
+                _cursorVisible = !_cursorVisible;
+                UpdateCursorVisibility();
+                yield return GetWait(0.53f); // Standard terminal blink rate
+            }
+        }
+
+        private void UpdateCursorVisibility()
+        {
+            if (outputDisplay == null) return;
+
+            int totalChars = outputDisplay.textInfo.characterCount;
+            if (totalChars == 0 || !outputDisplay.text.EndsWith("█")) return;
+
+            // If typewriter is running, it handles cursor visibility
+            if (_typewriterCoroutine != null) return;
+
+            outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
         }
 
         private void NavigateHistory(int direction)
@@ -155,14 +376,13 @@ namespace Milehigh.World.Terminal
         {
             string currentInput = commandInput.text.Trim().ToLower();
 
-            // 🎨 Palette: If input is empty, use the last fuzzy-match suggestion
             if (string.IsNullOrEmpty(currentInput))
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
-                    _lastSuggestion = ""; // Clear after use
+                    _lastSuggestion = "";
                 }
                 return;
             }
@@ -175,267 +395,6 @@ namespace Milehigh.World.Terminal
             }
         }
 
-        public void ProcessCommand(string input)
-        {
-            _historyIndex = -1;
-            _persistentInput = "";
-            _lastSuggestion = "";
-
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                WriteToTerminal("\n<color=#AAAAAA>></color>");
-                CleanupInput();
-                return;
-            }
-
-            string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
-
-            if (input.Length > MaxInputLength)
-            {
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
-                CleanupInput();
-                return;
-            }
-
-            if (!SafeCommandRegex.IsMatch(input))
-            {
-                WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
-                CleanupInput();
-                return;
-            }
-
-            // 🎨 Palette: Echo sanitized input
-            WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
-            // 🎨 Palette: Echo sanitized input after validation passes
-            WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
-
-            if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
-            {
-                _commandHistory.Add(input);
-            }
-
-            string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string command = parts[0].ToLower();
-
-            if (command == "clear") ClearTerminal();
-            else if (command == "history") DisplayHistory();
-            else if (command == "help") DisplayHelp();
-            else if (command == "infiniteration") ExecuteInfiniteration();
-            else HandleUnknownCommand(command);
-
-            CleanupInput();
-        }
-
-        private void DisplayHistory()
-        {
-            // ⚡ Bolt: Using StringBuilder to eliminate multiple string allocations during history listing.
-            var sb = new StringBuilder();
-            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
-
-            if (_commandHistory.Count == 0)
-            {
-                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
-            // ⚡ Bolt: Using StringBuilder to eliminate O(N^2) string allocations in the history display loop.
-            StringBuilder sb = new StringBuilder();
-            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
-
-            if (_commandHistory.Count == 0)
-            {
-                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
-            if (_commandHistory.Count == 0)
-            {
-                output += "\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>";
-                WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
-                return;
-            }
-
-            // ⚡ Bolt: Use StringBuilder to avoid O(N^2) string allocations during history rendering.
-            StringBuilder sb = new StringBuilder(128);
-            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
-
-            for (int i = 0; i < _commandHistory.Count; i++)
-            {
-                sb.Append("\n ");
-                sb.Append(i + 1);
-                sb.Append(": <color=#00FFFF>");
-                sb.Append(_commandHistory[i]);
-                sb.Append("</color>");
-            }
-
-            // ⚡ Bolt: Using StringBuilder to minimize allocations in the history display loop.
-            StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
-            if (_commandHistory.Count == 0)
-            {
-                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
-                sb.Append("\n <color=#AAAAAA>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
-            }
-            else
-            {
-                for (int i = 0; i < _commandHistory.Count; i++)
-                {
-                    sb.Append($"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>");
-                }
-            }
-                    sb.Append("\n ");
-                    sb.Append(i + 1);
-                    sb.Append(": <color=#00FFFF>");
-                    sb.Append(_commandHistory[i]);
-                    sb.Append("</color>");
-                }
-            }
-                    // 🛡️ Sentinel: Sanitize history entries to prevent Rich Text UI injection.
-                    // 🛡️ Sentinel: Sanitize history entries by escaping Rich Text tags to prevent UI injection/DoS.
-                    string sanitizedEntry = _commandHistory[i].Replace("<", "&lt;").Replace(">", "&gt;");
-                    sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(sanitizedEntry).Append("</color>");
-                }
-            }
-            WriteToTerminal(output);
-            WriteToTerminal(sb.ToString());
-        }
-
-        private void DisplayHelp()
-        {
-            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                "\n - <color=#00FFFF>help</color>: Show this message." +
-                "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
-                "\n - <color=#00FFFF>history</color>: Show command history." +
-                "\n - <color=#00FFFF>infiniteration</color>: Execute engine algorithm." +
-                "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                            "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Complete, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal display." +
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear terminal." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#888888>Shortcuts: [Tab] Completion, [Up/Down] History, [Esc] Clear Line, [Ctrl+L] Clear Screen</color>");
-                            "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
-                            "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                            "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                            "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>");
-        }
-
-        private void ExecuteInfiniteration()
-        {
-            WriteToTerminal("\n<color=#00FF00>[ENGINE]</color>: Initializing Infiniteration Engine..." +
-                "\n<color=#FFFF00>Sequence:</color> 108-99-90-81-72-63-54-45-36-27-18-09-108" +
-                "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012");
-        }
-
-        private void HandleUnknownCommand(string command)
-        {
-            _lastSuggestion = GetFuzzyMatch(command);
-            bool hasSuggestion = !string.IsNullOrEmpty(_lastSuggestion);
-            string suggestionText = hasSuggestion ? $" Did you mean <color=#00FFFF>'{_lastSuggestion}'</color>?" : "";
-            string tip = hasSuggestion
-                ? "Press [Tab] to accept suggestion, or type 'help' for options."
-                : "Use [Tab] to auto-complete commands, or type 'help' for options.";
-
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                $"\n<color=#AAAAAA>Tip: {tip}</color>");
-            string suggestion = GetFuzzyMatch(command);
-            _lastSuggestion = suggestion;
-            string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
-            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands. Type 'help' for options.</color>");
-                "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
-                "\n<color=#AAAAAA>Tip: Use [Tab] to auto-complete commands, or type 'help' for options.</color>");
-            StartCoroutine(ShakeInputField());
-        }
-
-        private string GetFuzzyMatch(string input)
-        {
-            string bestMatch = "";
-            int minDistance = 3;
-            string lowerInput = input.ToLower();
-            foreach (string cmd in _availableCommands)
-            {
-                int dist = GetLevenshteinDistance(lowerInput, cmd);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    bestMatch = cmd;
-                }
-            }
-            return bestMatch;
-        }
-
-        private int GetLevenshteinDistance(string s, string t)
-        {
-            // ⚡ Bolt: High-performance Levenshtein distance using stack memory to eliminate GC pressure.
-            // Using O(M) space complexity and Span<int> for safe stack-allocated memory access.
-            // ⚡ Bolt: Zero-allocation Levenshtein Distance using stackalloc for small inputs (up to 128 chars).
-            // This eliminates heap allocations during high-frequency fuzzy matching when an unknown command is entered.
-            // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space and stackalloc Span<int> for inputs up to 128 characters.
-            // This eliminates heap allocations during high-frequency fuzzy command matching.
-            // ⚡ Bolt: Optimized Levenshtein Distance using Span<int> and stackalloc to eliminate heap allocations.
-            // Uses O(M) space and swaps span references to avoid redundant copies.
-            if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
-            if (string.IsNullOrEmpty(t)) return s.Length;
-
-            int n = s.Length, m = t.Length;
-            int n = s.Length;
-            int m = t.Length;
-
-            if (n < m) { (s, t) = (t, s); (n, m) = (m, n); }
-
-            // Use stack allocation for small strings (common in terminal commands) to avoid heap allocations.
-            // Max command length is 256, so 257 ints = 1028 bytes, well within safe stack limits.
-            if (n == 0) return m;
-            if (m == 0) return n;
-
-            if (n < m) { (s, t) = (t, s); (n, m) = (m, n); }
-
-            Span<int> v0 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
-            Span<int> v1 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
-            // ⚡ Bolt: Use a stack-allocated buffer for common string lengths to eliminate heap allocations.
-            // Swapping Span references is used instead of CopyTo to save O(M) operations per iteration.
-            Span<int> v0 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
-            Span<int> v1 = m < 128 ? stackalloc int[m + 1] : new int[m + 1];
-            if (n < m)
-            {
-                string tempS = s; s = t; t = tempS;
-                int tempN = n; n = m; m = tempN;
-            }
-
-            Span<int> v0 = stackalloc int[m + 1];
-            Span<int> v1 = stackalloc int[m + 1];
-
-            for (int i = 0; i <= m; i++) v0[i] = i;
-
-            for (int i = 0; i < n; i++)
-            {
-                v1[0] = i + 1;
-                for (int j = 0; j < m; j++)
-                {
-                    int cost = (s[i] == t[j]) ? 0 : 1;
-                    v1[j + 1] = Mathf.Min(Mathf.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
-                }
-                v1.CopyTo(v0);
-
-                // Swap references for the next iteration to avoid copying the entire buffer.
-                // ⚡ Bolt: Swap spans to eliminate O(M) copy operations per iteration.
-                Span<int> temp = v0;
-                v0 = v1;
-                v1 = temp;
-            }
-            return v0[m];
-        }
-
         private void CleanupInput()
         {
             if (commandInput != null)
@@ -443,114 +402,6 @@ namespace Milehigh.World.Terminal
                 commandInput.text = "";
                 commandInput.ActivateInputField();
             }
-        }
-
-        private void WriteToTerminal(string message)
-        {
-            if (outputDisplay == null) return;
-            if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
-
-            // Palette: Remove previous cursor before appending new message
-            if (outputDisplay.text.EndsWith("█"))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
-
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-                // Ensure all characters (excluding the cursor we're about to add) are visible
-                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
-            }
-            _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
-        }
-
-        private IEnumerator TypewriterEffect(string message)
-        {
-            outputDisplay.ForceMeshUpdate();
-            int startCount = outputDisplay.textInfo.characterCount;
-
-            outputDisplay.text += message + "█";
-            outputDisplay.ForceMeshUpdate();
-            int totalCount = outputDisplay.textInfo.characterCount;
-            int startVisibleCount = outputDisplay.textInfo.characterCount;
-
-            // Remove the trailing cursor if it exists before appending
-            if (outputDisplay.text.EndsWith("█"))
-            {
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
-                startVisibleCount--;
-            }
-
-            outputDisplay.maxVisibleCharacters = startVisibleCount;
-            outputDisplay.text += message + "█"; // Append message and the cursor
-            outputDisplay.ForceMeshUpdate();
-            int totalChars = outputDisplay.textInfo.characterCount;
-            int endVisibleCount = totalChars - 1; // Exclude cursor from typewriter reveal
-
-            for (int i = startCount; i < totalCount; i++)
-            {
-                outputDisplay.maxVisibleCharacters = i;
-                char c = outputDisplay.textInfo.characterInfo[Mathf.Max(0, i - 1)].character;
-                yield return GetWait((c == '.' || c == '!' || c == '?') ? punctuationDelay : typingSpeed);
-            }
-
-            _typewriterCoroutine = null;
-            _cursorVisible = true;
-            UpdateCursorDisplay();
-                int currentIndex = startVisibleCount + i;
-                // Reveal character and ensure cursor remains visible at the end
-                outputDisplay.maxVisibleCharacters = _cursorVisible ? currentIndex + 1 : currentIndex;
-
-                char c = outputDisplay.textInfo.characterInfo[currentIndex - 1].character;
-                float totalDelay = typingSpeed;
-
-                if (c == '.' || c == '!' || c == '?')
-                {
-                    bool isEndOfSentence = true;
-                    if (currentIndex < endVisibleCount)
-                    {
-                        char nextChar = outputDisplay.textInfo.characterInfo[currentIndex].character;
-                        if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
-                    }
-
-                    if (isEndOfSentence)
-                    {
-                        bool isEllipsis = (c == '.' && currentIndex - 2 >= 0 && outputDisplay.textInfo.characterInfo[currentIndex - 2].character == '.');
-                        totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
-                    }
-                }
-                else if (c == ',' || c == ':' || c == ';')
-                {
-                    totalDelay += commaDelay;
-                }
-
-                yield return GetWait(totalDelay);
-            }
-
-            _typewriterCoroutine = null;
-            // Final cursor sync
-            UpdateCursorVisibility();
-        }
-
-        private IEnumerator HandleBlinkingCursor()
-        {
-            while (true)
-            {
-                _cursorVisible = !_cursorVisible;
-                UpdateCursorVisibility();
-                yield return GetWait(0.53f); // Standard terminal blink rate
-            }
-        }
-
-        private void UpdateCursorVisibility()
-        {
-            if (outputDisplay == null) return;
-
-            int totalChars = outputDisplay.textInfo.characterCount;
-            if (totalChars == 0 || !outputDisplay.text.EndsWith("█")) return;
-
-            if (_typewriterCoroutine != null) return; // Managed by typewriter during reveal
-
-            outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : Mathf.Max(0, totalChars - 1);
         }
 
         private IEnumerator ShakeInputField()
