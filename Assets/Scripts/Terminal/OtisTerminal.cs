@@ -95,6 +95,13 @@ namespace Milehigh.World.Terminal
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
 
+            // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
+            WriteToTerminal($"<color=#00FF00>[SYSTEM]</color>: OTIS v2.4.0-VOID_LATTICE" +
+                            $"\nLast login: {timestamp} on ttys001" +
+                            $"\nWelcome to the Terminal. Type <color=#00FFFF>'help'</color> for available commands.");
+        }
+
             // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info and time-aware greeting.
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
             int hour = DateTime.Now.Hour;
@@ -241,6 +248,7 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🎨 Palette: Echo sanitized input after validation passes
             // 🎨 Palette: Echo sanitized input
             WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
             _lastSuggestion = "";
@@ -352,6 +360,10 @@ namespace Milehigh.World.Terminal
             if (string.IsNullOrEmpty(t)) return s.Length;
 
             int n = s.Length, m = t.Length;
+            if (n < m) { var tempS = s; s = t; t = tempS; var tempN = n; n = m; m = tempN; }
+
+            if (m == 0) return n;
+
             // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space and stackalloc Span<int> for inputs up to 128 characters.
             // This eliminates heap allocations during high-frequency fuzzy command matching.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
@@ -439,6 +451,7 @@ namespace Milehigh.World.Terminal
 
         private IEnumerator TypewriterEffect(string message)
         {
+            outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
             outputDisplay.text += message + "█"; // Append message and the cursor
@@ -446,6 +459,8 @@ namespace Milehigh.World.Terminal
             if (outputDisplay.text.EndsWith("█"))
             {
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.ForceMeshUpdate();
+                startVisibleCount = outputDisplay.textInfo.characterCount;
             }
 
             outputDisplay.ForceMeshUpdate();
@@ -459,6 +474,8 @@ namespace Milehigh.World.Terminal
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
+            for (int i = 1; i <= (totalChars - startVisibleCount - 1); i++)
+            {
             // Remove the trailing cursor if it exists before appending new text
             if (outputDisplay.text.EndsWith("█"))
             {
@@ -552,6 +569,11 @@ namespace Milehigh.World.Terminal
                         totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
                     }
                 }
+
+                yield return GetWait(totalDelay);
+            }
+
+            _typewriterCoroutine = null;
                 else if (c == ',' || c == ':' || c == ';')
                 {
                     char c = outputDisplay.textInfo.characterInfo[i - 1].character;
