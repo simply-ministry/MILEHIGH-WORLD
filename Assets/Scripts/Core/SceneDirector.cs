@@ -183,6 +183,7 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
@@ -237,7 +238,6 @@ namespace Milehigh.Core
             if (target != null)
             {
                 // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
-                // to prevent potential bypasses if the object was retrieved via a different alias or path.
                 if (ProtectedSystemObjects.Contains(target.name.Trim()))
                 {
                     Debug.LogError($"[Security] Blocked unauthorized interaction attempt to resolved system object: {target.name}");

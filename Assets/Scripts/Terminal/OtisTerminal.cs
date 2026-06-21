@@ -95,6 +95,20 @@ namespace Milehigh.World.Terminal
             outputDisplay.text = "";
             outputDisplay.maxVisibleCharacters = 0;
 
+            // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info and time-aware greeting.
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
+            int hour = DateTime.Now.Hour;
+            string greeting = hour switch
+            {
+                >= 5 and < 12 => "Good morning",
+                >= 12 and < 17 => "Good afternoon",
+                >= 17 and < 21 => "Good evening",
+                _ => "Welcome back"
+            };
+
+            WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
+            WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: OTIS v2.4.0-VOID_LATTICE" +
+                            $"\n{greeting}, Operator. Type <color=#00FFFF>'help'</color> for available commands.");
             // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
             WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
@@ -196,7 +210,6 @@ namespace Milehigh.World.Terminal
         {
             _historyIndex = -1;
             _persistentInput = "";
-            _lastSuggestion = "";
 
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -228,6 +241,9 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🎨 Palette: Echo sanitized input
+            WriteToTerminal($"\n<color=#AAAAAA>> {sanitizedInput}</color>");
+            _lastSuggestion = "";
             // 🎨 Palette: Echo sanitized input after validation passes
             WriteToTerminal($"\n<color=#888888>> {sanitizedInput}</color>");
             // 🎨 Palette: Echo sanitized input exactly once after validation.
@@ -304,6 +320,7 @@ namespace Milehigh.World.Terminal
 
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                 $"\n<color=#AAAAAA>Tip: {tip}</color>");
+
             StartCoroutine(ShakeInputField());
         }
 
@@ -326,6 +343,9 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
+            if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
+            if (string.IsNullOrEmpty(t)) return s.Length;
+
             // ⚡ Bolt: Optimized Levenshtein Distance using Span<int> and stackalloc to eliminate heap allocations.
             // Uses O(M) space and swaps span references to avoid redundant copies.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
@@ -346,6 +366,8 @@ namespace Milehigh.World.Terminal
                 int tempInt = n; n = m; m = tempInt;
             }
 
+            int[] v0 = new int[m + 1];
+            int[] v1 = new int[m + 1];
             // Max command length is 256, so 257 ints = 1028 bytes, well within safe stack limits.
             Span<int> v0 = stackalloc int[m + 1];
             Span<int> v1 = stackalloc int[m + 1];
@@ -367,6 +389,7 @@ namespace Milehigh.World.Terminal
                     v1[j + 1] = Math.Min(Math.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
                 }
 
+                for (int j = 0; j <= m; j++) v0[j] = v1[j];
                 // Swap references for the next iteration to avoid copying the entire buffer.
                 // Swap spans to eliminate O(M) copy operations per iteration.
                 for (int j = 0; j <= m; j++) v0[j] = v1[j];
@@ -387,6 +410,9 @@ namespace Milehigh.World.Terminal
                 outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
             }
 
+        private void WriteToTerminal(string message)
+        {
+            if (outputDisplay == null) return;
             // Remove previous cursor before appending new message
             if (outputDisplay.text.EndsWith("█"))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
@@ -413,6 +439,9 @@ namespace Milehigh.World.Terminal
 
         private IEnumerator TypewriterEffect(string message)
         {
+            int startVisibleCount = outputDisplay.textInfo.characterCount;
+
+            outputDisplay.text += message + "█"; // Append message and the cursor
             // Remove the trailing cursor if it exists before appending
             if (outputDisplay.text.EndsWith("█"))
             {
@@ -439,9 +468,13 @@ namespace Milehigh.World.Terminal
 
             outputDisplay.text += message + "█";
             outputDisplay.ForceMeshUpdate();
+
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1;
 
+            for (int i = startVisibleCount; i < totalChars; i++)
+            {
+                int currentIndex = i;
             for (int i = 0; i <= (endVisibleCount - startVisibleCount); i++)
             for (int i = 1; i <= (totalChars - startVisibleCount); i++)
             {
@@ -460,6 +493,9 @@ namespace Milehigh.World.Terminal
             {
                 outputDisplay.maxVisibleCharacters = i + 1;
 
+                if (currentIndex == 0) continue;
+
+                char c = outputDisplay.textInfo.characterInfo[currentIndex - 1].character;
                 if (i > 0)
                 char c = outputDisplay.textInfo.characterInfo[i].character;
                 float totalDelay = typingSpeed;
@@ -504,6 +540,7 @@ namespace Milehigh.World.Terminal
                     }
                     else if (c == ',' || c == ':' || c == ';')
                     {
+                        bool isEllipsis = (currentIndex - 2 >= 0 && outputDisplay.textInfo.characterInfo[currentIndex - 2].character == '.');
                         totalDelay += commaDelay;
                     }
 
@@ -523,6 +560,9 @@ namespace Milehigh.World.Terminal
             }
 
             _typewriterCoroutine = null;
+            UpdateCursorVisibility();
+        }
+
             UpdateCursorVisibility();
         }
 
