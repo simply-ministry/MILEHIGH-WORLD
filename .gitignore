@@ -1,3 +1,10 @@
+[Bb]in/
+[Oo]bj/
+*.user
+*.userprefs
+*.pidb
+*.suo
+*.sln.docstates
 # Build artifacts
 [Bb]in/
 [Oo]bj/
