@@ -10,6 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -69,6 +72,7 @@ namespace Milehigh.World.Terminal
         private void OnEnable()
         {
             commandInput?.ActivateInputField();
+            // ⚡ Bolt: Fix coroutine leak - only start if not already running.
             if (_cursorCoroutine == null)
             {
                 _cursorCoroutine = StartCoroutine(HandleBlinkingCursor());
@@ -92,6 +96,9 @@ namespace Milehigh.World.Terminal
             outputDisplay.maxVisibleCharacters = 0;
 
             // 🎨 Palette: Enhanced retro terminal startup sequence with simulated session info.
+            string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
+            WriteToTerminal($"<color=#AAAAAA>Last login: {timestamp} on ttys000</color>");
+            WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: OTIS Terminal Online. Type <color=#00FFFF>'help'</color> for commands.");
             string lastLogin = DateTime.Now.ToString("ddd MMM dd HH:mm:ss");
             string timestamp = DateTime.Now.ToString("ddd MMM dd HH:mm:ss yyyy");
 
@@ -198,6 +205,7 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            // 🛡️ Sentinel: Escaping tags to prevent UI injection.
             // 🛡️ Sentinel: Sanitize input by escaping Rich Text tags to prevent UI injection/DoS.
             string sanitizedInput = input.Replace("<", "&lt;").Replace(">", "&gt;");
 
@@ -244,12 +252,15 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
+            // ⚡ Bolt: Use StringBuilder to avoid O(N^2) string allocations during history rendering.
+            StringBuilder sb = new StringBuilder(128);
             // ⚡ Bolt: Using StringBuilder to eliminate O(N^2) string allocations in the history display loop.
             StringBuilder sb = new StringBuilder();
             sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
 
             if (_commandHistory.Count == 0)
             {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
                 sb.Append("\n <color=#AAAAAA>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
             }
             else
@@ -315,6 +326,12 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
+            // ⚡ Bolt: Optimized Levenshtein Distance using Span<int> and stackalloc to eliminate heap allocations.
+            // Uses O(M) space and swaps span references to avoid redundant copies.
+            if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
+            if (string.IsNullOrEmpty(t)) return s.Length;
+
+            int n = s.Length, m = t.Length;
             // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space and stackalloc Span<int> for inputs up to 128 characters.
             // This eliminates heap allocations during high-frequency fuzzy command matching.
             if (string.IsNullOrEmpty(s)) return t?.Length ?? 0;
@@ -329,6 +346,9 @@ namespace Milehigh.World.Terminal
                 int tempInt = n; n = m; m = tempInt;
             }
 
+            // Max command length is 256, so 257 ints = 1028 bytes, well within safe stack limits.
+            Span<int> v0 = stackalloc int[m + 1];
+            Span<int> v1 = stackalloc int[m + 1];
             // ⚡ Bolt: Use stack allocation for small strings (common in terminal commands) to avoid heap allocations.
             // Swapping Span references is used instead of CopyTo to save O(M) operations per iteration.
             // ⚡ Bolt: Optimized Levenshtein Distance using Span<int> and stackalloc to eliminate heap allocations.
@@ -347,6 +367,7 @@ namespace Milehigh.World.Terminal
                     v1[j + 1] = Math.Min(Math.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
                 }
 
+                // Swap references for the next iteration to avoid copying the entire buffer.
                 // Swap spans to eliminate O(M) copy operations per iteration.
                 for (int j = 0; j <= m; j++) v0[j] = v1[j];
                 Span<int> temp = v0;
@@ -371,6 +392,10 @@ namespace Milehigh.World.Terminal
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
 
             if (_typewriterCoroutine != null) StopCoroutine(_typewriterCoroutine);
+
+            // Remove previous cursor before appending new message
+            if (outputDisplay.text.EndsWith("█"))
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
 
             if (outputDisplay.text.EndsWith("█"))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
@@ -397,6 +422,8 @@ namespace Milehigh.World.Terminal
             outputDisplay.ForceMeshUpdate();
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
+            int startVisibleCount = outputDisplay.textInfo.characterCount;
+
             outputDisplay.text += message + "█"; // Append message and the cursor
             int startVisibleCount = outputDisplay.textInfo.characterCount;
 
@@ -415,6 +442,7 @@ namespace Milehigh.World.Terminal
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1;
 
+            for (int i = 0; i <= (endVisibleCount - startVisibleCount); i++)
             for (int i = 1; i <= (totalChars - startVisibleCount); i++)
             {
                 int currentIndex = startVisibleCount + i;
@@ -432,6 +460,7 @@ namespace Milehigh.World.Terminal
             {
                 outputDisplay.maxVisibleCharacters = i + 1;
 
+                if (i > 0)
                 char c = outputDisplay.textInfo.characterInfo[i].character;
                 float totalDelay = typingSpeed;
 
@@ -441,6 +470,19 @@ namespace Milehigh.World.Terminal
                     float totalDelay = typingSpeed;
 
                     if (c == '.' || c == '!' || c == '?')
+                    {
+                        bool isEndOfSentence = true;
+                        if (currentIndex < endVisibleCount)
+                        {
+                            char nextChar = outputDisplay.textInfo.characterInfo[currentIndex].character;
+                            if (!char.IsWhiteSpace(nextChar)) isEndOfSentence = false;
+                        }
+
+                        if (isEndOfSentence)
+                        {
+                            bool isEllipsis = (c == '.' && currentIndex - 2 >= 0 && outputDisplay.textInfo.characterInfo[currentIndex - 2].character == '.');
+                            totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
+                        }
                     {
                         bool isEndOfSentence = true;
                         if (currentIndex < endVisibleCount)
@@ -466,6 +508,9 @@ namespace Milehigh.World.Terminal
                     }
 
                     yield return GetWait(totalDelay);
+                    }
+
+                    yield return GetWait(totalDelay);
                         bool isEllipsis = (c == '.' && i - 1 >= 0 && outputDisplay.textInfo.characterInfo[i - 1].character == '.');
                         totalDelay += isEllipsis ? typingSpeed * 3f : punctuationDelay;
                     }
@@ -478,6 +523,9 @@ namespace Milehigh.World.Terminal
             }
 
             _typewriterCoroutine = null;
+            UpdateCursorVisibility();
+        }
+
             UpdateCursorDisplay();
         }
 

@@ -138,6 +138,8 @@ namespace Milehigh.Core
                 return null;
             }
 
+            // ⚡ Bolt: Fixed negative caching anti-pattern. Using TryGetValue and checking existence
+            // even for null values prevents redundant GameObject.Find calls every frame.
             // ⚡ Bolt: Use TryGetValue to support negative caching (explicitly storing null in the cache).
             // This eliminates redundant expensive GameObject.Find calls for objects that are known to be missing.
             if (_objectCache.TryGetValue(objectName, out GameObject? obj))
@@ -181,6 +183,13 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
+            // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
+            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
+
+            string cleanId = interaction.objectId.Trim();
+
+            // IDOR check 1: Input name
+            if (ProtectedSystemObjects.Contains(cleanId))
             // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by blocking critical system managers.
             // Consolidate security validation into a single, linear pipeline to prevent NullReferenceException
             // (information disclosure) and IDOR attacks.
@@ -196,6 +205,10 @@ namespace Milehigh.Core
             GameObject? target = GetCachedObject(objectId);
             if (target != null)
             {
+                // IDOR check 2: Resolved object name (Defense-in-depth)
+                string targetName = target.name.Trim();
+                if (ProtectedSystemObjects.Contains(targetName))
+                {
                 // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
                 // to prevent potential bypasses if the object was retrieved via a different alias or path
                 // or if it resides in a nested hierarchy (defense-in-depth).
