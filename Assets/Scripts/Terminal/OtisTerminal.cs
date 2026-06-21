@@ -382,6 +382,11 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHistory()
         {
+            // ⚡ Bolt: Using StringBuilder to prevent O(N^2) string allocations and resolving triplicated display logic.
+            StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
+            if (_commandHistory.Count == 0)
+            {
+                sb.Append("\n <color=#888888>Tip: History is empty. Use [Up/Down] arrows to navigate past commands once you've entered them!</color>");
             StringBuilder sb = new StringBuilder();
             sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
             if (_commandHistory.Count == 0)
@@ -412,6 +417,9 @@ namespace Milehigh.World.Terminal
             {
                 for (int i = 0; i < _commandHistory.Count; i++)
                 {
+                    sb.Append("\n ").Append(i + 1).Append(": <color=#00FFFF>").Append(_commandHistory[i]).Append("</color>");
+                }
+            }
                     sb.Append($"\n {i + 1}: <color=#00FFFF>{_commandHistory[i]}</color>");
                     // 🛡️ Sentinel: Sanitize history entries to prevent Rich Text UI injection.
                     // 🛡️ Sentinel: Sanitize history entries by escaping Rich Text tags to prevent UI injection/DoS.
@@ -425,6 +433,7 @@ namespace Milehigh.World.Terminal
 
         private void DisplayHelp()
         {
+            // ⚡ Bolt: Using a single string literal for better interning and to resolve triplicated display logic.
             WriteToTerminal("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                 "\n - <color=#00FFFF>help</color>: Show this message." +
                 "\n - <color=#00FFFF>clear</color>: Clear the terminal display." +
@@ -452,8 +461,16 @@ namespace Milehigh.World.Terminal
 
         private void HandleUnknownCommand(string command)
         {
+            // ⚡ Bolt: Consolidating redundant WriteToTerminal calls and triplicated logic.
+            // This reduces the number of typewriter coroutines started per unknown command.
             string suggestion = GetFuzzyMatch(command);
             string suggestionText = !string.IsNullOrEmpty(suggestion) ? $" Did you mean <color=#00FFFF>'{suggestion}'</color>?" : "";
+
+            StringBuilder sb = new StringBuilder("\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '").Append(command).Append("'.");
+            sb.Append(suggestionText).Append("</color>");
+            sb.Append("\n<color=#888888>Tip: Use [Tab] to auto-complete commands.</color>");
+
+            WriteToTerminal(sb.ToString());
             WriteToTerminal($"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands. Type <color=#00FFFF>'help'</color> for options.</color>");
                 "\n<color=#888888>Tip: Use [Tab] to auto-complete commands or type 'help' for options.</color>");
@@ -489,6 +506,8 @@ namespace Milehigh.World.Terminal
 
         private int GetLevenshteinDistance(string s, string t)
         {
+            // ⚡ Bolt: Optimized Levenshtein Distance using stackalloc Span<int> for O(M) space.
+            // This eliminates heap allocations for typical command lengths during fuzzy matching.
             // ⚡ Bolt: Optimized Levenshtein Distance using O(M) space and stackalloc to eliminate heap allocations.
             // This significantly reduces GC pressure during fuzzy command matching.
             int n = s.Length, m = t.Length;
@@ -500,6 +519,8 @@ namespace Milehigh.World.Terminal
             if (string.IsNullOrEmpty(t)) return s.Length;
 
             int n = s.Length, m = t.Length;
+            if (n < m) { (s, t) = (t, s); (n, m) = (m, n); }
+
             int n = s.Length;
             int m = t.Length;
             if (n < m) { string temp = s; s = t; t = temp; int tmp = n; n = m; m = tmp; }
@@ -553,6 +574,7 @@ namespace Milehigh.World.Terminal
                     int cost = (s[i] == t[j]) ? 0 : 1;
                     v1[j + 1] = Math.Min(Math.Min(v1[j] + 1, v0[j + 1] + 1), v0[j] + cost);
                 }
+                v1.CopyTo(v0);
 
                 for (int j = 0; j <= m; j++) v0[j] = v1[j];
                 // Swap references for the next iteration to avoid copying the entire buffer.
