@@ -134,3 +134,7 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+
+## 2024-06-25 - [Coroutine Stuttering & Output Consolidation]
+**Learning:** Sequential calls to typewriter-style output methods (e.g. 'WriteToTerminal') in rapid succession create performance bottlenecks and visual stuttering as each call must stop the previous coroutine and restart the reveal sequence.
+**Action:** Always consolidate logic-heavy responses into a single string return and perform one terminal write at the end of the processing pipeline. This minimizes coroutine churn and ensures a smooth, non-flickering UI experience.
