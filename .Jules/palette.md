@@ -97,6 +97,10 @@
 **Learning:** Generic punctuation-based pauses can feel jerky when encountering mid-word periods (e.g., in character names like 'Sky.ix') or ellipses. Implementing contextual checks (e.g., next-character whitespace) prevents unnatural delays. Furthermore, linking the visual progression cue ('▽') to the speaker's specific color theme creates a more cohesive and delightful UX without adding interface clutter.
 **Action:** Always implement look-ahead/look-behind checks for punctuation pauses to handle abbreviations and ellipses, and leverage existing theme tokens (like speaker colors) for micro-interactions and visual cues.
 
+## 2026-05-24 - [Consolidated Terminal Output for Smooth reveal]
+**Learning:** In terminal-style interfaces, issuing multiple sequential output calls (e.g., Echo followed by Response) can cause visual "stuttering" as typewriter coroutines interrupt each other. Consolidating the full interaction result into a single string-based response allows for a single, uninterrupted typewriter reveal, creating a much more polished and intentional feel.
+**Action:** Use string-returning methods for command logic and consolidate user echoes with system responses into a single output call in terminal components.
+
 ## 2024-05-21 - [Responsive Terminal Interaction Loop]
 **Learning:** Terminal interfaces in Unity (TMPro) feel significantly more responsive when they handle the full interaction lifecycle: auto-focusing on enable, clearing and refocusing after submission, and providing multi-modal feedback (rich text color + physical shake animation) for errors.
 **Action:** Always implement 'ActivateInputField' in 'OnEnable' and after command processing, and use 'localPosition' coroutines for non-blocking haptic-style visual feedback.
