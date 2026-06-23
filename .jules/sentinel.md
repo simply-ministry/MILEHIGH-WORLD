@@ -194,3 +194,8 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete and case-sensitive blocklist in `SceneDirector.cs`. Malicious external data could bypass the blocklist using case variations (e.g., 'campaignmanager') or path-like strings (e.g., '/CampaignManager') that `GameObject.Find` still resolves.
 **Learning:** String-based security blocklists are fragile if they don't account for casing and the normalization behavior of the underlying lookup system. Furthermore, severe code rot (triplicated methods and redundant fields) in `OtisTerminal.cs` obscured UI injection vulnerabilities and caused build failures.
 **Prevention:** Implement "Double Validation": check the input string *and* the resolved object's name against a case-insensitive blocklist. Regularly consolidate and deduplicate interactive processing logic to ensure security controls are consistently applied.
+
+## 2024-06-01 - Build-Breaking Code Rot as a Security Evasion Vector
+**Vulnerability:** Extreme triplication of methods and duplicate field declarations in `OtisTerminal.cs` caused build failures and allowed security validation (length and regex) to be bypassed by rotted execution paths.
+**Learning:** Code rot can reach a state where it's not just "dead code" but "active shadow logic" that executes instead of or in addition to the secured paths. In this case, redundant echoes occurred before any validation.
+**Prevention:** Enforce a strict "Single Source of Truth" by consolidating all interactive input into a single, linear "Validate -> Sanitize -> Echo -> Execute" pipeline. Regularly use `dotnet build` to catch syntax-level rot that might be masked by IDEs or partial compilation.
