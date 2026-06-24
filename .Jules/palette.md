@@ -43,6 +43,10 @@
 **Learning:** In Unity TextMeshPro, iterating over string length for typewriter reveals can break when rich text tags (like <color> or <b>) are present, as the tag characters are revealed one-by-one. Using 'TMP_Text.ForceMeshUpdate()' followed by iterating over 'TMP_Text.textInfo.characterCount' ensures only rendered characters are revealed, maintaining both accessibility (screen readers) and visual polish.
 **Action:** Always use 'textInfo.characterCount' and 'ForceMeshUpdate' for typewriter effects to ensure compatibility with rich text and accurate character-based pacing.
 
+## 2026-05-20 - [Scale Stability in Dynamic UI Animations]
+**Learning:** In Unity UI, starting a new scale animation (like a "pop" effect) before the previous one has returned to identity can cause "scale drift," where the object permanently shrinks or grows. Caching the baseline 'localScale' in 'Start()' and using it as the animation anchor ensures visual stability even during rapid interaction cycles.
+**Action:** Always cache baseline transform values in 'Start()' for UI elements that use relative procedural animations to prevent cumulative drift.
+
 ## 2025-11-23 - [Carry-over Skip Intent in Dialogue Sequences]
 **Learning:** To create a truly responsive dialogue skip mechanic, avoid resetting the 'skipRequested' flag at the end of the typewriter reveal. Instead, allow the flag to persist into the subsequent 'WaitForSecondsOrSkip' pause. This enables a single user input to both instantly reveal text and skip the following wait period, aligning with common player expectations for high-speed dialogue navigation.
 **Action:** Move skip flag resets to the end of the post-dialogue pause coroutine rather than the end of the text reveal coroutine.

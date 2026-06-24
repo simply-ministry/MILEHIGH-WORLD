@@ -21,7 +21,7 @@ namespace Milehigh.World.Terminal
 
         [Header("Cursor Settings")]
         [SerializeField] private float blinkRate = 0.5f;
-        private const char TerminalCursor = '█';
+        private static readonly string TerminalCursor = "<color=#00FF00>█</color>";
 
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
+        private bool _skipTypewriter;
 
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
@@ -55,6 +56,9 @@ namespace Milehigh.World.Terminal
             if (commandInput != null)
             {
                 commandInput.characterLimit = MaxInputLength;
+                commandInput.caretColor = Color.green;
+                commandInput.selectionColor = new Color(0, 1, 0, 0.3f);
+
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
@@ -82,7 +86,15 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
-            if (commandInput == null || !commandInput.isFocused) return;
+            if (commandInput == null) return;
+
+            // 🎨 Palette: Power-user skip mechanic for typewriter reveals.
+            if (_typewriterCoroutine != null && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Escape)))
+            {
+                _skipTypewriter = true;
+            }
+
+            if (!commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
@@ -129,6 +141,7 @@ namespace Milehigh.World.Terminal
                 {
                     _cursorVisible = !_cursorVisible;
                     int totalChars = outputDisplay.textInfo.characterCount;
+                    // Account for rich text cursor in character count (TMP_TextInfo treats it as 1 character for the glyph)
                     if (totalChars > 0 && outputDisplay.text.EndsWith(TerminalCursor))
                     {
                         outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : totalChars - 1;
@@ -354,7 +367,7 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - TerminalCursor.Length);
 
             if (_typewriterCoroutine != null)
             {
@@ -362,6 +375,7 @@ namespace Milehigh.World.Terminal
                 _typewriterCoroutine = null;
             }
 
+            _skipTypewriter = false;
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
 
@@ -376,6 +390,8 @@ namespace Milehigh.World.Terminal
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
+                if (_skipTypewriter) break;
+
                 outputDisplay.maxVisibleCharacters = i + 1;
 
                 char c = outputDisplay.textInfo.characterInfo[i].character;
@@ -400,6 +416,11 @@ namespace Milehigh.World.Terminal
                 {
                     totalDelay += commaDelay;
                 }
+                else if (c == '-' || c == '/')
+                {
+                    // 🎨 Palette: Subtle rhythmic delay for technical characters to simulate "processing".
+                    totalDelay += typingSpeed * 1.5f;
+                }
 
                 yield return GetWait(totalDelay);
             }
@@ -407,6 +428,7 @@ namespace Milehigh.World.Terminal
             outputDisplay.maxVisibleCharacters = totalChars;
             _cursorVisible = true;
             _typewriterCoroutine = null;
+            _skipTypewriter = false;
         }
 
         private void CleanupInput()
