@@ -70,6 +70,11 @@
 ## 2025-03-15 - [Advanced Unity Object Caching & Batching]
 **Learning:** Pre-populating caches with `Object.FindObjectsByType` (Unity 2021.3+) during setup provides an ~80-90% speedup over lazy O(N) `GameObject.Find` calls. For robust negative caching, `System.Object.ReferenceEquals(obj, null)` is required to distinguish between a missing entry (true null) and a destroyed Unity object (fake null).
 **Action:** Use batch discovery for scene setup and `ReferenceEquals` for high-fidelity negative caching in Unity.
+
+## 2025-05-22 - Unity Singleton FindAnyObjectByType Optimization
+**Learning:** In Unity 2021.3+, `FindObjectOfType` is deprecated/slow for singletons because it sorts all instances by InstanceID/SiblingIndex. `FindAnyObjectByType` is the O(N) non-sorting alternative that provides the same result for singletons with significantly less overhead.
+**Action:** Use `FindAnyObjectByType<T>()` or `FindFirstObjectByType<T>()` for lazy-initialization of singletons and static managers instead of the legacy `FindObjectOfType`.
+
 ## 2026-03-26 - [Unity Component Caching and Lifecycle Management]
 **Learning:** While caching `GetComponent` calls into a `Dictionary<int, T>` using `GetInstanceID()` as a key is a powerful O(1) optimization, it introduces a memory leak risk if not cleared during scene or scenario transitions. Unity's "fake null" objects (destroyed on the native side but alive in managed memory) persist in dictionaries, leading to redundant processing and memory bloat.
 **Action:** Always clear component and object caches during scenario setups or scene transitions. In `SceneDirector.cs`, calling `_controllerCache.Clear()` ensures that only active objects are tracked, preventing leaks of destroyed character controllers.
