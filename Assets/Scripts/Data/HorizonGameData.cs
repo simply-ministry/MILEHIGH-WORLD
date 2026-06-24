@@ -16,7 +16,7 @@ namespace Milehigh.Data
 
         public bool IsValid()
         {
-            if (voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
+            if (float.IsNaN(voidSaturationLevel) || voidSaturationLevel < 0.0f || voidSaturationLevel > 1.0f)
             {
                 Debug.LogError($"[Security] Metadata: voidSaturationLevel {voidSaturationLevel} out of range.");
                 return false;
