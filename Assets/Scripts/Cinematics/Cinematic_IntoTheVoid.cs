@@ -38,6 +38,7 @@ namespace Milehigh.Cinematics
         private Coroutine? popCoroutine;
         private bool skipRequested;
         private string currentSpeakerHex = "FFFFFF";
+        private Vector3 _originalSpeakerScale = Vector3.one;
 
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
@@ -60,6 +61,10 @@ namespace Milehigh.Cinematics
                 Debug.LogError("Missing UI components required for cinematic.");
                 return;
             }
+
+            // 🎨 Palette: Cache baseline scale to prevent drift during pop animations.
+            _originalSpeakerScale = SpeakerNameText.transform.localScale;
+
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
 
@@ -109,17 +114,16 @@ namespace Milehigh.Cinematics
 
         private IEnumerator PopEffect(Transform target)
         {
-            Vector3 originalScale = Vector3.one;
             float duration = 0.2f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float scale = 1f + Mathf.Sin((elapsed / duration) * Mathf.PI) * 0.15f;
-                target.localScale = originalScale * scale;
+                target.localScale = _originalSpeakerScale * scale;
                 yield return null;
             }
-            target.localScale = originalScale;
+            target.localScale = _originalSpeakerScale;
         }
 
         private IEnumerator TypeDialogue(string message, float currentTypingSpeed)

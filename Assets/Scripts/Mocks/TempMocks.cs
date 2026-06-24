@@ -118,6 +118,7 @@ namespace UnityEngine
         public static Color white => new Color();
         public static Color black => new Color();
         public static Color cyan => new Color();
+        public static Color green => new Color();
         public Color() {}
         public Color(float r, float g, float b) {}
         public Color(float r, float g, float b, float a) {}
@@ -226,6 +227,8 @@ namespace TMPro
     {
         public string text { get; set; } = "";
         public int characterLimit { get; set; }
+        public UnityEngine.Color caretColor { get; set; } = new UnityEngine.Color();
+        public UnityEngine.Color selectionColor { get; set; } = new UnityEngine.Color();
         public bool isFocused { get; } = false;
         public void ActivateInputField() {}
         public void MoveTextEnd(bool shift) {}
