@@ -24,6 +24,7 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistoryCount = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -216,6 +217,11 @@ namespace Milehigh.World.Terminal
 
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
+                // ⚡ Bolt: Enforce history limit to prevent unbounded memory growth and maintain performance.
+                if (_commandHistory.Count >= MaxHistoryCount)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
                 _commandHistory.Add(input);
             }
 
