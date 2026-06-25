@@ -94,7 +94,7 @@ namespace Milehigh.Cinematics
                     speedMultiplier = kaiSpeedMultiplier;
                     break;
                 case "Delilah":
-                    speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                    speakerColor = new Color(0.7f, 0.45f, 1.0f); // Void Purple
                     break;
             }
 
