@@ -28,6 +28,7 @@ namespace Milehigh.World.Terminal
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
+        private bool _skipRequested;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
 
@@ -82,6 +83,11 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
+            if (_typewriterCoroutine != null && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Escape)))
+            {
+                _skipRequested = true;
+            }
+
             if (commandInput == null || !commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
@@ -362,6 +368,7 @@ namespace Milehigh.World.Terminal
                 _typewriterCoroutine = null;
             }
 
+            _skipRequested = false;
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
 
@@ -376,6 +383,7 @@ namespace Milehigh.World.Terminal
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
+                if (_skipRequested) break;
                 outputDisplay.maxVisibleCharacters = i + 1;
 
                 char c = outputDisplay.textInfo.characterInfo[i].character;
@@ -406,6 +414,7 @@ namespace Milehigh.World.Terminal
 
             outputDisplay.maxVisibleCharacters = totalChars;
             _cursorVisible = true;
+            _skipRequested = false;
             _typewriterCoroutine = null;
         }
 

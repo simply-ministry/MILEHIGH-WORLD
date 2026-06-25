@@ -118,3 +118,7 @@
 ## 2025-05-22 - [Terminal Tab Completion and Shortcut Discovery]
 **Learning:** Terminal-style interfaces are significantly enhanced by "power-user" shortcuts like Tab Completion and command history (Up Arrow). These features reduce friction and align with user expectations for CLI environments. To improve discoverability without cluttering the UI, muted color hints (e.g., #888888) can be included in system responses like 'help' to provide subtle guidance.
 **Action:** Implement Tab Completion for common commands and include non-intrusive shortcut tips in terminal 'help' outputs to enhance user agency and flow.
+
+## 2026-06-25 - [Terminal Skip Support and Accessible Speaker Themes]
+**Learning:** In terminal-style interfaces, providing a way to skip typewriter reveals (via Space, Return, or Escape) is essential for power-user efficiency and accessibility. Additionally, speaker-specific color themes in cinematics must be periodically audited for contrast; for instance, shifting Delilah's theme from #9919E6 (0.6, 0.1, 0.9) to #B373FF (0.7, 0.45, 1.0) ensures WCAG AA compliance on dark backgrounds without sacrificing character identity.
+**Action:** Always implement skip-to-end logic for typewriter reveals and verify that speaker colors maintain a >= 4.5:1 contrast ratio against the UI background.
