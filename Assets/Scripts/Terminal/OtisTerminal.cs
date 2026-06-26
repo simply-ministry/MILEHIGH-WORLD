@@ -21,7 +21,7 @@ namespace Milehigh.World.Terminal
 
         [Header("Cursor Settings")]
         [SerializeField] private float blinkRate = 0.5f;
-        private const char TerminalCursor = '█';
+        private const string TerminalCursor = "<color=#00FF00>█</color>";
 
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
@@ -354,7 +354,7 @@ namespace Milehigh.World.Terminal
             if (outputDisplay == null) return;
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - TerminalCursor.Length);
 
             if (_typewriterCoroutine != null)
             {
@@ -399,6 +399,10 @@ namespace Milehigh.World.Terminal
                 else if (c == ',' || c == ':' || c == ';')
                 {
                     totalDelay += commaDelay;
+                }
+                else if (c == '-' || c == '/' || c == '[' || c == ']')
+                {
+                    totalDelay *= 1.5f;
                 }
 
                 yield return GetWait(totalDelay);

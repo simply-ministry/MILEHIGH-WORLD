@@ -55,3 +55,7 @@
 ## 2026-06-17 - [Accessibility Contrast & Reactive Completion]
 **Learning:** To meet WCAG AA standards on dark backgrounds, secondary/muted text color should be at least #AAAAAA (up from #888888) to ensure a contrast ratio >= 4.5:1. Furthermore, providing a "reactive" tab completion that recalls the last fuzzy suggestion on an empty input line significantly improves error recovery flow.
 **Action:** Always use #AAAAAA for muted text and implement suggestion-aware tab completion in CLI interfaces.
+
+## 2026-06-21 - [A11y Contrast & Animation Stability]
+**Learning:** WCAG AA contrast standards (4.5:1) are often violated by "themed" colors like deep purples on dark backgrounds; shifting toward lighter tints (e.g., #B373FF) preserves the theme while ensuring readability. Additionally, "Pop" or "Pulse" UI animations are prone to scale drift if they don't cache and return to a baseline `localScale`.
+**Action:** Always verify contrast for character-themed colors and cache `transform.localScale` in `Start()` for additive UI animations.
