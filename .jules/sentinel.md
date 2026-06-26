@@ -194,3 +194,8 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete and case-sensitive blocklist in `SceneDirector.cs`. Malicious external data could bypass the blocklist using case variations (e.g., 'campaignmanager') or path-like strings (e.g., '/CampaignManager') that `GameObject.Find` still resolves.
 **Learning:** String-based security blocklists are fragile if they don't account for casing and the normalization behavior of the underlying lookup system. Furthermore, severe code rot (triplicated methods and redundant fields) in `OtisTerminal.cs` obscured UI injection vulnerabilities and caused build failures.
 **Prevention:** Implement "Double Validation": check the input string *and* the resolved object's name against a case-insensitive blocklist. Regularly consolidate and deduplicate interactive processing logic to ensure security controls are consistently applied.
+
+## 2026-06-22 - [Resource Exhaustion (DoS) in Interactive Terminal History]
+**Vulnerability:** The command history in `OtisTerminal.cs` was uncapped, allowing for memory exhaustion (DoS) if a malicious script or user spammed unique inputs into the terminal.
+**Learning:** Interactive session state, such as command history, is an often-overlooked vector for resource exhaustion. While input length was validated, the total number of historical entries was not.
+**Prevention:** Implement strict collection bounds (e.g., `MaxHistoryCount`) for all user-controllable session data and enforce them using a FIFO removal strategy.
