@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
+        private bool _skipRequested;
 
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
@@ -82,6 +83,11 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
+            if (_typewriterCoroutine != null && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Escape)))
+            {
+                _skipRequested = true;
+            }
+
             if (commandInput == null || !commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
@@ -266,7 +272,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen | <b>[Space]</b> Skip Reveal</color>";
         }
 
         private string GetInfiniterationText()
@@ -353,6 +359,8 @@ namespace Milehigh.World.Terminal
         {
             if (outputDisplay == null) return;
 
+            _skipRequested = false;
+
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
 
@@ -360,6 +368,7 @@ namespace Milehigh.World.Terminal
             {
                 StopCoroutine(_typewriterCoroutine);
                 _typewriterCoroutine = null;
+                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
             }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
@@ -376,6 +385,8 @@ namespace Milehigh.World.Terminal
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
+                if (_skipRequested) break;
+
                 outputDisplay.maxVisibleCharacters = i + 1;
 
                 char c = outputDisplay.textInfo.characterInfo[i].character;
