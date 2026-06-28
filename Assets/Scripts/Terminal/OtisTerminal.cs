@@ -24,6 +24,8 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistoryCount = 100;
+        private const int MaxOutputCharacters = 32768;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -217,6 +219,7 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                if (_commandHistory.Count > MaxHistoryCount) _commandHistory.RemoveAt(0);
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -297,6 +300,7 @@ namespace Milehigh.World.Terminal
             {
                 if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
+                else if (c == '&') sb.Append("&amp;");
                 else sb.Append(c);
             }
         }
@@ -352,6 +356,31 @@ namespace Milehigh.World.Terminal
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
+
+            // 🛡️ Sentinel: Limit incoming message size to prevent single-message DoS.
+            if (message.Length > MaxOutputCharacters)
+            {
+                message = message.Substring(0, MaxOutputCharacters - 100) + "\n[... MESSAGE TRUNCATED ...]";
+            }
+
+            // 🛡️ Sentinel: Mitigate Resource Exhaustion (DoS) by truncating excessive output history.
+            if (outputDisplay.text.Length + message.Length > MaxOutputCharacters)
+            {
+                int keepChars = MaxOutputCharacters / 2;
+                string currentText = outputDisplay.text;
+                int cutoffIndex = Mathf.Max(0, currentText.Length - keepChars);
+
+                // Find the next newline to avoid breaking mid-tag or mid-line where possible.
+                int nextNewline = currentText.IndexOf('\n', cutoffIndex);
+                if (nextNewline != -1 && nextNewline < currentText.Length - 1)
+                {
+                    outputDisplay.text = "[... TRUNCATED ...]\n" + currentText.Substring(nextNewline + 1);
+                }
+                else
+                {
+                    outputDisplay.text = "[... TRUNCATED ...]\n" + currentText.Substring(cutoffIndex);
+                }
+            }
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
