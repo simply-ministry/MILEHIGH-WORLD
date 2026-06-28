@@ -194,3 +194,8 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete and case-sensitive blocklist in `SceneDirector.cs`. Malicious external data could bypass the blocklist using case variations (e.g., 'campaignmanager') or path-like strings (e.g., '/CampaignManager') that `GameObject.Find` still resolves.
 **Learning:** String-based security blocklists are fragile if they don't account for casing and the normalization behavior of the underlying lookup system. Furthermore, severe code rot (triplicated methods and redundant fields) in `OtisTerminal.cs` obscured UI injection vulnerabilities and caused build failures.
 **Prevention:** Implement "Double Validation": check the input string *and* the resolved object's name against a case-insensitive blocklist. Regularly consolidate and deduplicate interactive processing logic to ensure security controls are consistently applied.
+
+## 2026-06-22 - [Crash-Safe DoS Mitigation in UI Text]
+**Vulnerability:** Resource Exhaustion (DoS) in `OtisTerminal.cs` where unlimited history and output display could lead to memory exhaustion. Initial fix introduced an `ArgumentOutOfRangeException` due to un-clamped string indices during truncation.
+**Learning:** When implementing DoS protections that involve string manipulation (like truncation), failure to safely clamp indices (e.g., using `Mathf.Max(0, ...)`) can convert a Resource Exhaustion vulnerability into an Availability vulnerability (application crash).
+**Prevention:** Always use safe index clamping and handle edge cases (like missing search characters or extremely large single inputs) when performing security-critical string truncations. Ensure incoming untrusted data is also capped *before* being processed or appended to existing buffers.
