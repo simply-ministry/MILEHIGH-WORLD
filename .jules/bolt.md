@@ -134,3 +134,7 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+
+## 2026-07-05 - [Unity Singleton Access Optimization]
+**Learning:** In Unity 2021.3+, the legacy `FindObjectOfType<T>()` method performs an internal sort by Instance ID (O(N log N)) which is unnecessary for singletons where only one instance is expected.
+**Action:** Replace `FindObjectOfType<T>()` with `FindAnyObjectByType<T>()` for more efficient (O(N)) singleton access.
