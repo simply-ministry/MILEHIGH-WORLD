@@ -32,7 +32,7 @@ namespace Milehigh.Tests.Cinematics
 
             _cinematic.DialogueBox = dialogueBox;
 
-            _cinematic.baseTypingSpeed = 0.03f;
+            _cinematic.typingSpeed = 0.03f;
             _cinematic.kaiSpeedMultiplier = 3.0f;
             _cinematic.skyixSpeedMultiplier = 1.2f;
         }
@@ -83,8 +83,8 @@ namespace Milehigh.Tests.Cinematics
         public void GetSpeakerColor_Delilah_ReturnsVoidPurple()
         {
             Color color = _cinematic.GetSpeakerColor("Delilah");
-            // Void Purple: 0.6f, 0.1f, 0.9f
-            Assert.AreEqual(new Color(0.6f, 0.1f, 0.9f), color);
+            // Void Purple (A11y Optimized): 0.7f, 0.45f, 1.0f
+            Assert.AreEqual(new Color(0.7f, 0.45f, 1.0f), color);
         }
 
         [Test]

@@ -80,23 +80,8 @@ namespace Milehigh.Cinematics
             SpeakerNameText.text = speaker;
 
             // Apply character-specific colors for better speaker identification
-            Color speakerColor = Color.white;
-            float speedMultiplier = 1.0f;
-
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    speakerColor = Color.cyan;
-                    speedMultiplier = skyixSpeedMultiplier;
-                    break;
-                case "Kai":
-                    speakerColor = new Color(1f, 0.84f, 0f); // Gold
-                    speedMultiplier = kaiSpeedMultiplier;
-                    break;
-                case "Delilah":
-                    speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                    break;
-            }
+            Color speakerColor = GetSpeakerColor(speaker);
+            float speedMultiplier = GetSpeedMultiplier(speaker);
 
             SpeakerNameText.color = speakerColor;
             currentSpeakerHex = ColorUtility.ToHtmlStringRGB(speakerColor);
@@ -105,6 +90,27 @@ namespace Milehigh.Cinematics
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
 
             typingCoroutine = StartCoroutine(TypeDialogue(message, typingSpeed * speedMultiplier));
+        }
+
+        public Color GetSpeakerColor(string speaker)
+        {
+            return speaker switch
+            {
+                "Sky.ix" => Color.cyan,
+                "Kai" => new Color(1f, 0.84f, 0f), // Gold
+                "Delilah" => new Color(0.7f, 0.45f, 1.0f), // Void Purple (A11y Optimized)
+                _ => Color.white
+            };
+        }
+
+        public float GetSpeedMultiplier(string speaker)
+        {
+            return speaker switch
+            {
+                "Sky.ix" => skyixSpeedMultiplier,
+                "Kai" => kaiSpeedMultiplier,
+                _ => 1.0f
+            };
         }
 
         private IEnumerator PopEffect(Transform target)

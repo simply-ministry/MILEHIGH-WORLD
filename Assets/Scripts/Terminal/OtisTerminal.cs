@@ -30,6 +30,8 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
+        private bool _skipRequested;
+        private int _lastCommandFrame = -1;
 
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
@@ -82,7 +84,22 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
-            if (commandInput == null || !commandInput.isFocused) return;
+            if (commandInput == null) return;
+
+            if (_typewriterCoroutine != null && Time.frameCount > _lastCommandFrame)
+            {
+                // Only allow skipping if the terminal input isn't being used for typing
+                bool inputBeingEdited = commandInput.isFocused && !string.IsNullOrEmpty(commandInput.text);
+                if (!inputBeingEdited)
+                {
+                    if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        _skipRequested = true;
+                    }
+                }
+            }
+
+            if (!commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
@@ -184,6 +201,7 @@ namespace Milehigh.World.Terminal
         {
             _historyIndex = -1;
             _persistentInput = "";
+            _lastCommandFrame = Time.frameCount;
 
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -266,7 +284,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen | <b>[Space]</b> Skip Reveal</color>";
         }
 
         private string GetInfiniterationText()
@@ -362,6 +380,7 @@ namespace Milehigh.World.Terminal
                 _typewriterCoroutine = null;
             }
 
+            _skipRequested = false;
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
 
@@ -376,6 +395,8 @@ namespace Milehigh.World.Terminal
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
+                if (_skipRequested) break;
+
                 outputDisplay.maxVisibleCharacters = i + 1;
 
                 char c = outputDisplay.textInfo.characterInfo[i].character;
@@ -406,6 +427,7 @@ namespace Milehigh.World.Terminal
 
             outputDisplay.maxVisibleCharacters = totalChars;
             _cursorVisible = true;
+            _skipRequested = false;
             _typewriterCoroutine = null;
         }
 
