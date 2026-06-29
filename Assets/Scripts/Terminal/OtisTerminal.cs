@@ -35,6 +35,8 @@ namespace Milehigh.World.Terminal
         private int _historyIndex = -1;
         private string _persistentInput = "";
         private string _lastSuggestion = "";
+        private int _lastCommandFrame = -1;
+        private bool _skipTypewriter = false;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -82,7 +84,20 @@ namespace Milehigh.World.Terminal
 
         private void Update()
         {
-            if (commandInput == null || !commandInput.isFocused) return;
+            if (commandInput == null) return;
+
+            // Global skip detection for typewriter effects.
+            // Using frame count check to prevent immediate skipping on the same frame as command submission.
+            if (_typewriterCoroutine != null && Time.frameCount != _lastCommandFrame)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Return) ||
+                    (Input.GetKeyDown(KeyCode.Space) && !commandInput.isFocused))
+                {
+                    _skipTypewriter = true;
+                }
+            }
+
+            if (!commandInput.isFocused) return;
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
@@ -182,11 +197,13 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
 
             if (string.IsNullOrWhiteSpace(input))
             {
+                if (_typewriterCoroutine != null) _skipTypewriter = true;
                 WriteToTerminal("\n<color=#AAAAAA>></color>");
                 CleanupInput();
                 return;
@@ -266,7 +283,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen | <b>[Space/Return]</b> Skip Reveal</color>";
         }
 
         private string GetInfiniterationText()
@@ -353,6 +370,8 @@ namespace Milehigh.World.Terminal
         {
             if (outputDisplay == null) return;
 
+            _skipTypewriter = false;
+
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
 
@@ -376,6 +395,8 @@ namespace Milehigh.World.Terminal
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
+                if (_skipTypewriter) break;
+
                 outputDisplay.maxVisibleCharacters = i + 1;
 
                 char c = outputDisplay.textInfo.characterInfo[i].character;
@@ -399,6 +420,10 @@ namespace Milehigh.World.Terminal
                 else if (c == ',' || c == ':' || c == ';')
                 {
                     totalDelay += commaDelay;
+                }
+                else if (c == '-' || c == '/' || c == '\\')
+                {
+                    totalDelay *= 1.5f; // Computational cadence for technical characters
                 }
 
                 yield return GetWait(totalDelay);
