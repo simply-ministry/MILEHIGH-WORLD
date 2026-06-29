@@ -24,6 +24,8 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 50;
+        private const int MaxOutputLength = 10000;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -217,6 +219,11 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // 🛡️ Sentinel: Cap command history to prevent memory exhaustion (DoS).
+                if (_commandHistory.Count > MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -297,6 +304,7 @@ namespace Milehigh.World.Terminal
             {
                 if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
+                else if (c == '&') sb.Append("&amp;");
                 else sb.Append(c);
             }
         }
@@ -355,6 +363,12 @@ namespace Milehigh.World.Terminal
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+
+            // 🛡️ Sentinel: Enforce output buffer limits to prevent memory exhaustion and UI lag (DoS).
+            if (outputDisplay.text.Length > MaxOutputLength)
+            {
+                outputDisplay.text = outputDisplay.text.Substring(outputDisplay.text.Length - 8000);
+            }
 
             if (_typewriterCoroutine != null)
             {
