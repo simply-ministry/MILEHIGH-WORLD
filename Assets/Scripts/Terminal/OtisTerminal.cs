@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
+        private int _lastCommandFrame;
 
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
@@ -83,6 +84,15 @@ namespace Milehigh.World.Terminal
         private void Update()
         {
             if (commandInput == null || !commandInput.isFocused) return;
+
+            // Typewriter skip detection
+            if (_typewriterCoroutine != null && Time.frameCount > _lastCommandFrame)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.Space) && string.IsNullOrEmpty(commandInput.text)))
+                {
+                    FinalizeTypewriter();
+                }
+            }
 
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
@@ -187,7 +197,14 @@ namespace Milehigh.World.Terminal
 
             if (string.IsNullOrWhiteSpace(input))
             {
-                WriteToTerminal("\n<color=#AAAAAA>></color>");
+                if (_typewriterCoroutine != null && Time.frameCount > _lastCommandFrame)
+                {
+                    FinalizeTypewriter();
+                }
+                else
+                {
+                    WriteToTerminal("\n<color=#AAAAAA>></color>");
+                }
                 CleanupInput();
                 return;
             }
@@ -234,6 +251,7 @@ namespace Milehigh.World.Terminal
             else if (command == "infiniteration") sb.Append(GetInfiniterationText());
             else sb.Append(GetUnknownCommandText(command));
 
+            _lastCommandFrame = Time.frameCount;
             WriteToTerminal(sb.ToString());
             CleanupInput();
         }
@@ -266,7 +284,8 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>" +
+                   "\n<color=#AAAAAA>Reveal: <b>[Space/Return/Esc]</b> Skip typewriter reveal.</color>";
         }
 
         private string GetInfiniterationText()
@@ -349,18 +368,28 @@ namespace Milehigh.World.Terminal
             return v0[m];
         }
 
+        private void FinalizeTypewriter()
+        {
+            if (_typewriterCoroutine == null) return;
+
+            StopCoroutine(_typewriterCoroutine);
+            _typewriterCoroutine = null;
+
+            if (outputDisplay != null)
+            {
+                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
+                _cursorVisible = true;
+            }
+        }
+
         private void WriteToTerminal(string message)
         {
             if (outputDisplay == null) return;
 
+            FinalizeTypewriter();
+
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
-
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-                _typewriterCoroutine = null;
-            }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }

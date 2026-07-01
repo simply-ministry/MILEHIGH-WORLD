@@ -55,3 +55,7 @@
 ## 2026-06-17 - [Accessibility Contrast & Reactive Completion]
 **Learning:** To meet WCAG AA standards on dark backgrounds, secondary/muted text color should be at least #AAAAAA (up from #888888) to ensure a contrast ratio >= 4.5:1. Furthermore, providing a "reactive" tab completion that recalls the last fuzzy suggestion on an empty input line significantly improves error recovery flow.
 **Action:** Always use #AAAAAA for muted text and implement suggestion-aware tab completion in CLI interfaces.
+
+## 2026-06-20 - [Terminal Typewriter Skip Interaction]
+**Learning:** For terminal-style typewriter reveals, providing an intuitive skip mechanism (Space/Return on empty input, or Escape) improves responsiveness for power users. Robustness requires centralizing the "reveal-all" logic to ensure the coroutine is stopped, all text is revealed, and state references are nulled to prevent regressions in basic input handling (like dead Enter keys).
+**Action:** Centralize typewriter completion logic (FinalizeTypewriter) to ensure consistent UI state and prevent stale coroutine references from blocking subsequent input processing.
