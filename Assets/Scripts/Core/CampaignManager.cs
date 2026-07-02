@@ -14,7 +14,8 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
+                    // ⚡ Bolt: Using FindFirstObjectByType<T>() instead of FindObjectOfType<T>() to eliminate sorting overhead in Unity 2021.3+.
+                    _instance = UnityEngine.Object.FindFirstObjectByType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
