@@ -295,7 +295,8 @@ namespace Milehigh.World.Terminal
         {
             foreach (char c in text)
             {
-                if (c == '<') sb.Append("&lt;");
+                if (c == '&') sb.Append("&amp;");
+                else if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
                 else sb.Append(c);
             }
