@@ -55,3 +55,7 @@
 ## 2026-06-17 - [Accessibility Contrast & Reactive Completion]
 **Learning:** To meet WCAG AA standards on dark backgrounds, secondary/muted text color should be at least #AAAAAA (up from #888888) to ensure a contrast ratio >= 4.5:1. Furthermore, providing a "reactive" tab completion that recalls the last fuzzy suggestion on an empty input line significantly improves error recovery flow.
 **Action:** Always use #AAAAAA for muted text and implement suggestion-aware tab completion in CLI interfaces.
+
+## 2026-06-20 - [Terminal Typewriter Skip & Rhythmic Pacing]
+**Learning:** For terminal-based typewriter effects, allowing users to skip the reveal via Space/Escape/Enter (empty) is essential for accessibility and power-user flow. Using `Time.frameCount` to guard against same-frame accidental skips is critical in Unity to prevent "double-input" bugs. Furthermore, adding subtle rhythmic delays (1.5x) for technical characters like '-', '/', and '\' simulates a convincing "computational processing" cadence.
+**Action:** Implement `FinalizeTypewriter` methods with frame-guarded skip logic and character-specific delay multipliers in CLI interfaces.
