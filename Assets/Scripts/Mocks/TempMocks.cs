@@ -214,6 +214,7 @@ namespace TMPro
         public int maxVisibleCharacters { get; set; }
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
         public void ForceMeshUpdate() {}
+        public void SetText(System.Text.StringBuilder text) {}
     }
     public class TextMeshProUGUI : TMP_Text
     {
