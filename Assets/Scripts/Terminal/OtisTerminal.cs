@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
+        private readonly StringBuilder _terminalBuffer = new StringBuilder();
 
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
@@ -103,7 +104,8 @@ namespace Milehigh.World.Terminal
         private void ClearTerminal()
         {
             if (outputDisplay == null) return;
-            outputDisplay.text = "";
+            _terminalBuffer.Clear();
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.maxVisibleCharacters = 0;
 
             int hour = DateTime.Now.Hour;
@@ -128,9 +130,10 @@ namespace Milehigh.World.Terminal
                 if (_typewriterCoroutine == null && outputDisplay != null)
                 {
                     _cursorVisible = !_cursorVisible;
-                    int totalChars = outputDisplay.textInfo.characterCount;
-                    if (totalChars > 0 && outputDisplay.text.EndsWith(TerminalCursor))
+                    // ⚡ Bolt: Check _terminalBuffer for the cursor character instead of allocating a new string via outputDisplay.text.
+                    if (_terminalBuffer.Length > 0 && _terminalBuffer[^1] == TerminalCursor)
                     {
+                        int totalChars = outputDisplay.textInfo.characterCount;
                         outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : totalChars - 1;
                     }
                 }
@@ -206,8 +209,7 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            // ⚡ Bolt: Using StringBuilder to consolidate all command output into a single WriteToTerminal call.
-            // This eliminates multiple typewriter coroutine restarts and redundant string allocations.
+            // ⚡ Bolt: Using a single StringBuilder for all command processing to eliminate intermediate allocations.
             StringBuilder sb = new StringBuilder("\n<color=#AAAAAA>> ");
             AppendSanitized(sb, input);
             sb.Append("</color>");
@@ -229,18 +231,17 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            if (command == "history") sb.Append(GetHistoryText());
-            else if (command == "help") sb.Append(GetHelpText());
-            else if (command == "infiniteration") sb.Append(GetInfiniterationText());
-            else sb.Append(GetUnknownCommandText(command));
+            if (command == "history") AppendHistoryText(sb);
+            else if (command == "help") AppendHelpText(sb);
+            else if (command == "infiniteration") AppendInfiniterationText(sb);
+            else AppendUnknownCommandText(sb, command);
 
-            WriteToTerminal(sb.ToString());
+            WriteToTerminal(sb);
             CleanupInput();
         }
 
-        private string GetHistoryText()
+        private void AppendHistoryText(StringBuilder sb)
         {
-            StringBuilder sb = new StringBuilder();
             sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Command History:</color>");
 
             if (_commandHistory.Count == 0)
@@ -256,39 +257,38 @@ namespace Milehigh.World.Terminal
                     sb.Append("</color>");
                 }
             }
-            return sb.ToString();
         }
 
-        private string GetHelpText()
+        private void AppendHelpText(StringBuilder sb)
         {
-            return "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
-                   "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                   "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
-                   "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
-                   "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>")
+              .Append("\n - <color=#00FFFF><b>help</b></color>: Show this message.")
+              .Append("\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display.")
+              .Append("\n - <color=#00FFFF><b>history</b></color>: Show command history.")
+              .Append("\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm.")
+              .Append("\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>");
         }
 
-        private string GetInfiniterationText()
+        private void AppendInfiniterationText(StringBuilder sb)
         {
-            return "\n<color=#00FF00>[ENGINE]</color>: Initializing Infiniteration Engine..." +
-                   "\n<color=#FFFF00>Sequence:</color> 108-99-90-81-72-63-54-45-36-27-18-09-108" +
-                   "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012";
+            sb.Append("\n<color=#00FF00>[ENGINE]</color>: Initializing Infiniteration Engine...")
+              .Append("\n<color=#FFFF00>Sequence:</color> 108-99-90-81-72-63-54-45-36-27-18-09-108")
+              .Append("\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012");
         }
 
-        private string GetUnknownCommandText(string command)
+        private void AppendUnknownCommandText(StringBuilder sb, string command)
         {
             _lastSuggestion = GetFuzzyMatch(command);
             bool hasSuggestion = !string.IsNullOrEmpty(_lastSuggestion);
-            string suggestionText = hasSuggestion ? $" Did you mean <color=#00FFFF>'{_lastSuggestion}'</color>?" : "";
             string tip = hasSuggestion
                 ? "Press [Tab] to accept suggestion, or type 'help' for options."
                 : "Use [Tab] to auto-complete commands, or type 'help' for options.";
 
             StartCoroutine(ShakeInputField());
 
-            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                   $"\n<color=#AAAAAA>Tip: {tip}</color>";
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '").Append(command).Append("'.");
+            if (hasSuggestion) sb.Append(" Did you mean <color=#00FFFF>'").Append(_lastSuggestion).Append("'</color>?");
+            sb.Append("</color>\n<color=#AAAAAA>Tip: ").Append(tip).Append("</color>");
         }
 
         private void AppendSanitized(StringBuilder sb, string text)
@@ -353,8 +353,32 @@ namespace Milehigh.World.Terminal
         {
             if (outputDisplay == null) return;
 
-            if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+            // ⚡ Bolt: Check _terminalBuffer for the cursor character instead of allocating a new string via outputDisplay.text.
+            // Explicitly call SetText to ensure the UI stays in sync after buffer modification.
+            if (_terminalBuffer.Length > 0 && _terminalBuffer[^1] == TerminalCursor)
+            {
+                _terminalBuffer.Length--;
+                outputDisplay.SetText(_terminalBuffer);
+            }
+
+            if (_typewriterCoroutine != null)
+            {
+                StopCoroutine(_typewriterCoroutine);
+                _typewriterCoroutine = null;
+            }
+
+            _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
+        }
+
+        private void WriteToTerminal(StringBuilder message)
+        {
+            if (outputDisplay == null) return;
+
+            if (_terminalBuffer.Length > 0 && _terminalBuffer[^1] == TerminalCursor)
+            {
+                _terminalBuffer.Length--;
+                outputDisplay.SetText(_terminalBuffer);
+            }
 
             if (_typewriterCoroutine != null)
             {
@@ -368,11 +392,31 @@ namespace Milehigh.World.Terminal
         private IEnumerator TypewriterEffect(string message)
         {
             int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.text += message + TerminalCursor;
+            _terminalBuffer.Append(message).Append(TerminalCursor);
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.ForceMeshUpdate();
 
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1;
+
+            yield return TypewriterLoop(startVisibleCount, endVisibleCount, totalChars);
+        }
+
+        private IEnumerator TypewriterEffect(StringBuilder message)
+        {
+            int startVisibleCount = outputDisplay.textInfo.characterCount;
+            _terminalBuffer.Append(message).Append(TerminalCursor);
+            outputDisplay.SetText(_terminalBuffer);
+            outputDisplay.ForceMeshUpdate();
+
+            int totalChars = outputDisplay.textInfo.characterCount;
+            int endVisibleCount = totalChars - 1;
+
+            yield return TypewriterLoop(startVisibleCount, endVisibleCount, totalChars);
+        }
+
+        private IEnumerator TypewriterLoop(int startVisibleCount, int endVisibleCount, int totalChars)
+        {
 
             for (int i = startVisibleCount; i < endVisibleCount; i++)
             {
