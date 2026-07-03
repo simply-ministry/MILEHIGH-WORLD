@@ -147,6 +147,7 @@ namespace UnityEngine
         public static float time;
         public static float unscaledTime;
         public static float timeScale { get; set; }
+        public static int frameCount;
     }
     public class Renderer : MonoBehaviour
     {
