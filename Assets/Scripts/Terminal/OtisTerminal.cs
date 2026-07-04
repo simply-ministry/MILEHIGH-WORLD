@@ -35,6 +35,7 @@ namespace Milehigh.World.Terminal
         private int _historyIndex = -1;
         private string _persistentInput = "";
         private string _lastSuggestion = "";
+        private int _lastCommandFrame;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -55,6 +56,9 @@ namespace Milehigh.World.Terminal
             if (commandInput != null)
             {
                 commandInput.characterLimit = MaxInputLength;
+                commandInput.caretColor = new Color(0f, 1f, 0f, 0.8f);
+                commandInput.selectionColor = new Color(0f, 1f, 0f, 0.3f);
+
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
@@ -87,6 +91,10 @@ namespace Milehigh.World.Terminal
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
             else if (Input.GetKeyDown(KeyCode.Tab)) HandleTabCompletion();
+            else if (string.IsNullOrEmpty(commandInput.text) && _typewriterCoroutine != null && Time.frameCount != _lastCommandFrame && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape)))
+            {
+                FinalizeTypewriter();
+            }
             else if (Input.GetKeyDown(KeyCode.Escape))
             {
                 commandInput.text = "";
@@ -182,12 +190,15 @@ namespace Milehigh.World.Terminal
 
         public void ProcessCommand(string input)
         {
+            _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
 
             if (string.IsNullOrWhiteSpace(input))
             {
-                WriteToTerminal("\n<color=#AAAAAA>></color>");
+                if (_typewriterCoroutine != null) FinalizeTypewriter();
+                else WriteToTerminal("\n<color=#AAAAAA>></color>");
+
                 CleanupInput();
                 return;
             }
@@ -353,14 +364,10 @@ namespace Milehigh.World.Terminal
         {
             if (outputDisplay == null) return;
 
+            FinalizeTypewriter();
+
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
-
-            if (_typewriterCoroutine != null)
-            {
-                StopCoroutine(_typewriterCoroutine);
-                _typewriterCoroutine = null;
-            }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
@@ -407,6 +414,21 @@ namespace Milehigh.World.Terminal
             outputDisplay.maxVisibleCharacters = totalChars;
             _cursorVisible = true;
             _typewriterCoroutine = null;
+        }
+
+        private void FinalizeTypewriter()
+        {
+            if (_typewriterCoroutine != null)
+            {
+                StopCoroutine(_typewriterCoroutine);
+                _typewriterCoroutine = null;
+            }
+
+            if (outputDisplay != null)
+            {
+                outputDisplay.maxVisibleCharacters = outputDisplay.textInfo.characterCount;
+            }
+            _cursorVisible = true;
         }
 
         private void CleanupInput()
