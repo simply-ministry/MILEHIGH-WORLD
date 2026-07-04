@@ -134,3 +134,7 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+
+## 2026-06-25 - [Zero-Allocation Terminal Buffer & Singleton Optimization]
+**Learning:** Accessing the '.text' property of TextMeshPro components in Unity triggers a new string allocation every time. For high-frequency UI updates like a terminal typewriter or blinking cursor, this causes significant GC pressure. Additionally, using 'characterCount' instead of buffer length is critical when the buffer contains rich text tags, as tags increase the length but not the visible character count.
+**Action:** Use a persistent 'StringBuilder' buffer and 'SetText(StringBuilder)' for zero-allocation UI refreshes. Always use 'textInfo.characterCount' for cursor positioning and visibility logic to account for rich text. Use 'FindAnyObjectByType' for singleton access in Unity 2021.3+ to avoid O(N log N) sorting overhead.

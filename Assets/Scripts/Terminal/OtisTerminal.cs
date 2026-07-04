@@ -24,6 +24,8 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxOutputLength = 10000;
+        private const int MaxHistorySize = 50;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -35,6 +37,9 @@ namespace Milehigh.World.Terminal
         private int _historyIndex = -1;
         private string _persistentInput = "";
         private string _lastSuggestion = "";
+
+        // ⚡ Bolt: Buffer to manage terminal content and eliminate string allocations during UI refreshes.
+        private readonly StringBuilder _terminalBuffer = new StringBuilder();
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -103,7 +108,8 @@ namespace Milehigh.World.Terminal
         private void ClearTerminal()
         {
             if (outputDisplay == null) return;
-            outputDisplay.text = "";
+            _terminalBuffer.Clear();
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.maxVisibleCharacters = 0;
 
             int hour = DateTime.Now.Hour;
@@ -128,8 +134,10 @@ namespace Milehigh.World.Terminal
                 if (_typewriterCoroutine == null && outputDisplay != null)
                 {
                     _cursorVisible = !_cursorVisible;
+                    // ⚡ Bolt: Use characterCount (visible characters) instead of buffer length to ignore rich text tags.
+                    outputDisplay.ForceMeshUpdate();
                     int totalChars = outputDisplay.textInfo.characterCount;
-                    if (totalChars > 0 && outputDisplay.text.EndsWith(TerminalCursor))
+                    if (totalChars > 0 && _terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor)
                     {
                         outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : totalChars - 1;
                     }
@@ -217,6 +225,8 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // ⚡ Bolt: Maintain command history size for DoS protection.
+                if (_commandHistory.Count > MaxHistorySize) _commandHistory.RemoveAt(0);
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -353,8 +363,19 @@ namespace Milehigh.World.Terminal
         {
             if (outputDisplay == null) return;
 
-            if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+            // ⚡ Bolt: Remove cursor from buffer without creating new strings.
+            if (_terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor)
+            {
+                _terminalBuffer.Remove(_terminalBuffer.Length - 1, 1);
+            }
+
+            // ⚡ Bolt: Implement DoS protection by trimming terminal output buffer.
+            if (_terminalBuffer.Length > MaxOutputLength)
+            {
+                int trimIndex = _terminalBuffer.Length - (MaxOutputLength / 2);
+                _terminalBuffer.Remove(0, trimIndex);
+                _terminalBuffer.Insert(0, "<color=#FF0000>[SYSTEM]: Truncating old output for performance...</color>\n");
+            }
 
             if (_typewriterCoroutine != null)
             {
@@ -368,7 +389,8 @@ namespace Milehigh.World.Terminal
         private IEnumerator TypewriterEffect(string message)
         {
             int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.text += message + TerminalCursor;
+            _terminalBuffer.Append(message).Append(TerminalCursor);
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.ForceMeshUpdate();
 
             int totalChars = outputDisplay.textInfo.characterCount;
