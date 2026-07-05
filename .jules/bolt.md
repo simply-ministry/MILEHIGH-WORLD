@@ -134,3 +134,7 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+
+## 2026-06-25 - [Zero-Allocation TextMeshPro Updates]
+**Learning:** Accessing the '.text' property of a TextMeshPro component triggers a new string allocation on the heap. For high-frequency updates like typewriter effects or blinking cursors, using 'SetText(StringBuilder)' with a persistent 'StringBuilder' buffer allows for zero-allocation UI refreshes, significantly reducing GC pressure.
+**Action:** Use a persistent 'StringBuilder' and 'SetText(StringBuilder)' for any UI components that update every frame or on a high-frequency timer.
