@@ -407,6 +407,10 @@ namespace Milehigh.World.Terminal
                 {
                     totalDelay += commaDelay;
                 }
+                else if (c == '-' || c == '/' || c == '\\')
+                {
+                    totalDelay += typingSpeed * 0.5f;
+                }
 
                 yield return GetWait(totalDelay);
             }

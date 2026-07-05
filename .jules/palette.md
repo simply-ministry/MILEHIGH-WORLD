@@ -59,3 +59,11 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2024-03-27 - [Technical Character Pacing]
+**Learning:** Terminal-style typewriter effects feel more "computational" and immersive when technical characters like '-', '/', and '\' have a slightly longer reveal delay.
+**Action:** Add a 1.5x delay multiplier for technical characters in terminal reveal coroutines to simulate processing cadence.
+
+## 2024-03-27 - [Accessibility Contrast Standards]
+**Learning:** Dark theme UI colors, specifically purples, often fall below WCAG AA contrast standards (4.5:1) on dark backgrounds. Increasing lightness and saturation (e.g., to #B273FF) ensures readability without losing character theme.
+**Action:** Use high-contrast color variants (e.g., new Color(0.7f, 0.45f, 1.0f)) for speaker text on dark cinematic backgrounds.
