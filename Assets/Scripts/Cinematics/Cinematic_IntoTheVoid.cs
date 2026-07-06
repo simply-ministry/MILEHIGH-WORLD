@@ -38,6 +38,7 @@ namespace Milehigh.Cinematics
         private Coroutine? popCoroutine;
         private bool skipRequested;
         private string currentSpeakerHex = "FFFFFF";
+        private Vector3 _originalSpeakerScale;
 
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
@@ -60,6 +61,8 @@ namespace Milehigh.Cinematics
                 Debug.LogError("Missing UI components required for cinematic.");
                 return;
             }
+
+            _originalSpeakerScale = SpeakerNameText.transform.localScale;
             StartCoroutine(Cinematic_IntoTheVoid_Sequence());
         }
 
@@ -94,7 +97,7 @@ namespace Milehigh.Cinematics
                     speedMultiplier = kaiSpeedMultiplier;
                     break;
                 case "Delilah":
-                    speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                    speakerColor = new Color(0.7f, 0.45f, 1.0f); // Enhanced Contrast Purple
                     break;
             }
 
@@ -109,7 +112,7 @@ namespace Milehigh.Cinematics
 
         private IEnumerator PopEffect(Transform target)
         {
-            Vector3 originalScale = Vector3.one;
+            Vector3 originalScale = _originalSpeakerScale;
             float duration = 0.2f;
             float elapsed = 0f;
             while (elapsed < duration)
@@ -124,9 +127,9 @@ namespace Milehigh.Cinematics
 
         private IEnumerator TypeDialogue(string message, float currentTypingSpeed)
         {
-            // UX Enhancement: Color-coded completion cue that matches speaker theme.
-            DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
+            // UX Enhancement: Set visibility to zero BEFORE assigning text to prevent a single-frame "text flash" of the full message.
             DialogueText.maxVisibleCharacters = 0;
+            DialogueText.text = $"{message} <color=#{currentSpeakerHex}>▽</color>";
             DialogueText.ForceMeshUpdate();
 
             int totalVisibleCharacters = DialogueText.textInfo.characterCount;
@@ -166,6 +169,10 @@ namespace Milehigh.Cinematics
             }
 
             DialogueText.maxVisibleCharacters = totalVisibleCharacters;
+
+            // Interaction Polish: Consume the skip request so it doesn't chain into the following pause.
+            skipRequested = false;
+
             typingCoroutine = null;
         }
 
