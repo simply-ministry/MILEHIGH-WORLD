@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-07-06 - [Cinematic Skip Fluidity & Accessibility Contrast]
+**Learning:** Consuming interaction 'skip' flags immediately after a typewriter reveal prevents accidental "double-skips" into subsequent timed pauses. Additionally, increasing saturation and value for character-themed purple hues (#B273FF) ensures WCAG AA compliance on void-black backgrounds.
+**Action:** Always reset skip triggers at the conclusion of reveal coroutines and verify secondary brand colors against a contrast ratio of 4.5:1.
