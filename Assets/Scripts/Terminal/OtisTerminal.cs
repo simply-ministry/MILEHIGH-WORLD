@@ -24,6 +24,8 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 50;
+        private const int MaxOutputLength = 10000;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -227,6 +229,11 @@ namespace Milehigh.World.Terminal
 
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
+                // 🛡️ Sentinel: Enforce maximum history size to prevent memory exhaustion.
+                if (_commandHistory.Count >= MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
                 _commandHistory.Add(input);
             }
 
@@ -298,7 +305,12 @@ namespace Milehigh.World.Terminal
 
             StartCoroutine(ShakeInputField());
 
-            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
+            // 🛡️ Sentinel: Sanitize echoed command for defense-in-depth.
+            StringBuilder sb = new StringBuilder();
+            AppendSanitized(sb, command);
+            string safeCommand = sb.ToString();
+
+            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{safeCommand}'.{suggestionText}</color>" +
                    $"\n<color=#AAAAAA>Tip: {tip}</color>";
         }
 
@@ -308,6 +320,7 @@ namespace Milehigh.World.Terminal
             {
                 if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
+                else if (c == '&') sb.Append("&amp;");
                 else sb.Append(c);
             }
         }
@@ -368,6 +381,15 @@ namespace Milehigh.World.Terminal
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+
+            // 🛡️ Sentinel: Enforce maximum output length to prevent terminal lag and memory exhaustion (DoS).
+            if (outputDisplay.text.Length > MaxOutputLength)
+            {
+                int overflow = outputDisplay.text.Length - MaxOutputLength;
+                int cutIndex = outputDisplay.text.IndexOf('\n', overflow);
+                if (cutIndex != -1) outputDisplay.text = outputDisplay.text.Substring(cutIndex + 1);
+                else outputDisplay.text = outputDisplay.text.Substring(overflow);
+            }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
