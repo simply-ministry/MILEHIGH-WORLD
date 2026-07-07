@@ -23,7 +23,11 @@ namespace Milehigh.World.Terminal
         [SerializeField] private float blinkRate = 0.5f;
         private const char TerminalCursor = '█';
 
+        // 🛡️ Sentinel: Denial-of-Service (DoS) protection thresholds.
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 50;
+        private const int MaxOutputLength = 10000;
+
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -228,6 +232,10 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                if (_commandHistory.Count > MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -308,6 +316,7 @@ namespace Milehigh.World.Terminal
             {
                 if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
+                else if (c == '&') sb.Append("&amp;");
                 else sb.Append(c);
             }
         }
@@ -368,6 +377,14 @@ namespace Milehigh.World.Terminal
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+
+            // 🛡️ Sentinel: Denial-of-Service (DoS) protection.
+            // Trim output from the beginning if it exceeds the maximum allowed length.
+            if (outputDisplay.text.Length + message.Length > MaxOutputLength)
+            {
+                int overflow = (outputDisplay.text.Length + message.Length) - MaxOutputLength;
+                outputDisplay.text = outputDisplay.text.Substring(Mathf.Min(overflow, outputDisplay.text.Length));
+            }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
