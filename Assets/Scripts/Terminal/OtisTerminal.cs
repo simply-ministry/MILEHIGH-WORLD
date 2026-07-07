@@ -25,7 +25,7 @@ namespace Milehigh.World.Terminal
 
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
-        private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
+        private static readonly string[] _availableCommands = { "clear", "help", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
@@ -35,6 +35,8 @@ namespace Milehigh.World.Terminal
         private int _historyIndex = -1;
         private string _persistentInput = "";
         private string _lastSuggestion = "";
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
         private int _lastCommandFrame;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
@@ -176,14 +178,32 @@ namespace Milehigh.World.Terminal
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
+                    _lastTabPrefix = ""; // Reset cycle
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            // If this is a continuation of a tab cycle, use the stored prefix
+            string prefix = (!string.IsNullOrEmpty(_lastTabPrefix) && currentInput.StartsWith(_lastTabPrefix))
+                ? _lastTabPrefix
+                : currentInput;
+
+            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+
+            if (matches.Count > 0)
             {
-                commandInput.text = match;
+                // Cycle index
+                if (prefix != _lastTabPrefix)
+                {
+                    _lastTabPrefix = prefix;
+                    _lastTabMatchIndex = 0;
+                }
+                else
+                {
+                    _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                }
+
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
             }
         }
@@ -193,6 +213,8 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
+            _lastTabPrefix = "";
+            _lastTabMatchIndex = -1;
 
             if (string.IsNullOrWhiteSpace(input))
             {
