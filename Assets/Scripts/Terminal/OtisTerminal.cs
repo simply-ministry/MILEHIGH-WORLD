@@ -31,7 +31,10 @@ namespace Milehigh.World.Terminal
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
 
+        private const int MaxHistorySize = 50;
+        private const int MaxOutputLength = 10000;
         private readonly List<string> _commandHistory = new List<string>();
+        private readonly StringBuilder _terminalBuffer = new StringBuilder();
         private int _historyIndex = -1;
         private string _persistentInput = "";
         private string _lastSuggestion = "";
@@ -111,7 +114,10 @@ namespace Milehigh.World.Terminal
         private void ClearTerminal()
         {
             if (outputDisplay == null) return;
-            outputDisplay.text = "";
+
+            // ⚡ Bolt: Reset buffer and use zero-allocation SetText.
+            _terminalBuffer.Clear();
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.maxVisibleCharacters = 0;
 
             int hour = DateTime.Now.Hour;
@@ -136,9 +142,10 @@ namespace Milehigh.World.Terminal
                 if (_typewriterCoroutine == null && outputDisplay != null)
                 {
                     _cursorVisible = !_cursorVisible;
-                    int totalChars = outputDisplay.textInfo.characterCount;
-                    if (totalChars > 0 && outputDisplay.text.EndsWith(TerminalCursor))
+                    // ⚡ Bolt: Check buffer directly to avoid string allocation from .text property.
+                    if (_terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor)
                     {
+                        int totalChars = outputDisplay.textInfo.characterCount;
                         outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : totalChars - 1;
                     }
                 }
@@ -228,6 +235,8 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // ⚡ Bolt: Implement DoS protection for command history.
+                if (_commandHistory.Count > MaxHistorySize) _commandHistory.RemoveAt(0);
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -366,18 +375,35 @@ namespace Milehigh.World.Terminal
 
             FinalizeTypewriter();
 
-            if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+            // ⚡ Bolt: Using StringBuilder buffer to eliminate GC allocations from string property access.
+            if (_terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor)
+                _terminalBuffer.Length--;
 
-            _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
-        }
-
-        private IEnumerator TypewriterEffect(string message)
-        {
             int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.text += message + TerminalCursor;
+            _terminalBuffer.Append(message);
+            _terminalBuffer.Append(TerminalCursor);
+
+            if (TrimBuffer() > 0) startVisibleCount = 0; // If trimmed, just reveal from start to be safe.
+
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.ForceMeshUpdate();
 
+            _typewriterCoroutine = StartCoroutine(TypewriterEffect(startVisibleCount));
+        }
+
+        private int TrimBuffer()
+        {
+            if (_terminalBuffer.Length > MaxOutputLength)
+            {
+                int excess = _terminalBuffer.Length - MaxOutputLength;
+                _terminalBuffer.Remove(0, excess);
+                return excess;
+            }
+            return 0;
+        }
+
+        private IEnumerator TypewriterEffect(int startVisibleCount)
+        {
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1;
 
