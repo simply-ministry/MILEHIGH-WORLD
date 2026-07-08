@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-19 - [Terminal Tab Cycling & Technical Pacing]
+**Learning:** In CLI interfaces with multiple similar commands, standard Tab completion feels "stuck" if it only picks the first match. Implementing cycling with prefix tracking provides a much smoother power-user experience. Additionally, adding micro-delays for technical characters ('-', '/', '\') during typewriter reveals deepens the "system processing" immersion.
+**Action:** Use prefix-aware cycling for Tab completion and add technical character pacing to terminal-style typewriter effects.
