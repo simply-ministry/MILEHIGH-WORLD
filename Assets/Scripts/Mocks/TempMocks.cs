@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace UnityEngine
@@ -215,6 +216,7 @@ namespace TMPro
         public int maxVisibleCharacters { get; set; }
         public TMP_TextInfo textInfo { get; } = new TMP_TextInfo();
         public void ForceMeshUpdate() {}
+        public void SetText(StringBuilder sb) { text = sb.ToString(); }
     }
     public class TextMeshProUGUI : TMP_Text
     {
