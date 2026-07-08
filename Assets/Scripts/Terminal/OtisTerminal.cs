@@ -24,6 +24,9 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 50;
+        private const int MaxOutputLength = 10000;
+
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -31,6 +34,7 @@ namespace Milehigh.World.Terminal
         private Coroutine? _cursorCoroutine;
         private bool _cursorVisible = true;
 
+        private readonly StringBuilder _terminalBuffer = new StringBuilder();
         private readonly List<string> _commandHistory = new List<string>();
         private int _historyIndex = -1;
         private string _persistentInput = "";
@@ -111,7 +115,9 @@ namespace Milehigh.World.Terminal
         private void ClearTerminal()
         {
             if (outputDisplay == null) return;
-            outputDisplay.text = "";
+
+            _terminalBuffer.Clear();
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.maxVisibleCharacters = 0;
 
             int hour = DateTime.Now.Hour;
@@ -137,7 +143,7 @@ namespace Milehigh.World.Terminal
                 {
                     _cursorVisible = !_cursorVisible;
                     int totalChars = outputDisplay.textInfo.characterCount;
-                    if (totalChars > 0 && outputDisplay.text.EndsWith(TerminalCursor))
+                    if (totalChars > 0 && _terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor)
                     {
                         outputDisplay.maxVisibleCharacters = _cursorVisible ? totalChars : totalChars - 1;
                     }
@@ -228,6 +234,10 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                if (_commandHistory.Count > MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -298,8 +308,12 @@ namespace Milehigh.World.Terminal
 
             StartCoroutine(ShakeInputField());
 
-            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                   $"\n<color=#AAAAAA>Tip: {tip}</color>";
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '");
+            AppendSanitized(sb, command);
+            sb.Append("'").Append(suggestionText).Append("</color>")
+              .Append("\n<color=#AAAAAA>Tip: ").Append(tip).Append("</color>");
+            return sb.ToString();
         }
 
         private void AppendSanitized(StringBuilder sb, string text)
@@ -308,6 +322,7 @@ namespace Milehigh.World.Terminal
             {
                 if (c == '<') sb.Append("&lt;");
                 else if (c == '>') sb.Append("&gt;");
+                else if (c == '&') sb.Append("&amp;");
                 else sb.Append(c);
             }
         }
@@ -366,18 +381,38 @@ namespace Milehigh.World.Terminal
 
             FinalizeTypewriter();
 
-            if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+            int initialChars = outputDisplay.textInfo.characterCount;
+            bool hadCursor = _terminalBuffer.Length > 0 && _terminalBuffer[_terminalBuffer.Length - 1] == TerminalCursor;
 
-            _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
-        }
+            // Remove trailing cursor if present
+            if (hadCursor)
+            {
+                _terminalBuffer.Remove(_terminalBuffer.Length - 1, 1);
+            }
 
-        private IEnumerator TypewriterEffect(string message)
-        {
-            int startVisibleCount = outputDisplay.textInfo.characterCount;
-            outputDisplay.text += message + TerminalCursor;
+            _terminalBuffer.Append(message);
+            TrimBuffer();
+
+            _terminalBuffer.Append(TerminalCursor);
+
+            outputDisplay.SetText(_terminalBuffer);
             outputDisplay.ForceMeshUpdate();
 
+            int startRevealIndex = hadCursor ? Math.Max(0, initialChars - 1) : initialChars;
+            _typewriterCoroutine = StartCoroutine(TypewriterEffect(startRevealIndex));
+        }
+
+        private void TrimBuffer()
+        {
+            if (_terminalBuffer.Length > MaxOutputLength)
+            {
+                int charsToRemove = _terminalBuffer.Length - MaxOutputLength;
+                _terminalBuffer.Remove(0, charsToRemove);
+            }
+        }
+
+        private IEnumerator TypewriterEffect(int startVisibleCount)
+        {
             int totalChars = outputDisplay.textInfo.characterCount;
             int endVisibleCount = totalChars - 1;
 
