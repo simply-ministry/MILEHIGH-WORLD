@@ -194,3 +194,8 @@
 **Vulnerability:** Insecure Direct Object Reference (IDOR) via an incomplete and case-sensitive blocklist in `SceneDirector.cs`. Malicious external data could bypass the blocklist using case variations (e.g., 'campaignmanager') or path-like strings (e.g., '/CampaignManager') that `GameObject.Find` still resolves.
 **Learning:** String-based security blocklists are fragile if they don't account for casing and the normalization behavior of the underlying lookup system. Furthermore, severe code rot (triplicated methods and redundant fields) in `OtisTerminal.cs` obscured UI injection vulnerabilities and caused build failures.
 **Prevention:** Implement "Double Validation": check the input string *and* the resolved object's name against a case-insensitive blocklist. Regularly consolidate and deduplicate interactive processing logic to ensure security controls are consistently applied.
+
+## 2026-06-27 - [DoS Protection and Security Pipeline Consolidation]
+**Vulnerability:** Potential resource exhaustion (DoS) via unbounded command history in `OtisTerminal.cs` and fragmented security validation in `SceneDirector.cs` that was vulnerable to bypasses due to code rot (duplicate checks).
+**Learning:** Even minor interface features like command history require bounds to prevent memory exhaustion. Furthermore, redundant security checks often lead to 'security theater' where one path is patched but others remain vulnerable.
+**Prevention:** Enforce strict limits on all collection-based buffers. Consolidate security-critical pipelines into a single, linear "Single Source of Truth" to ensure consistency and maintainability.
