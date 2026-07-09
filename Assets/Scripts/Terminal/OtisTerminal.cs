@@ -36,6 +36,9 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private bool _isCompleting;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -53,6 +56,8 @@ namespace Milehigh.World.Terminal
 
         private void Start()
         {
+            Array.Sort(_availableCommands);
+
             if (commandInput != null)
             {
                 commandInput.characterLimit = MaxInputLength;
@@ -62,6 +67,14 @@ namespace Milehigh.World.Terminal
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
+                commandInput.onValueChanged.AddListener(_ =>
+                {
+                    if (!_isCompleting)
+                    {
+                        _lastTabPrefix = "";
+                        _lastTabMatchIndex = -1;
+                    }
+                });
             }
             ClearTerminal();
         }
@@ -180,12 +193,36 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            // 🎨 Palette: Reactive completion - cycle through multiple matches or fill in fuzzy suggestions.
+            bool isCycling = !string.IsNullOrEmpty(_lastTabPrefix) &&
+                             _availableCommands.Any(c => c.Equals(currentInput, StringComparison.OrdinalIgnoreCase)) &&
+                             currentInput.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase);
+
+            if (!isCycling)
             {
-                commandInput.text = match;
+                _lastTabPrefix = currentInput;
+                _lastTabMatchIndex = -1;
+            }
+
+            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            _isCompleting = true;
+            if (matches.Count > 0)
+            {
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
             }
+            else
+            {
+                string fuzzy = GetFuzzyMatch(currentInput);
+                if (!string.IsNullOrEmpty(fuzzy))
+                {
+                    commandInput.text = fuzzy;
+                    commandInput.MoveTextEnd(false);
+                }
+            }
+            _isCompleting = false;
         }
 
         public void ProcessCommand(string input)
