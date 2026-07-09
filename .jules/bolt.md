@@ -134,3 +134,6 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+## 2025-05-15 - [Zero-Allocation TMP UI Updates]
+**Learning:** Accessing TMP_Text.text in Unity triggers a new string allocation every time. In high-frequency UI updates like a terminal typewriter effect, this leads to O(N^2) memory pressure. Using a persistent StringBuilder buffer with TMP_Text.SetText(StringBuilder) achieves zero-allocation UI refreshes for the existing content.
+**Action:** Always prefer StringBuilder and SetText(StringBuilder) for frequently updated TextMeshPro components. Implement buffer trimming (e.g., _terminalBuffer.Remove(0, count)) to prevent unbounded memory growth while avoiding string.Substring allocations.
