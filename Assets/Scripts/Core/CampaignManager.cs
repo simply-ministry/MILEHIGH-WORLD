@@ -14,7 +14,7 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
+                    _instance = UnityEngine.Object.FindAnyObjectByType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
