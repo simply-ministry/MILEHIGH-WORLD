@@ -9,6 +9,8 @@ namespace UnityEngine
     {
         public string name { get; set; } = "";
         public static T FindObjectOfType<T>() where T : class => null!;
+        public static T FindAnyObjectByType<T>() where T : class => null!;
+        public static T FindFirstObjectByType<T>() where T : class => null!;
         public static T[] FindObjectsOfType<T>() where T : class => new T[0];
         public static T[] FindObjectsByType<T>(FindObjectsSortMode sortMode) where T : class => new T[0];
         public static void Destroy(Object obj) {}
