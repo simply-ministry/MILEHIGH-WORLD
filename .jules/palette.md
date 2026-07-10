@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-19 - [Terminal Input Synchronization]
+**Learning:** When programmatically updating input fields (like for tab completion) in a system that also listens for user changes, using an `_isCompleting` semaphore flag prevents recursive state resets and maintains the integrity of the completion prefix.
+**Action:** Always wrap programmatic text updates in a boolean guard if `onValueChanged` listeners are active.

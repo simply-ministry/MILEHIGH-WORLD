@@ -21,7 +21,7 @@ namespace Milehigh.World.Terminal
 
         [Header("Cursor Settings")]
         [SerializeField] private float blinkRate = 0.5f;
-        private const char TerminalCursor = '█';
+        private const string TerminalCursor = "<color=#00FF00>█</color>";
 
         private const int MaxInputLength = 256;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
@@ -36,6 +36,10 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
+
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private bool _isCompleting;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -62,6 +66,14 @@ namespace Milehigh.World.Terminal
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
+                commandInput.onValueChanged.AddListener(_ =>
+                {
+                    if (!_isCompleting)
+                    {
+                        _lastTabPrefix = "";
+                        _lastTabMatchIndex = -1;
+                    }
+                });
             }
             ClearTerminal();
         }
@@ -169,22 +181,47 @@ namespace Milehigh.World.Terminal
         {
             string currentInput = commandInput.text.Trim().ToLower();
 
-            if (string.IsNullOrEmpty(currentInput))
+            if (string.IsNullOrEmpty(currentInput) && string.IsNullOrEmpty(_lastTabPrefix))
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
+                    _isCompleting = true;
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
+                    _isCompleting = false;
                     _lastSuggestion = "";
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            if (string.IsNullOrEmpty(_lastTabPrefix))
             {
-                commandInput.text = match;
+                _lastTabPrefix = currentInput;
+            }
+
+            var matches = _availableCommands
+                .Where(c => c.StartsWith(_lastTabPrefix))
+                .OrderBy(c => c)
+                .ToList();
+
+            if (matches.Count > 0)
+            {
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _isCompleting = true;
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
+            }
+            else
+            {
+                string fuzzy = GetFuzzyMatch(_lastTabPrefix);
+                if (!string.IsNullOrEmpty(fuzzy))
+                {
+                    _isCompleting = true;
+                    commandInput.text = fuzzy;
+                    commandInput.MoveTextEnd(false);
+                    _isCompleting = false;
+                }
             }
         }
 
@@ -367,7 +404,7 @@ namespace Milehigh.World.Terminal
             FinalizeTypewriter();
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
-                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - TerminalCursor.Length);
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
@@ -406,6 +443,10 @@ namespace Milehigh.World.Terminal
                 else if (c == ',' || c == ':' || c == ';')
                 {
                     totalDelay += commaDelay;
+                }
+                else if (c == '-' || c == '/' || c == '\\')
+                {
+                    totalDelay *= 1.5f;
                 }
 
                 yield return GetWait(totalDelay);
