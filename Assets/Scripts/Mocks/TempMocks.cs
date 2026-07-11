@@ -11,6 +11,7 @@ namespace UnityEngine
         public static T FindObjectOfType<T>() where T : class => null!;
         public static T[] FindObjectsOfType<T>() where T : class => new T[0];
         public static T[] FindObjectsByType<T>(FindObjectsSortMode sortMode) where T : class => new T[0];
+        public static T FindFirstObjectByType<T>(FindObjectsSortMode sortMode) where T : class => null!;
         public static void Destroy(Object obj) {}
         public static void DontDestroyOnLoad(Object obj) {}
         public static T Instantiate<T>(T original, Transform parent) where T : class => null!;
