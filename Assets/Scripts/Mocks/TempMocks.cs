@@ -223,6 +223,8 @@ namespace TMPro
         public UnityEngine.RectTransform rectTransform { get; } = new UnityEngine.RectTransform();
     }
 
+    public class OnChangeEvent : UnityEngine.Events.UnityEvent<string> { }
+
     public class TMP_InputField : UnityEngine.UI.Selectable
     {
         public string text { get; set; } = "";
@@ -233,6 +235,7 @@ namespace TMPro
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
         public SubmitEvent onSubmit { get; set; } = new SubmitEvent();
+        public OnChangeEvent onValueChanged { get; set; } = new OnChangeEvent();
         public UnityEngine.Color caretColor { get; set; } = new UnityEngine.Color();
         public UnityEngine.Color selectionColor { get; set; } = new UnityEngine.Color();
     }

@@ -37,6 +37,10 @@ namespace Milehigh.World.Terminal
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
 
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private bool _isCompleting = false;
+
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
@@ -62,6 +66,14 @@ namespace Milehigh.World.Terminal
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
+                commandInput.onValueChanged.AddListener(_ =>
+                {
+                    if (!_isCompleting)
+                    {
+                        _lastTabPrefix = "";
+                        _lastTabMatchIndex = -1;
+                    }
+                });
             }
             ClearTerminal();
         }
@@ -173,18 +185,45 @@ namespace Milehigh.World.Terminal
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
+                    _isCompleting = true;
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
+                    _isCompleting = false;
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            // If we are continuing a previous tab completion, use the saved prefix
+            string prefix = string.IsNullOrEmpty(_lastTabPrefix) ? currentInput : _lastTabPrefix;
+
+            // Find all matches, sorted alphabetically
+            var matches = _availableCommands
+                .Where(c => c.StartsWith(prefix))
+                .OrderBy(c => c)
+                .ToList();
+
+            if (matches.Count > 0)
             {
-                commandInput.text = match;
+                _isCompleting = true;
+                _lastTabPrefix = prefix;
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
+            }
+            else
+            {
+                // Fallback to fuzzy match if no prefix matches
+                string fuzzy = GetFuzzyMatch(currentInput);
+                if (!string.IsNullOrEmpty(fuzzy))
+                {
+                    _isCompleting = true;
+                    commandInput.text = fuzzy;
+                    commandInput.MoveTextEnd(false);
+                    _isCompleting = false;
+                }
             }
         }
 
