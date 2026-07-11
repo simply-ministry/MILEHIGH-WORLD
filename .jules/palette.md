@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-07-11 - [Stateful Tab Completion Cycling]
+**Learning:** Implementing cycling tab completion in a CLI interface improves power-user fluidity. Using a state-reset listener on text changes (with a programmatic update guard) ensures the completion index resets naturally when the user deviates from the Tab key.
+**Action:** Pair Tab completion with an onValueChanged reset listener and an _isCompleting flag to manage state transition between manual typing and programmatic completion.
