@@ -22,7 +22,8 @@ namespace Milehigh.Core
             "SkyIxController", "CinematicController", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal", "EndGameMultiFrontOrchestrator",
             "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor",
-            "EventSystem", "Main Camera"
+            "EventSystem", "Main Camera", "Canvas", "DialogueBox", "DialogueText",
+            "SpeakerNameText", "Cinematic_IntoTheVoid"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -178,11 +179,8 @@ namespace Milehigh.Core
         private void ApplyInteraction(ObjectInteraction interaction)
         {
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Double Validation Pipeline
+            // Double Validation Pipeline:
             // 1. Validate the untrusted input string against the blocklist.
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
             string cleanId = interaction.objectId.Trim();
@@ -197,7 +195,6 @@ namespace Milehigh.Core
             {
                 // 2. Resolve the object, and then RE-VALIDATE the resolved object's actual name.
                 // This prevents bypasses using paths or hierarchy-based lookups (e.g. "/CampaignManager").
-                // 🛡️ Sentinel: Double validation - check the resolved object name against the blocklist
                 string targetName = target.name.Trim();
                 if (ProtectedSystemObjects.Contains(targetName))
                 {
