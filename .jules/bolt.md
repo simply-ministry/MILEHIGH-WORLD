@@ -99,6 +99,10 @@
 **Learning:** In 'EndGameOrchestrationBridge.cs', the main combat loop was performing O(N) 'GetAlly' lookups and 'GetComponent' calls every frame. Hoisting these lookups outside the loop and using 'Shader.PropertyToID' for shader parameter updates provides a significant CPU performance win by eliminating redundant dictionary searches and string-to-int hashing in the Unity engine.
 **Action:** Always pre-cache character references and component lookups outside of high-frequency loops (Update, Coroutines, or async Tasks). Use Property IDs for any per-frame material updates.
 
+## 2024-06-25 - Unity Singleton Retrieval Optimization
+**Learning:** In Unity 2021.3+, `FindAnyObjectByType<T>()` is the most efficient way to retrieve a singleton instance. Unlike `FindObjectOfType`, it avoids the O(N log N) internal sort by Instance ID. Furthermore, it is faster than `FindFirstObjectByType` because it does not guarantee returning the object that appears first in the hierarchy, allowing for a faster traversal.
+**Action:** Use `FindAnyObjectByType<T>()` for singleton patterns where any active instance of the type is sufficient and hierarchy order is irrelevant.
+
 ## 2025-05-20 - Levenshtein Distance GC Optimization
 **Learning:** Fuzzy matching for terminal commands can cause GC pressure if it allocates arrays on the heap every time an unknown command is typed. Using `stackalloc` with `Span<int>` for common string lengths allows the algorithm to run entirely on the stack.
 **Action:** Use `stackalloc Span<int>` for O(M) space Levenshtein implementations when handling short strings (e.g., < 128 chars) to eliminate heap allocations and reduce GC pressure.

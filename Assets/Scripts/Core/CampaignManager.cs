@@ -14,7 +14,10 @@ namespace Milehigh.Core
             {
                 if (_instance == null)
                 {
-                    _instance = UnityEngine.Object.FindObjectOfType<CampaignManager>();
+                    // ⚡ Bolt: Optimized singleton retrieval using FindAnyObjectByType to eliminate
+                    // O(N log N) sorting overhead and avoid hierarchy traversal guarantees,
+                    // providing the fastest O(N) lookup in Unity 2021.3+.
+                    _instance = UnityEngine.Object.FindAnyObjectByType<CampaignManager>();
                     if (_instance == null)
                     {
                         GameObject go = new GameObject("CampaignManager");
