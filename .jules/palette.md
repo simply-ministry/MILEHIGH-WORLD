@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-25 - [Predictable Cycling & Fuzzy Fallbacks in CLI]
+**Learning:** Tab completion feels most reliable when matches are sorted alphabetically, ensuring a predictable cycling order for the user. Furthermore, using a "last fuzzy suggestion" as a fallback when no prefix matches are found creates a seamless error-correction loop that significantly reduces friction for technical commands.
+**Action:** Always sort completion matches alphabetically and implement fuzzy fallbacks for Tab completion to improve interaction flow and error recovery.

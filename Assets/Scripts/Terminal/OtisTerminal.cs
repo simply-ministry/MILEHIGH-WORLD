@@ -37,6 +37,10 @@ namespace Milehigh.World.Terminal
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
 
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private bool _isCompleting;
+
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
 
@@ -62,6 +66,7 @@ namespace Milehigh.World.Terminal
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
+                commandInput.onValueChanged.AddListener(OnInputChanged);
             }
             ClearTerminal();
         }
@@ -97,6 +102,8 @@ namespace Milehigh.World.Terminal
             }
             else if (Input.GetKeyDown(KeyCode.Escape))
             {
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
                 commandInput.text = "";
                 _persistentInput = "";
                 _historyIndex = -1;
@@ -165,26 +172,62 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void OnInputChanged(string input)
+        {
+            if (!_isCompleting)
+            {
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
+            }
+        }
+
         private void HandleTabCompletion()
         {
             string currentInput = commandInput.text.Trim().ToLower();
 
+            // If empty, prioritize last suggestion (fuzzy match)
             if (string.IsNullOrEmpty(currentInput))
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
+                    _isCompleting = true;
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
+                    _isCompleting = false;
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            // If we haven't started a completion session or the input changed manually
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
             {
-                commandInput.text = match;
+                _lastTabPrefix = currentInput;
+                _lastTabMatchIndex = -1;
+            }
+
+            // Filter matches alphabetically for consistent cycling
+            var matches = _availableCommands
+                .Where(c => c.StartsWith(_lastTabPrefix))
+                .OrderBy(c => c)
+                .ToList();
+
+            if (matches.Count > 0)
+            {
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _isCompleting = true;
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
+            }
+            else if (!string.IsNullOrEmpty(_lastSuggestion))
+            {
+                // Fallback to fuzzy suggestion if no prefix match
+                _isCompleting = true;
+                commandInput.text = _lastSuggestion;
+                commandInput.MoveTextEnd(false);
+                _lastSuggestion = "";
+                _isCompleting = false;
             }
         }
 
@@ -193,6 +236,8 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
+            _lastTabPrefix = "";
+            _lastTabMatchIndex = -1;
 
             if (string.IsNullOrWhiteSpace(input))
             {
