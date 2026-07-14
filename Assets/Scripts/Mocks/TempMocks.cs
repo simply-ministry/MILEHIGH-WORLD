@@ -233,6 +233,7 @@ namespace TMPro
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
         public SubmitEvent onSubmit { get; set; } = new SubmitEvent();
+        public UnityEngine.Events.UnityEvent<string> onValueChanged { get; } = new UnityEngine.Events.UnityEvent<string>();
         public UnityEngine.Color caretColor { get; set; } = new UnityEngine.Color();
         public UnityEngine.Color selectionColor { get; set; } = new UnityEngine.Color();
     }

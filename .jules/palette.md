@@ -59,3 +59,11 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-19 - [Predictable Completion Cycling]
+**Learning:** In CLI interfaces with multiple completion candidates, sorting available commands alphabetically ensures that Tab cycling follows a predictable, non-random order, reducing user confusion.
+**Action:** Always sort completion candidate lists alphabetically before implementing cycling logic.
+
+## 2026-06-19 - [State Reset Hygiene]
+**Learning:** Tab completion state (prefix and index) must be aggressively reset on manual input, command submission, or cancellation (Escape) to prevent subsequent Tab presses from "inheriting" stale state and producing unexpected results.
+**Action:** Use `onValueChanged` listeners (with programmatic update guards) to invalidate completion state on manual typing.
