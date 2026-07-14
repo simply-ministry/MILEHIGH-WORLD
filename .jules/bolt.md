@@ -131,6 +131,10 @@
 **Learning:** In Unity 2021.3+, 'FindObjectsOfType' is O(n) but includes an expensive internal sort by Instance ID. Replacing it with 'FindObjectsByType<T>(FindObjectsSortMode.None)' bypasses this sort, providing a significant performance win for managers that rebuild caches from scene lookups.
 **Action:** Use 'FindObjectsByType' with 'FindObjectsSortMode.None' for bulk object discovery where order is irrelevant (e.g., dictionary population).
 
+## 2025-05-15 - [Unity Singleton Optimization]
+**Learning:** Using `FindObjectOfType<T>()` for singleton access in Unity 2021.3+ is inefficient as it performs an O(N log N) sort by Instance ID to guarantee returning the 'first' object. `FindAnyObjectByType<T>()` provides the same functionality for singletons without the sorting overhead or hierarchy traversal guarantees.
+**Action:** Always prefer `FindAnyObjectByType<T>()` for singleton lazy-initialization or when the specific instance returned does not matter.
+
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
