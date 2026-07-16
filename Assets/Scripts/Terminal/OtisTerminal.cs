@@ -36,6 +36,10 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private string _lastInput = "";
+        private bool _isCompleting;
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -53,6 +57,7 @@ namespace Milehigh.World.Terminal
 
         private void Start()
         {
+            Array.Sort(_availableCommands);
             if (commandInput != null)
             {
                 commandInput.characterLimit = MaxInputLength;
@@ -88,6 +93,13 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
+            string currentText = commandInput.text;
+            if (currentText != _lastInput && !_isCompleting)
+            {
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
+            }
+
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
             else if (Input.GetKeyDown(KeyCode.Tab)) HandleTabCompletion();
@@ -95,17 +107,21 @@ namespace Milehigh.World.Terminal
             {
                 FinalizeTypewriter();
             }
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else if (Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))))
             {
                 commandInput.text = "";
                 _persistentInput = "";
                 _historyIndex = -1;
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
             }
+
+            _lastInput = commandInput != null ? commandInput.text : "";
         }
 
         private void ClearTerminal()
@@ -173,18 +189,41 @@ namespace Milehigh.World.Terminal
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
+                    _isCompleting = true;
                     commandInput.text = _lastSuggestion;
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
+                    _isCompleting = false;
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            string prefix = string.IsNullOrEmpty(_lastTabPrefix) ? currentInput : _lastTabPrefix;
+            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+
+            if (matches.Count > 0)
             {
-                commandInput.text = match;
+                _isCompleting = true;
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _lastTabPrefix = prefix;
+
+                commandInput.text = matches[_lastTabMatchIndex];
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
+            }
+            else
+            {
+                if (string.IsNullOrEmpty(_lastTabPrefix))
+                {
+                    string fuzzy = GetFuzzyMatch(currentInput);
+                    if (!string.IsNullOrEmpty(fuzzy))
+                    {
+                        _isCompleting = true;
+                        commandInput.text = fuzzy;
+                        commandInput.MoveTextEnd(false);
+                        _isCompleting = false;
+                    }
+                }
             }
         }
 
@@ -193,6 +232,8 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
+            _lastTabPrefix = "";
+            _lastTabMatchIndex = -1;
 
             if (string.IsNullOrWhiteSpace(input))
             {

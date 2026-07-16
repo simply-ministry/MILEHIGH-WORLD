@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-19 - [Terminal Input Disruption and Cancel Patterns]
+**Learning:** In keyboard-centric CLI terminals, users expect standard shell shortcuts like Ctrl+C to cancel current input immediately. Restricting cancel actions to the Escape key increases cognitive load because muscle memory dictates Ctrl+C.
+**Action:** Always map both Escape and Ctrl+C to clear/reset the active command buffer in simulated terminal interfaces.
