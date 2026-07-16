@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.Internal;
+using UnityEngine.Serialization;
 
 namespace Milehigh.Cinematics
 {
@@ -28,7 +29,8 @@ namespace Milehigh.Cinematics
 
         [Header("UX Settings")]
         [Tooltip("Base delay in seconds between each character being revealed.")]
-        public float typingSpeed = 0.03f;
+        [UnityEngine.Serialization.FormerlySerializedAs("typingSpeed")]
+        public float baseTypingSpeed = 0.03f;
         [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
         public float kaiSpeedMultiplier = 3.0f;
         [Tooltip("Delay multiplier for Sky.ix.")]
@@ -42,6 +44,14 @@ namespace Milehigh.Cinematics
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
+        // ⚡ Bolt: Cache for Color-to-HTML hex conversions by speaker name to eliminate Color struct boxing and runtime string allocation overhead.
+        private static readonly Dictionary<string, string> _speakerHexCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Sky.ix", "00FFFF" },
+            { "Kai", "FFD700" },
+            { "Delilah", "991AE6" }
+        };
+
         private WaitForSeconds GetWait(float time)
         {
             int key = Mathf.RoundToInt(time * 1000f);
@@ -51,6 +61,16 @@ namespace Milehigh.Cinematics
                 _waitForSecondsCache[key] = wait;
             }
             return wait;
+        }
+
+        private string GetHexForSpeaker(string speaker, Color speakerColor)
+        {
+            if (!_speakerHexCache.TryGetValue(speaker, out var hex) || hex == null)
+            {
+                hex = ColorUtility.ToHtmlStringRGB(speakerColor);
+                _speakerHexCache[speaker] = hex;
+            }
+            return hex;
         }
 
         private void Start()
@@ -72,6 +92,36 @@ namespace Milehigh.Cinematics
             }
         }
 
+        // ⚡ Bolt: Helper to retrieve character speed multiplier (O(1) lookup).
+        public float GetSpeedMultiplier(string speaker)
+        {
+            switch (speaker)
+            {
+                case "Sky.ix":
+                    return skyixSpeedMultiplier;
+                case "Kai":
+                    return kaiSpeedMultiplier;
+                default:
+                    return 1.0f;
+            }
+        }
+
+        // ⚡ Bolt: Helper to retrieve character name text color (O(1) lookup).
+        public Color GetSpeakerColor(string speaker)
+        {
+            switch (speaker)
+            {
+                case "Sky.ix":
+                    return Color.cyan;
+                case "Kai":
+                    return new Color(1f, 0.84f, 0f); // Gold
+                case "Delilah":
+                    return new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                default:
+                    return Color.white;
+            }
+        }
+
         public void ShowDialogue(string speaker, string message)
         {
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
@@ -80,31 +130,16 @@ namespace Milehigh.Cinematics
             SpeakerNameText.text = speaker;
 
             // Apply character-specific colors for better speaker identification
-            Color speakerColor = Color.white;
-            float speedMultiplier = 1.0f;
-
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    speakerColor = Color.cyan;
-                    speedMultiplier = skyixSpeedMultiplier;
-                    break;
-                case "Kai":
-                    speakerColor = new Color(1f, 0.84f, 0f); // Gold
-                    speedMultiplier = kaiSpeedMultiplier;
-                    break;
-                case "Delilah":
-                    speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                    break;
-            }
+            Color speakerColor = GetSpeakerColor(speaker);
+            float speedMultiplier = GetSpeedMultiplier(speaker);
 
             SpeakerNameText.color = speakerColor;
-            currentSpeakerHex = ColorUtility.ToHtmlStringRGB(speakerColor);
+            currentSpeakerHex = GetHexForSpeaker(speaker, speakerColor);
 
             if (popCoroutine != null) StopCoroutine(popCoroutine);
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
 
-            typingCoroutine = StartCoroutine(TypeDialogue(message, typingSpeed * speedMultiplier));
+            typingCoroutine = StartCoroutine(TypeDialogue(message, baseTypingSpeed * speedMultiplier));
         }
 
         private IEnumerator PopEffect(Transform target)
