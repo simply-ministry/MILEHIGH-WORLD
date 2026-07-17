@@ -59,3 +59,7 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
+
+## 2026-06-19 - [Interactive CLI Tab Cycling & Input State Tracking]
+**Learning:** In CLI interfaces with custom poll-based input tracking, programmatic text updates (like tab completion or history traversal) can inadvertently trigger manual-change listeners, resetting the completion state. Synchronizing programmatic updates with a tracked input buffer prevents state leakage and ensures smooth command cycling.
+**Action:** Synchronize manual change tracking inside terminal update loop by explicitly updating the tracked input state immediately after any programmatic text alteration.
