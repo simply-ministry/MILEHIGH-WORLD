@@ -22,7 +22,8 @@ namespace Milehigh.Core
             "SkyIxController", "CinematicController", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal", "EndGameMultiFrontOrchestrator",
             "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor",
-            "EventSystem", "Main Camera"
+            "EventSystem", "Main Camera", "Canvas", "DialogueBox", "SpeakerNameText",
+            "DialogueText"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
