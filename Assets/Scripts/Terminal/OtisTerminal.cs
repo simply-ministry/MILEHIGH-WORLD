@@ -102,6 +102,13 @@ namespace Milehigh.World.Terminal
                 _historyIndex = -1;
                 commandInput.ActivateInputField();
             }
+            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            {
+                commandInput.text = "";
+                _persistentInput = "";
+                _historyIndex = -1;
+                commandInput.ActivateInputField();
+            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -277,7 +284,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
         }
 
         private string GetInfiniterationText()
