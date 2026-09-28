@@ -1,3 +1,8 @@
+## 2026-06-22 - Client-Side Denial of Service (DoS) via Unbounded Command History
+**Vulnerability:** The interactive command line console (`OtisTerminal.cs`) persisted all unique user-entered commands into a list (`_commandHistory`) without enforcing any maximum size. An attacker could flood the terminal with unique inputs, causing unbounded memory growth and eventually triggering client-side memory exhaustion or Out Of Memory (OOM) crashes.
+**Learning:** Even client-side interactive UI components that persist input state must enforce strict upper bounds on collection sizes to avoid Denial of Service (DoS) attacks.
+**Prevention:** Always define explicit limits (e.g. `MaxHistorySize = 100`) for collections holding user input, and prune older entries when the threshold is exceeded.
+
 ## 2024-05-24 - Path Traversal in Editor Extension Scripts
 **Vulnerability:** Found a Path Traversal vulnerability in an Editor window script (`CharacterFactory.cs`). The script trusted the `name` field from a parsed JSON file (`campaign_master.json`) to construct the file path for creating new `.asset` files (`string assetPath = $"{folderPath}/{charProfile.name...}.asset";`).
 **Learning:** Even though the JSON is a "local" file used by a developer in the Editor, trusting external data to construct file paths without sanitization is a security risk. If a malicious JSON file is imported, it could contain names like `../../Scripts/Core/ImportantScript` which would overwrite arbitrary files in the project.
