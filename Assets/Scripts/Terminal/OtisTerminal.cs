@@ -24,6 +24,7 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -133,6 +134,13 @@ namespace Milehigh.World.Terminal
                 _persistentInput = "";
                 _historyIndex = -1;
                 ResetTabCompletionState();
+                commandInput.ActivateInputField();
+            }
+            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            {
+                commandInput.text = "";
+                _persistentInput = "";
+                _historyIndex = -1;
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
@@ -288,6 +296,12 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // 🛡️ Sentinel: Enforce resource limit on persistent command history
+                // to prevent client-side memory-exhaustion Denial of Service (DoS) attacks.
+                if (_commandHistory.Count > MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -337,7 +351,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
         }
 
         private string GetInfiniterationText()
