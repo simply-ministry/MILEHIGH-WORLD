@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 namespace UnityEngine
 {
     public enum FindObjectsSortMode { None, InstanceID }
+    public class AudioSource : MonoBehaviour {}
     public class Object
     {
         public string name { get; set; } = "";
@@ -20,6 +21,7 @@ namespace UnityEngine
     public class MonoBehaviour : Object
     {
         public GameObject gameObject { get; } = new GameObject();
+        public Transform transform => gameObject.transform;
         public Coroutine StartCoroutine(System.Collections.IEnumerator routine) => new Coroutine();
         public void StopCoroutine(Coroutine routine) {}
     }
@@ -178,7 +180,7 @@ namespace UnityEngine
         public static bool GetKey(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L, C }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
@@ -278,6 +280,14 @@ namespace UnityEditor
 }
 
 namespace UnityEngine.Internal
+{
+    public class FormerlySerializedAsAttribute : Attribute
+    {
+        public FormerlySerializedAsAttribute(string name) {}
+    }
+}
+
+namespace UnityEngine.Serialization
 {
     public class FormerlySerializedAsAttribute : Attribute
     {
