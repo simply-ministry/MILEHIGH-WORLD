@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 namespace UnityEngine
 {
     public enum FindObjectsSortMode { None, InstanceID }
+    public class AudioSource : MonoBehaviour {}
     public class Object
     {
         public string name { get; set; } = "";
@@ -20,6 +21,7 @@ namespace UnityEngine
     public class MonoBehaviour : Object
     {
         public GameObject gameObject { get; } = new GameObject();
+        public Transform transform => gameObject.transform;
         public Coroutine StartCoroutine(System.Collections.IEnumerator routine) => new Coroutine();
         public void StopCoroutine(Coroutine routine) {}
     }
@@ -233,6 +235,7 @@ namespace TMPro
         public UnityEngine.Transform transform { get; } = new UnityEngine.Transform();
         public UnityEngine.UI.Graphic placeholder { get; set; } = null!;
         public SubmitEvent onSubmit { get; set; } = new SubmitEvent();
+        public SubmitEvent onValueChanged { get; set; } = new SubmitEvent();
         public UnityEngine.Color caretColor { get; set; } = new UnityEngine.Color();
         public UnityEngine.Color selectionColor { get; set; } = new UnityEngine.Color();
     }
@@ -278,6 +281,14 @@ namespace UnityEditor
 }
 
 namespace UnityEngine.Internal
+{
+    public class FormerlySerializedAsAttribute : Attribute
+    {
+        public FormerlySerializedAsAttribute(string name) {}
+    }
+}
+
+namespace UnityEngine.Serialization
 {
     public class FormerlySerializedAsAttribute : Attribute
     {
