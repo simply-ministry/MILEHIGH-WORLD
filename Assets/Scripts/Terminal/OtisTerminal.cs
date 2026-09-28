@@ -387,7 +387,8 @@ namespace Milehigh.World.Terminal
         {
             return "\n<color=#00FF00>[ENGINE]</color>: Initializing Infiniteration Engine..." +
                    "\n<color=#FFFF00>Sequence:</color> 108-99-90-81-72-63-54-45-36-27-18-09-108" +
-                   "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012";
+                   "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012" +
+                   "\n<color=#AAAAAA>Tip: Type <b>'clear'</b> to reset the terminal display.</color>";
         }
 
         private string GetUnknownCommandText(string command)
