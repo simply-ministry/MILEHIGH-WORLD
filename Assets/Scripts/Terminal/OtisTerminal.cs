@@ -76,6 +76,7 @@ namespace Milehigh.World.Terminal
                 if (commandInput.placeholder is TMP_Text placeholderText)
                     placeholderText.text = "Enter command (type 'help' for info)...";
                 commandInput.onSubmit.AddListener(ProcessCommand);
+                commandInput.onValueChanged.AddListener(OnInputChanged);
             }
             ClearTerminal();
         }
@@ -117,6 +118,7 @@ namespace Milehigh.World.Terminal
             else if (string.IsNullOrEmpty(commandInput.text) && _typewriterCoroutine != null && Time.frameCount != _lastCommandFrame && (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape)))
             {
                 FinalizeTypewriter();
+                if (Input.GetKeyDown(KeyCode.Space)) CleanupInput();
             }
             else if (Input.GetKeyDown(KeyCode.Escape))
             {
@@ -141,6 +143,8 @@ namespace Milehigh.World.Terminal
                 commandInput.text = "";
                 _persistentInput = "";
                 _historyIndex = -1;
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
@@ -209,6 +213,15 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void OnInputChanged(string val)
+        {
+            if (!_isCompleting)
+            {
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
+            }
+        }
+
         private void HandleTabCompletion()
         {
             string currentInput = commandInput.text.Trim().ToLower();
@@ -227,12 +240,21 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
+            {
+                _lastTabPrefix = currentInput;
+                _lastTabMatchIndex = -1;
+            }
+
+            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _isCompleting = true;
+                commandInput.text = matches[_lastTabMatchIndex];
                 _lastTabPrefix = prefix;
 
                 _isCompleting = true;
@@ -243,6 +265,11 @@ namespace Milehigh.World.Terminal
             }
             else
             {
+                string fuzzy = GetFuzzyMatch(currentInput);
+                if (!string.IsNullOrEmpty(fuzzy))
+                {
+                    _isCompleting = true;
+                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -260,6 +287,8 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
+            _lastTabPrefix = "";
+            _lastTabMatchIndex = -1;
             ResetTabCompletionState();
 
             if (string.IsNullOrWhiteSpace(input))
@@ -441,7 +470,10 @@ namespace Milehigh.World.Terminal
             FinalizeTypewriter();
 
             if (outputDisplay.text.EndsWith(TerminalCursor))
+            {
                 outputDisplay.text = outputDisplay.text.Substring(0, outputDisplay.text.Length - 1);
+                outputDisplay.ForceMeshUpdate();
+            }
 
             _typewriterCoroutine = StartCoroutine(TypewriterEffect(message));
         }
