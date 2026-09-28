@@ -134,3 +134,7 @@
 ## 2026-06-20 - [Robust Negative Caching in Unity]
 **Learning:** When implementing negative caching for Unity objects in a Dictionary, using 'if (obj == null)' is insufficient because Unity overrides '==' to return true for destroyed native objects. To correctly identify an explicit negative cache entry (a true null), 'System.Object.ReferenceEquals(obj, null)' must be used.
 **Action:** Use 'ReferenceEquals' to detect explicit negative cache hits, then use standard null checks to validate the lifecycle of cached engine objects.
+
+## 2026-06-22 - [Zero-Allocation Dictionaries & FormerlySerializedAs in Field Renaming]
+**Learning:** In Unity coroutine and UI loops, caching hex color strings using a `Dictionary<Color, string>` can lead to garbage collection pressure from struct boxing/unboxing if a custom equality comparer is not provided. Caching using already-allocated `string` speaker names as keys resolves this seamlessly. Furthermore, when renaming serialized fields like `typingSpeed` to `baseTypingSpeed` to align with unit tests, we must decorate them with `[UnityEngine.Serialization.FormerlySerializedAs]` to prevent losing inspector configurations in existing scenes and prefabs.
+**Action:** Use string-keyed dictionary caches to avoid value-type boxing allocations and always apply `[FormerlySerializedAs]` to maintain scene/prefab backward compatibility during field refactorings.
