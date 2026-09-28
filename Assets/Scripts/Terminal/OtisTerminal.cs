@@ -37,6 +37,10 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private string _lastInput = "";
+        private bool _isCompleting;
 
         private string _lastTabPrefix = "";
         private int _lastTabMatchIndex = -1;
@@ -103,6 +107,11 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
+            string currentText = commandInput.text;
+            if (currentText != _lastInput && !_isCompleting)
+            {
+                _lastTabPrefix = "";
+                _lastTabMatchIndex = -1;
             if (commandInput.text != _lastInputText)
             {
                 if (!_isCompleting)
@@ -120,7 +129,7 @@ namespace Milehigh.World.Terminal
                 FinalizeTypewriter();
                 if (Input.GetKeyDown(KeyCode.Space)) CleanupInput();
             }
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else if (Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))))
             {
                 commandInput.text = "";
                 _lastInputText = "";
@@ -151,6 +160,8 @@ namespace Milehigh.World.Terminal
             {
                 ClearTerminal();
             }
+
+            _lastInput = commandInput != null ? commandInput.text : "";
         }
 
         private void ClearTerminal()
@@ -240,6 +251,16 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
+            string prefix = string.IsNullOrEmpty(_lastTabPrefix) ? currentInput : _lastTabPrefix;
+            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+
+            if (matches.Count > 0)
+            {
+                _isCompleting = true;
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _lastTabPrefix = prefix;
+
+                commandInput.text = matches[_lastTabMatchIndex];
             if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
             {
                 _lastTabPrefix = currentInput;
@@ -265,6 +286,16 @@ namespace Milehigh.World.Terminal
             }
             else
             {
+                if (string.IsNullOrEmpty(_lastTabPrefix))
+                {
+                    string fuzzy = GetFuzzyMatch(currentInput);
+                    if (!string.IsNullOrEmpty(fuzzy))
+                    {
+                        _isCompleting = true;
+                        commandInput.text = fuzzy;
+                        commandInput.MoveTextEnd(false);
+                        _isCompleting = false;
+                    }
                 string fuzzy = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzy))
                 {
