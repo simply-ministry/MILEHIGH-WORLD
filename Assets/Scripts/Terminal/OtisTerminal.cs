@@ -236,6 +236,8 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // 🛡️ Sentinel: Enforce resource limit on persistent command history
+                // to prevent client-side memory-exhaustion Denial of Service (DoS) attacks.
                 if (_commandHistory.Count > MaxHistorySize)
                 {
                     _commandHistory.RemoveAt(0);
