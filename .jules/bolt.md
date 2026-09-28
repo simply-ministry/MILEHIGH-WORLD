@@ -138,3 +138,7 @@
 ## 2026-06-22 - [Zero-Allocation Dictionaries & FormerlySerializedAs in Field Renaming]
 **Learning:** In Unity coroutine and UI loops, caching hex color strings using a `Dictionary<Color, string>` can lead to garbage collection pressure from struct boxing/unboxing if a custom equality comparer is not provided. Caching using already-allocated `string` speaker names as keys resolves this seamlessly. Furthermore, when renaming serialized fields like `typingSpeed` to `baseTypingSpeed` to align with unit tests, we must decorate them with `[UnityEngine.Serialization.FormerlySerializedAs]` to prevent losing inspector configurations in existing scenes and prefabs.
 **Action:** Use string-keyed dictionary caches to avoid value-type boxing allocations and always apply `[FormerlySerializedAs]` to maintain scene/prefab backward compatibility during field refactorings.
+
+## 2026-09-28 - Singleton Resolution with FindAnyObjectByType
+**Learning:** In Unity 2021.3+, 'FindObjectOfType<T>()' incurs an O(N log N) sorting cost to order discovered instances by Instance ID before returning the first result. Replacing it with 'FindAnyObjectByType<T>()' eliminates sorting overhead and hierarchy traversal guarantees for singleton resolution.
+**Action:** Always prefer 'FindAnyObjectByType<T>()' over 'FindObjectOfType<T>()' for singleton instance resolution where instance order is irrelevant.
