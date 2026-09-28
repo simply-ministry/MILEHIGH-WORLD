@@ -28,7 +28,8 @@ namespace Milehigh.Cinematics
 
         [Header("UX Settings")]
         [Tooltip("Base delay in seconds between each character being revealed.")]
-        public float typingSpeed = 0.03f;
+        [UnityEngine.Serialization.FormerlySerializedAs("typingSpeed")]
+        public float baseTypingSpeed = 0.03f;
         [Tooltip("Delay multiplier for Kai (Slow/Paused tempo).")]
         public float kaiSpeedMultiplier = 3.0f;
         [Tooltip("Delay multiplier for Sky.ix.")]
@@ -42,6 +43,9 @@ namespace Milehigh.Cinematics
         // ⚡ Bolt: Cache for WaitForSeconds to eliminate GC allocations during coroutine execution.
         private static readonly Dictionary<int, WaitForSeconds> _waitForSecondsCache = new Dictionary<int, WaitForSeconds>();
 
+        // ⚡ Bolt: Cache HTML color hex strings to eliminate Color struct boxing and runtime GC allocations from ColorUtility.ToHtmlStringRGB during dialogue transitions.
+        private static readonly Dictionary<string, string> _speakerHexCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         private WaitForSeconds GetWait(float time)
         {
             int key = Mathf.RoundToInt(time * 1000f);
@@ -51,6 +55,34 @@ namespace Milehigh.Cinematics
                 _waitForSecondsCache[key] = wait;
             }
             return wait;
+        }
+
+        public float GetSpeedMultiplier(string speaker)
+        {
+            switch (speaker)
+            {
+                case "Sky.ix":
+                    return skyixSpeedMultiplier;
+                case "Kai":
+                    return kaiSpeedMultiplier;
+                default:
+                    return 1.0f;
+            }
+        }
+
+        public Color GetSpeakerColor(string speaker)
+        {
+            switch (speaker)
+            {
+                case "Sky.ix":
+                    return Color.cyan;
+                case "Kai":
+                    return new Color(1f, 0.84f, 0f); // Gold
+                case "Delilah":
+                    return new Color(0.6f, 0.1f, 0.9f); // Void Purple
+                default:
+                    return Color.white;
+            }
         }
 
         private void Start()
@@ -80,31 +112,23 @@ namespace Milehigh.Cinematics
             SpeakerNameText.text = speaker;
 
             // Apply character-specific colors for better speaker identification
-            Color speakerColor = Color.white;
-            float speedMultiplier = 1.0f;
-
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    speakerColor = Color.cyan;
-                    speedMultiplier = skyixSpeedMultiplier;
-                    break;
-                case "Kai":
-                    speakerColor = new Color(1f, 0.84f, 0f); // Gold
-                    speedMultiplier = kaiSpeedMultiplier;
-                    break;
-                case "Delilah":
-                    speakerColor = new Color(0.6f, 0.1f, 0.9f); // Void Purple
-                    break;
-            }
+            Color speakerColor = GetSpeakerColor(speaker);
+            float speedMultiplier = GetSpeedMultiplier(speaker);
 
             SpeakerNameText.color = speakerColor;
-            currentSpeakerHex = ColorUtility.ToHtmlStringRGB(speakerColor);
+
+            // ⚡ Bolt: Cache lookups to avoid ColorUtility.ToHtmlStringRGB allocations and Color boxing.
+            if (!_speakerHexCache.TryGetValue(speaker, out var hex))
+            {
+                hex = ColorUtility.ToHtmlStringRGB(speakerColor);
+                _speakerHexCache[speaker] = hex;
+            }
+            currentSpeakerHex = hex;
 
             if (popCoroutine != null) StopCoroutine(popCoroutine);
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
 
-            typingCoroutine = StartCoroutine(TypeDialogue(message, typingSpeed * speedMultiplier));
+            typingCoroutine = StartCoroutine(TypeDialogue(message, baseTypingSpeed * speedMultiplier));
         }
 
         private IEnumerator PopEffect(Transform target)
