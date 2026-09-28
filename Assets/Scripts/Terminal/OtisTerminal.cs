@@ -24,6 +24,7 @@ namespace Milehigh.World.Terminal
         private const char TerminalCursor = '█';
 
         private const int MaxInputLength = 256;
+        private const int MaxHistorySize = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
         private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
 
@@ -36,6 +37,17 @@ namespace Milehigh.World.Terminal
         private string _persistentInput = "";
         private string _lastSuggestion = "";
         private int _lastCommandFrame;
+
+        private string _lastTabPrefix = "";
+        private int _lastTabMatchIndex = -1;
+        private bool _isCompleting;
+        private string _lastInputText = "";
+
+        private void ResetTabCompletionState()
+        {
+            _lastTabPrefix = "";
+            _lastTabMatchIndex = -1;
+        }
 
         // ⚡ Bolt: Shared cache for WaitForSeconds to eliminate GC allocations during typewriter effects.
         private static readonly Dictionary<int, WaitForSeconds> _waitCache = new Dictionary<int, WaitForSeconds>();
@@ -53,8 +65,10 @@ namespace Milehigh.World.Terminal
 
         private void Start()
         {
+            Array.Sort(_availableCommands);
             if (commandInput != null)
             {
+                _lastInputText = commandInput.text;
                 commandInput.characterLimit = MaxInputLength;
                 commandInput.caretColor = new Color(0f, 1f, 0f, 0.8f);
                 commandInput.selectionColor = new Color(0f, 1f, 0f, 0.3f);
@@ -88,6 +102,15 @@ namespace Milehigh.World.Terminal
         {
             if (commandInput == null || !commandInput.isFocused) return;
 
+            if (commandInput.text != _lastInputText)
+            {
+                if (!_isCompleting)
+                {
+                    ResetTabCompletionState();
+                }
+                _lastInputText = commandInput.text;
+            }
+
             if (Input.GetKeyDown(KeyCode.UpArrow)) NavigateHistory(1);
             else if (Input.GetKeyDown(KeyCode.DownArrow)) NavigateHistory(-1);
             else if (Input.GetKeyDown(KeyCode.Tab)) HandleTabCompletion();
@@ -96,6 +119,24 @@ namespace Milehigh.World.Terminal
                 FinalizeTypewriter();
             }
             else if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                commandInput.text = "";
+                _lastInputText = "";
+                _persistentInput = "";
+                _historyIndex = -1;
+                ResetTabCompletionState();
+                commandInput.ActivateInputField();
+            }
+            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            {
+                commandInput.text = "";
+                _lastInputText = "";
+                _persistentInput = "";
+                _historyIndex = -1;
+                ResetTabCompletionState();
+                commandInput.ActivateInputField();
+            }
+            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 commandInput.text = "";
                 _persistentInput = "";
@@ -160,8 +201,11 @@ namespace Milehigh.World.Terminal
             if (newIndex != _historyIndex)
             {
                 _historyIndex = newIndex;
+                _isCompleting = true;
                 commandInput.text = (_historyIndex == -1) ? _persistentInput : _commandHistory[_commandHistory.Count - 1 - _historyIndex];
+                _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
             }
         }
 
@@ -173,18 +217,41 @@ namespace Milehigh.World.Terminal
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
                 {
+                    _isCompleting = true;
                     commandInput.text = _lastSuggestion;
+                    _lastInputText = commandInput.text;
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
+                    _isCompleting = false;
                 }
                 return;
             }
 
-            string? match = _availableCommands.FirstOrDefault(c => c.StartsWith(currentInput));
-            if (!string.IsNullOrEmpty(match))
+            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
+            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+
+            if (matches.Count > 0)
             {
-                commandInput.text = match;
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _lastTabPrefix = prefix;
+
+                _isCompleting = true;
+                commandInput.text = matches[_lastTabMatchIndex];
+                _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
+                _isCompleting = false;
+            }
+            else
+            {
+                string fuzzyMatch = GetFuzzyMatch(currentInput);
+                if (!string.IsNullOrEmpty(fuzzyMatch))
+                {
+                    _isCompleting = true;
+                    commandInput.text = fuzzyMatch;
+                    _lastInputText = commandInput.text;
+                    commandInput.MoveTextEnd(false);
+                    _isCompleting = false;
+                }
             }
         }
 
@@ -193,6 +260,7 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
+            ResetTabCompletionState();
 
             if (string.IsNullOrWhiteSpace(input))
             {
@@ -228,6 +296,12 @@ namespace Milehigh.World.Terminal
             if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
             {
                 _commandHistory.Add(input);
+                // 🛡️ Sentinel: Enforce resource limit on persistent command history
+                // to prevent client-side memory-exhaustion Denial of Service (DoS) attacks.
+                if (_commandHistory.Count > MaxHistorySize)
+                {
+                    _commandHistory.RemoveAt(0);
+                }
             }
 
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -277,7 +351,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
         }
 
         private string GetInfiniterationText()
@@ -436,6 +510,7 @@ namespace Milehigh.World.Terminal
             if (commandInput != null)
             {
                 commandInput.text = "";
+                _lastInputText = "";
                 commandInput.ActivateInputField();
             }
         }

@@ -180,7 +180,7 @@ namespace UnityEngine
         public static bool GetKey(KeyCode code) => false;
         public static bool GetMouseButtonDown(int button) => false;
     }
-    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L }
+    public enum KeyCode { Space, Return, UpArrow, DownArrow, Tab, Escape, LeftControl, RightControl, L, C }
     public static class Random
     {
         public static float Range(float min, float max) => 0;
