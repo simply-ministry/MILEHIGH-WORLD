@@ -13,9 +13,11 @@
 ## 2025-06-12 - [Terminal Discoverability]
 **Learning:** Terminal-based interfaces suffer from low discoverability of power-user features like command history and tab completion. Placing subtle hints in the `help` command's output increases awareness without needing a persistent UI overlay.
 **Action:** Include a muted "Tip" line in system help responses to educate users on keyboard shortcuts.
+
 ## 2025-06-12 - [Terminal Navigation Shortcuts]
 **Learning:** Adding standard terminal shortcuts like Up/Down arrow history and Tab completion significantly lowers the cognitive load for power users and makes the interface feel more "professional" and "responsive".
 **Action:** Always include history buffers and basic completion for command-line style interfaces.
+
 ## 2025-06-15 - [Terminal Shortcut Discoverability]
 **Learning:** Keyboard shortcuts in CLI interfaces (like Up/Down for history or Tab for completion) are often invisible to new users unless explicitly hinted.
 **Action:** Include a muted gray (#888888) tip in the 'help' command output detailing available keyboard shortcuts.
@@ -35,6 +37,7 @@
 ## 2025-06-28 - [Following Cursor UX]
 **Learning:** For a retro terminal typewriter effect, having the cursor "follow" the text reveal (by appending it to the end of the substring being revealed) creates a much more immersive experience than having it jump only after the full message is revealed.
 **Action:** In typewriter coroutines, update the text string per step to include the cursor, then transition to an idle blinking state using zero-allocation maxVisibleCharacters toggling.
+
 ## 2025-11-23 - [Terminal Retro Cursor Stability]
 **Learning:** Implementing a blinking retro cursor ('█') using `maxVisibleCharacters` requires defensive checks to prevent negative values when the output display is empty, which can cause TextMeshPro to show all characters instead of hiding the cursor.
 **Action:** Use `Mathf.Max(0, totalChars - 1)` when toggling the cursor off to ensure the terminal remains visually stable even when cleared.
@@ -42,12 +45,15 @@
 ## 2025-11-23 - [Repository Pollution via Build Artifacts]
 **Learning:** Committing build outputs (bin/, obj/, .dll, .pdb) into the repository is a major violation of repository hygiene that can lead to PR rejection.
 **Action:** Always verify that the repository is clean of build-generated artifacts using `rm -rf bin/ obj/ ./*.dll ./*.pdb` before submitting.
+
 ## 2026-06-11 - [Retro Terminal Cursor Feedback]
 **Learning:** A blinking block cursor ('█') provides essential visual feedback in terminal interfaces, signaling that the system is active during typewriter effects and ready for input when idle.
 **Action:** Implement 'following' cursors in CLI-style reveals and use zero-allocation visibility toggles (maxVisibleCharacters) for idle blinking.
+
 ## 2025-06-28 - [Retro Terminal Immersion]
 **Learning:** Retro terminal immersion is significantly enhanced by providing simulated system metadata (like version strings and "Last Login" timestamps) during the startup sequence. This makes the interface feel like a functional part of the game's universe rather than just a UI layer.
 **Action:** Include simulated session info and system versions in CLI-style startup sequences to deepen environmental storytelling and player immersion.
+
 ## 2025-06-28 - [Terminal Blinking Cursor Integration]
 **Learning:** When implementing a blinking cursor in a typewriter-reveal UI (TextMeshPro), appending the cursor ('█') to the text buffer and managing its visibility by toggling `maxVisibleCharacters` between `N` and `N+1` (where N is the current revealed character count) provides a stable, flicker-free effect that respects Rich Text tags.
 **Action:** Coordinate cursor visibility coroutines with typewriter reveal logic to ensure the cursor always trails the most recently revealed character.
@@ -59,7 +65,11 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
-k
+
 ## 2026-06-20 - [Terminal Keyboard Shortcut Native Feel]
 **Learning:** For users highly accustomed to Command Line Interfaces (CLIs), implementing system-native shortcuts such as Ctrl+C to instantly clear/cancel the current input is critical for cognitive flow and prevents manual deletion fatigue. Pair these shortcuts with updated help legends for discoverability.
 **Action:** Always map standard terminal interactions (Ctrl+C, Ctrl+L, Esc, Tab) when building CLI-style inputs, and ensure they are clearly labeled in the help text.
+
+## 2026-09-28 - [Cross-Platform CLI Command Aliasing]
+**Learning:** Command-line users from Windows/DOS backgrounds often rely on `cls` rather than `clear` due to ingrained muscle memory. Supporting `cls` as an alias for clearing the terminal prevents unnecessary "Unknown command" errors and friction.
+**Action:** Support common command aliases across OS environments (e.g., `cls` for `clear`) in terminal interfaces and register them in completion lists and help documentation.
