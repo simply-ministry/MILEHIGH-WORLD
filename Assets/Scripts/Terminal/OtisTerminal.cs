@@ -390,18 +390,26 @@ namespace Milehigh.World.Terminal
                    "\n<color=#00FFFF>[STATUS]</color>: Loop Closed. 12-11-10...01-012";
         }
 
+        private static string SanitizeText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            return text.Replace("<", "&lt;").Replace(">", "&gt;");
+        }
+
         private string GetUnknownCommandText(string command)
         {
+            string safeCommand = SanitizeText(command);
             _lastSuggestion = GetFuzzyMatch(command);
             bool hasSuggestion = !string.IsNullOrEmpty(_lastSuggestion);
-            string suggestionText = hasSuggestion ? $" Did you mean <color=#00FFFF>'{_lastSuggestion}'</color>?" : "";
+            string safeSuggestion = hasSuggestion ? SanitizeText(_lastSuggestion) : "";
+            string suggestionText = hasSuggestion ? $" Did you mean <color=#00FFFF>'{safeSuggestion}'</color>?" : "";
             string tip = hasSuggestion
                 ? "Press [Tab] to accept suggestion, or type 'help' for options."
                 : "Use [Tab] to auto-complete commands, or type 'help' for options.";
 
             StartCoroutine(ShakeInputField());
 
-            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
+            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{safeCommand}'.{suggestionText}</color>" +
                    $"\n<color=#AAAAAA>Tip: {tip}</color>";
         }
 
