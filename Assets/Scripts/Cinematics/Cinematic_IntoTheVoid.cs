@@ -51,8 +51,6 @@ namespace Milehigh.Cinematics
             { "Kai", "FFD700" },
             { "Delilah", "991AE6" }
         };
-        // ⚡ Bolt: Cache HTML color hex strings to eliminate Color struct boxing and runtime GC allocations from ColorUtility.ToHtmlStringRGB during dialogue transitions.
-        private static readonly Dictionary<string, string> _speakerHexCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         private WaitForSeconds GetWait(float time)
         {
@@ -73,32 +71,6 @@ namespace Milehigh.Cinematics
                 _speakerHexCache[speaker] = hex;
             }
             return hex;
-        public float GetSpeedMultiplier(string speaker)
-        {
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    return skyixSpeedMultiplier;
-                case "Kai":
-                    return kaiSpeedMultiplier;
-                default:
-                    return 1.0f;
-            }
-        }
-
-        public Color GetSpeakerColor(string speaker)
-        {
-            switch (speaker)
-            {
-                case "Sky.ix":
-                    return Color.cyan;
-                case "Kai":
-                    return new Color(1f, 0.84f, 0f); // Gold
-                case "Delilah":
-                    return new Color(0.k6f, 0.1f, 0.9f); // Void Purple
-                default:
-                    return Color.white;
-            }
         }
 
         private void Start()
@@ -163,24 +135,6 @@ namespace Milehigh.Cinematics
 
             SpeakerNameText.color = speakerColor;
             currentSpeakerHex = GetHexForSpeaker(speaker, speakerColor);
-            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-
-            skipRequested = false;
-            SpeakerNameText.text = speaker;
-
-            // Apply character-specific colors for better speaker identification
-            Color speakerColor = GetSpeakerColor(speaker);
-            float speedMultiplier = GetSpeedMultiplier(speaker);
-
-            SpeakerNameText.color = speakerColor;
-
-            // ⚡ Bolt: Cache lookups to avoid ColorUtility.ToHtmlStringRGB allocations and Color boxing.
-            if (!_speakerHexCache.TryGetValue(speaker, out var hex))
-            {
-                hex = ColorUtility.ToHtmlStringRGB(speakerColor);
-                _speakerHexCache[speaker] = hex;
-            }
-            currentSpeakerHex = hex;
 
             if (popCoroutine != null) StopCoroutine(popCoroutine);
             popCoroutine = StartCoroutine(PopEffect(SpeakerNameText.transform));
