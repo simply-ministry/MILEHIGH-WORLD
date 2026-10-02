@@ -26,7 +26,7 @@ namespace Milehigh.World.Terminal
         private const int MaxInputLength = 256;
         private const int MaxHistorySize = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
-        private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
+        private static readonly string[] _availableCommands = { "clear", "help", "history", "infiniteration", "whoami" };
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
@@ -138,15 +138,6 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-                commandInput.ActivateInputField();
-            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -246,7 +237,6 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
@@ -256,20 +246,12 @@ namespace Milehigh.World.Terminal
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
                 _lastTabPrefix = prefix;
-
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -287,8 +269,6 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
-            _lastTabPrefix = "";
-            _lastTabMatchIndex = -1;
             ResetTabCompletionState();
 
             if (string.IsNullOrWhiteSpace(input))
@@ -346,6 +326,7 @@ namespace Milehigh.World.Terminal
             if (command == "history") sb.Append(GetHistoryText());
             else if (command == "help") sb.Append(GetHelpText());
             else if (command == "infiniteration") sb.Append(GetInfiniterationText());
+            else if (command == "whoami") sb.Append(GetWhoamiText());
             else sb.Append(GetUnknownCommandText(command));
 
             WriteToTerminal(sb.ToString());
@@ -380,7 +361,13 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
+                   "\n - <color=#00FFFF><b>whoami</b></color>: Display active user session and clearance." +
                    "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+        }
+
+        private string GetWhoamiText()
+        {
+            return "\n<color=#00FF00>[SYSTEM]</color>: User: <color=#00FFFF>Operator</color> | Clearance: <color=#FFFF00>Level 4 (Void Lattice)</color>";
         }
 
         private string GetInfiniterationText()
