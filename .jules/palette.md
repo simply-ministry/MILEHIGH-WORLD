@@ -59,7 +59,10 @@
 ## 2026-06-18 - [Typewriter Interaction Fluidity]
 **Learning:** In text-heavy CLI interfaces, allowing users to skip or fast-forward typewriter reveals via intuitive keys (Space, Return, Escape) prevents frustration for power users while maintaining immersion for new players.
 **Action:** Implement reveal finalization logic that can be triggered by common interaction keys when the input buffer is empty.
-k
 ## 2026-06-20 - [Terminal Keyboard Shortcut Native Feel]
 **Learning:** For users highly accustomed to Command Line Interfaces (CLIs), implementing system-native shortcuts such as Ctrl+C to instantly clear/cancel the current input is critical for cognitive flow and prevents manual deletion fatigue. Pair these shortcuts with updated help legends for discoverability.
 **Action:** Always map standard terminal interactions (Ctrl+C, Ctrl+L, Esc, Tab) when building CLI-style inputs, and ensure they are clearly labeled in the help text.
+
+## 2026-06-22 - [Terminal Muscle Memory & Cross-Platform Aliases]
+**Learning:** Users accustomed to different OS environments (DOS/Windows vs POSIX) frequently type OS-specific commands such as 'cls' instead of 'clear'. Supporting aliases and identity commands like 'whoami' reduces input friction and provides immediate confirmation of user state in high-contrast WCAG AA styling.
+**Action:** Provide common CLI command aliases alongside standard commands and document them in system help text.
