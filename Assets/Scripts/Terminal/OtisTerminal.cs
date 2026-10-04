@@ -138,15 +138,6 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-                commandInput.ActivateInputField();
-            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -224,7 +215,7 @@ namespace Milehigh.World.Terminal
 
         private void HandleTabCompletion()
         {
-            string currentInput = commandInput.text.Trim().ToLower();
+            string currentInput = commandInput.text.Trim();
 
             if (string.IsNullOrEmpty(currentInput))
             {
@@ -240,36 +231,37 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 _lastTabPrefix = currentInput;
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+            // ⚡ Bolt: Zero-allocation command cycling using index loop over _availableCommands array instead of LINQ .Where().ToList().
+            int nextMatchIndex = -1;
+            int totalCommands = _availableCommands.Length;
 
-            if (matches.Count > 0)
+            for (int i = 1; i <= totalCommands; i++)
             {
-                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
-                _lastTabPrefix = prefix;
+                int candidateIndex = (_lastTabMatchIndex + i) % totalCommands;
+                if (_availableCommands[candidateIndex].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    nextMatchIndex = candidateIndex;
+                    break;
+                }
+            }
 
+            if (nextMatchIndex != -1)
+            {
+                _lastTabMatchIndex = nextMatchIndex;
                 _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
+                commandInput.text = _availableCommands[_lastTabMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
