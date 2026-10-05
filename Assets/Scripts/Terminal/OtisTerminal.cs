@@ -26,10 +26,11 @@ namespace Milehigh.World.Terminal
         private const int MaxInputLength = 256;
         private const int MaxHistorySize = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
-        private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
+        private static readonly string[] _availableCommands = { "clear", "cls", "help", "history", "infiniteration" };
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
+        private Coroutine? _shakeCoroutine;
         private bool _cursorVisible = true;
 
         private readonly List<string> _commandHistory = new List<string>();
@@ -120,31 +121,13 @@ namespace Milehigh.World.Terminal
                 FinalizeTypewriter();
                 if (Input.GetKeyDown(KeyCode.Space)) CleanupInput();
             }
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else if (Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))))
             {
                 commandInput.text = "";
                 _lastInputText = "";
                 _persistentInput = "";
                 _historyIndex = -1;
                 ResetTabCompletionState();
-                commandInput.ActivateInputField();
-            }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _lastInputText = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                ResetTabCompletionState();
-                commandInput.ActivateInputField();
-            }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
@@ -220,6 +203,11 @@ namespace Milehigh.World.Terminal
                 _lastTabPrefix = "";
                 _lastTabMatchIndex = -1;
             }
+
+            if (val.Length >= MaxInputLength && _shakeCoroutine == null)
+            {
+                _shakeCoroutine = StartCoroutine(ShakeInputField());
+            }
         }
 
         private void HandleTabCompletion()
@@ -246,7 +234,6 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
@@ -255,21 +242,12 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
-                _lastTabPrefix = prefix;
-
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -336,7 +314,7 @@ namespace Milehigh.World.Terminal
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string command = parts[0].ToLower();
 
-            if (command == "clear")
+            if (command == "clear" || command == "cls")
             {
                 ClearTerminal();
                 CleanupInput();
@@ -377,7 +355,7 @@ namespace Milehigh.World.Terminal
         {
             return "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                    "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                   "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
+                   "\n - <color=#00FFFF><b>clear</b></color> / <color=#00FFFF><b>cls</b></color>: Clear the terminal display." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
                    "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
@@ -399,7 +377,10 @@ namespace Milehigh.World.Terminal
                 ? "Press [Tab] to accept suggestion, or type 'help' for options."
                 : "Use [Tab] to auto-complete commands, or type 'help' for options.";
 
-            StartCoroutine(ShakeInputField());
+            if (_shakeCoroutine == null)
+            {
+                _shakeCoroutine = StartCoroutine(ShakeInputField());
+            }
 
             return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                    $"\n<color=#AAAAAA>Tip: {tip}</color>";
@@ -560,6 +541,7 @@ namespace Milehigh.World.Terminal
                 yield return null;
             }
             commandInput.transform.localPosition = originalPos;
+            _shakeCoroutine = null;
         }
     }
 }
