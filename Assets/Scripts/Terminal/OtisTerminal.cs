@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -191,6 +190,18 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void OnInputChanged(string val)
+        {
+            if (!_isCompleting)
+            {
+                ResetTabCompletionState();
+            }
+            if (val.Length >= MaxInputLength && _typewriterCoroutine == null)
+            {
+                StartCoroutine(ShakeInputField());
+            }
+        }
+
         private void NavigateHistory(int direction)
         {
             if (_commandHistory.Count == 0) return;
@@ -201,7 +212,6 @@ namespace Milehigh.World.Terminal
             }
 
             int newIndex = Mathf.Clamp(_historyIndex + direction, -1, _commandHistory.Count - 1);
-
             if (newIndex != _historyIndex)
             {
                 _historyIndex = newIndex;
@@ -213,19 +223,11 @@ namespace Milehigh.World.Terminal
             }
         }
 
-        private void OnInputChanged(string val)
-        {
-            if (!_isCompleting)
-            {
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-            }
-        }
-
         private void HandleTabCompletion()
         {
-            string currentInput = commandInput.text.Trim().ToLower();
+            if (commandInput == null) return;
 
+            string currentInput = commandInput.text;
             if (string.IsNullOrEmpty(currentInput))
             {
                 if (!string.IsNullOrEmpty(_lastSuggestion))
@@ -240,36 +242,37 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 _lastTabPrefix = currentInput;
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
-
-            if (matches.Count > 0)
+            // ⚡ Bolt: Zero-allocation command cycling using indexed search loop over _availableCommands array.
+            // Eliminates LINQ delegates and heap allocations (.Where + .ToList) on tab key presses.
+            int nextMatchIndex = -1;
+            int total = _availableCommands.Length;
+            for (int i = 1; i <= total; i++)
             {
-                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
-                _lastTabPrefix = prefix;
+                int candidateIndex = (_lastTabMatchIndex + i) % total;
+                if (_availableCommands[candidateIndex].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    nextMatchIndex = candidateIndex;
+                    break;
+                }
+            }
 
+            if (nextMatchIndex >= 0)
+            {
+                _lastTabMatchIndex = nextMatchIndex;
                 _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
+                commandInput.text = _availableCommands[nextMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -287,8 +290,6 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
-            _lastTabPrefix = "";
-            _lastTabMatchIndex = -1;
             ResetTabCompletionState();
 
             if (string.IsNullOrWhiteSpace(input))
@@ -322,7 +323,8 @@ namespace Milehigh.World.Terminal
 
             _lastSuggestion = "";
 
-            if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
+            // ⚡ Bolt: Avoid LINQ .Last() call by using direct list indexer to prevent extension method invocation overhead.
+            if (_commandHistory.Count == 0 || _commandHistory[_commandHistory.Count - 1] != input)
             {
                 _commandHistory.Add(input);
                 // 🛡️ Sentinel: Enforce resource limit on persistent command history
