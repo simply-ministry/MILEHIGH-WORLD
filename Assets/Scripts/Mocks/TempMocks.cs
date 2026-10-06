@@ -288,6 +288,18 @@ namespace UnityEngine.Internal
     }
 }
 
+namespace UnityEngine.SceneManagement
+{
+    public class AsyncOperation
+    {
+        public bool isDone { get; set; }
+    }
+    public class SceneManager
+    {
+        public static AsyncOperation LoadSceneAsync(string sceneName) => new AsyncOperation();
+    }
+}
+
 namespace UnityEngine.Serialization
 {
     public class FormerlySerializedAsAttribute : Attribute

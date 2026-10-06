@@ -18,5 +18,6 @@
     <Compile Include="Assets/Scripts/Data/CharacterData.cs" />
     <Compile Include="Assets/Scripts/Data/HorizonGameData.cs" />
     <Compile Include="Assets/Scripts/Characters/CharacterControllerBase.cs" />
+    <Compile Include="Assets/Scripts/SceneManagement/AsyncSceneLoader.cs" />
   </ItemGroup>
 </Project>
