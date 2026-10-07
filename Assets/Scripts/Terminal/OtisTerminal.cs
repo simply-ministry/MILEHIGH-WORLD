@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
+        private Coroutine? _shakeCoroutine;
         private bool _cursorVisible = true;
 
         private readonly List<string> _commandHistory = new List<string>();
@@ -138,15 +139,6 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-                commandInput.ActivateInputField();
-            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -220,6 +212,11 @@ namespace Milehigh.World.Terminal
                 _lastTabPrefix = "";
                 _lastTabMatchIndex = -1;
             }
+
+            if (val.Length >= MaxInputLength && _shakeCoroutine == null)
+            {
+                _shakeCoroutine = StartCoroutine(ShakeInputField());
+            }
         }
 
         private void HandleTabCompletion()
@@ -246,7 +243,6 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
@@ -256,20 +252,12 @@ namespace Milehigh.World.Terminal
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
                 _lastTabPrefix = prefix;
-
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -399,7 +387,10 @@ namespace Milehigh.World.Terminal
                 ? "Press [Tab] to accept suggestion, or type 'help' for options."
                 : "Use [Tab] to auto-complete commands, or type 'help' for options.";
 
-            StartCoroutine(ShakeInputField());
+            if (_shakeCoroutine == null)
+            {
+                _shakeCoroutine = StartCoroutine(ShakeInputField());
+            }
 
             return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                    $"\n<color=#AAAAAA>Tip: {tip}</color>";
@@ -560,6 +551,7 @@ namespace Milehigh.World.Terminal
                 yield return null;
             }
             commandInput.transform.localPosition = originalPos;
+            _shakeCoroutine = null;
         }
     }
 }
