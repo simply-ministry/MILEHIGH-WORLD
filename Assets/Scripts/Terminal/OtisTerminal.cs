@@ -120,31 +120,13 @@ namespace Milehigh.World.Terminal
                 FinalizeTypewriter();
                 if (Input.GetKeyDown(KeyCode.Space)) CleanupInput();
             }
-            else if (Input.GetKeyDown(KeyCode.Escape))
+            else if (Input.GetKeyDown(KeyCode.Escape) || (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))))
             {
                 commandInput.text = "";
                 _lastInputText = "";
                 _persistentInput = "";
                 _historyIndex = -1;
                 ResetTabCompletionState();
-                commandInput.ActivateInputField();
-            }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _lastInputText = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                ResetTabCompletionState();
-                commandInput.ActivateInputField();
-            }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
                 commandInput.ActivateInputField();
             }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
@@ -217,8 +199,7 @@ namespace Milehigh.World.Terminal
         {
             if (!_isCompleting)
             {
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
+                ResetTabCompletionState();
             }
         }
 
@@ -240,36 +221,48 @@ namespace Milehigh.World.Terminal
                 return;
             }
 
-            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 _lastTabPrefix = currentInput;
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
+            string prefix = _lastTabPrefix;
 
-            if (matches.Count > 0)
+            // ⚡ Bolt: Zero-allocation tab completion cycling.
+            // Count prefix matches in _availableCommands without allocating List<string> via LINQ.
+            int matchCount = 0;
+            for (int i = 0; i < _availableCommands.Length; i++)
             {
-                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
-                _lastTabPrefix = prefix;
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    matchCount++;
+                }
+            }
 
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
-                _lastInputText = commandInput.text;
-                commandInput.MoveTextEnd(false);
-                _isCompleting = false;
+            if (matchCount > 0)
+            {
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matchCount;
+                int currentMatch = 0;
+                for (int i = 0; i < _availableCommands.Length; i++)
+                {
+                    if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (currentMatch == _lastTabMatchIndex)
+                        {
+                            _isCompleting = true;
+                            commandInput.text = _availableCommands[i];
+                            _lastInputText = commandInput.text;
+                            commandInput.MoveTextEnd(false);
+                            _isCompleting = false;
+                            break;
+                        }
+                        currentMatch++;
+                    }
+                }
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -287,8 +280,6 @@ namespace Milehigh.World.Terminal
             _lastCommandFrame = Time.frameCount;
             _historyIndex = -1;
             _persistentInput = "";
-            _lastTabPrefix = "";
-            _lastTabMatchIndex = -1;
             ResetTabCompletionState();
 
             if (string.IsNullOrWhiteSpace(input))
