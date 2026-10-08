@@ -72,6 +72,8 @@ namespace Milehigh.Core
             if (scenario == null) return;
 
             _objectCache.Clear();
+            _controllerCache.Clear();
+
             // ⚡ Bolt: Use FindObjectsByType with FindObjectsSortMode.None (Unity 2021.3+).
             foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
             {
@@ -179,11 +181,6 @@ namespace Milehigh.Core
         private void ApplyInteraction(ObjectInteraction interaction)
         {
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
-
-            // 🛡️ Sentinel: Double Validation Pipeline
-            // 1. Validate the untrusted input string against the blocklist.
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
             string cleanId = interaction.objectId.Trim();
