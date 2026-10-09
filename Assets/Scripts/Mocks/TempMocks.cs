@@ -187,6 +187,18 @@ namespace UnityEngine
     }
 }
 
+namespace UnityEngine.SceneManagement
+{
+    public class AsyncOperation
+    {
+        public bool isDone { get; set; } = true;
+    }
+    public class SceneManager
+    {
+        public static AsyncOperation LoadSceneAsync(string sceneName) => new AsyncOperation();
+    }
+}
+
 namespace UnityEngine.Events
 {
     public class UnityEvent<T>

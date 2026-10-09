@@ -246,7 +246,6 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
@@ -270,6 +269,7 @@ namespace Milehigh.World.Terminal
                 {
                     _isCompleting = true;
                     commandInput.text = fuzzy;
+                }
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
