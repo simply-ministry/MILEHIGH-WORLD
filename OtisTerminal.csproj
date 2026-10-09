@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Assets/Scripts/Terminal/OtisTerminal.cs" />
+    <Compile Include="Assets/Scripts/Cinematics/Cinematic_IntoTheVoid.cs" />
     <Compile Include="Assets/Scripts/Mocks/TempMocks.cs" />
     <Compile Include="Assets/Scripts/Core/SceneDirector.cs" />
     <Compile Include="Assets/Scripts/Core/CampaignManager.cs" />
