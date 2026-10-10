@@ -138,15 +138,6 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-                commandInput.ActivateInputField();
-            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -246,30 +237,40 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            var matches = _availableCommands.Where(c => c.StartsWith(_lastTabPrefix)).ToList();
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
-            if (matches.Count > 0)
+            // ⚡ Bolt: Zero-allocation tab completion cycling using an indexed loop over _availableCommands.
+            int matchCount = 0;
+            int nextMatchIndex = -1;
+            int firstMatchIndex = -1;
+
+            for (int i = 0; i < _availableCommands.Length; i++)
             {
-                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    matchCount++;
+                    if (firstMatchIndex == -1) firstMatchIndex = i;
+                    if (i > _lastTabMatchIndex && nextMatchIndex == -1)
+                    {
+                        nextMatchIndex = i;
+                    }
+                }
+            }
+
+            if (matchCount > 0)
+            {
+                int selectedIndex = (nextMatchIndex != -1) ? nextMatchIndex : firstMatchIndex;
+                _lastTabMatchIndex = selectedIndex;
                 _lastTabPrefix = prefix;
 
                 _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
+                commandInput.text = _availableCommands[selectedIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
             }
             else
             {
-                string fuzzy = GetFuzzyMatch(currentInput);
-                if (!string.IsNullOrEmpty(fuzzy))
-                {
-                    _isCompleting = true;
-                    commandInput.text = fuzzy;
                 string fuzzyMatch = GetFuzzyMatch(currentInput);
                 if (!string.IsNullOrEmpty(fuzzyMatch))
                 {
@@ -322,7 +323,7 @@ namespace Milehigh.World.Terminal
 
             _lastSuggestion = "";
 
-            if (_commandHistory.Count == 0 || _commandHistory.Last() != input)
+            if (_commandHistory.Count == 0 || _commandHistory[_commandHistory.Count - 1] != input)
             {
                 _commandHistory.Add(input);
                 // 🛡️ Sentinel: Enforce resource limit on persistent command history
