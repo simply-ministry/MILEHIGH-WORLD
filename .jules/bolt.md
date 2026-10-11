@@ -123,7 +123,7 @@
 **Action:** Always prefer 'StringBuilder' for iterative string building and 'Span<T>' with stack allocation for temporary buffers in high-frequency string algorithms.
 ## 2024-05-24 - OtisTerminal Memory and GC Optimization
 **Learning:** High-frequency operations like fuzzy command matching and terminal history rendering in 'OtisTerminal.cs' were generating significant heap allocations through 'int[]' arrays and string concatenations. In modern .NET (9.0+), 'stackalloc Span<int>' can be used to eliminate heap allocations for common input sizes, and 'StringBuilder' reduces (N^2)$ allocation overhead for string building.
-**Action:** Use 'stackalloc Span<T>' for small, short-lived buffers and 'StringBuilder' for iterative string construction to reduce GC pressure and improve UI responsiveness.
+**Action:** Use `stackalloc Span<T>` for small, short-lived buffers and 'StringBuilder' for iterative string construction to reduce GC pressure and improve UI responsiveness.
 ## 2025-05-20 - stackalloc Span<int> and Tuple Swap Limitations
 **Learning:** Using `stackalloc Span<int>` in Unity C# (especially with modern .NET SDKs like .NET 9/10) is a powerful way to eliminate heap allocations in algorithms like Levenshtein distance. However, `Span<T>` is a ref struct and cannot be used as a type argument in tuples, meaning `(v0, v1) = (v1, v0)` will fail with CS9244.
 **Action:** Use a temporary variable (`Span<int> temp = v0; v0 = v1; v1 = temp;`) for swapping spans to remain compatible with ref struct constraints while maintaining O(1) swap performance.
@@ -138,3 +138,7 @@
 ## 2026-06-22 - [Zero-Allocation Dictionaries & FormerlySerializedAs in Field Renaming]
 **Learning:** In Unity coroutine and UI loops, caching hex color strings using a `Dictionary<Color, string>` can lead to garbage collection pressure from struct boxing/unboxing if a custom equality comparer is not provided. Caching using already-allocated `string` speaker names as keys resolves this seamlessly. Furthermore, when renaming serialized fields like `typingSpeed` to `baseTypingSpeed` to align with unit tests, we must decorate them with `[UnityEngine.Serialization.FormerlySerializedAs]` to prevent losing inspector configurations in existing scenes and prefabs.
 **Action:** Use string-keyed dictionary caches to avoid value-type boxing allocations and always apply `[FormerlySerializedAs]` to maintain scene/prefab backward compatibility during field refactorings.
+
+## 2026-07-02 - Unity Singleton FindAnyObjectByType Optimization
+**Learning:** In Unity 2021.3+, calling `FindObjectOfType<T>()` performs an O(N log N) sorting operation on active scene objects to enforce hierarchy-order guarantees. For lazy-loading singletons where sorting is unnecessary, replacing `FindObjectOfType<T>()` with `FindAnyObjectByType<T>()` provides an O(N) lookup that avoids sorting overhead and hierarchy traversal.
+**Action:** Use `FindAnyObjectByType<T>()` when retrieving singleton instances or any object where scene hierarchy ordering is not required.
