@@ -334,3 +334,25 @@ public static class EntityRotation
 {
     public static Task ApplyPhaseShift(float degrees) => Task.CompletedTask;
 }
+
+
+namespace UnityEngine.SceneManagement
+{
+    public static class SceneManager
+    {
+        public static UnityEngine.AsyncOperation LoadSceneAsync(string sceneName)
+        {
+            return new AsyncOperation();
+        }
+    }
+}
+
+
+namespace UnityEngine
+{
+    public class AsyncOperation
+    {
+        public bool isDone { get; set; } = true;
+        public float progress { get; set; } = 1.0f;
+    }
+}
