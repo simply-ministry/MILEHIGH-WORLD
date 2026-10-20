@@ -237,6 +237,15 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
+            // ⚡ Bolt: Zero-allocation tab completion lookup over available commands instead of LINQ .Where(...).ToList().
+            List<string> matches = new List<string>();
+            for (int i = 0; i < _availableCommands.Length; i++)
+            {
+                if (_availableCommands[i].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    matches.Add(_availableCommands[i]);
+                }
+            }
             string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
