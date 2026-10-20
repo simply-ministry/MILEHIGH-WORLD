@@ -26,7 +26,7 @@ namespace Milehigh.World.Terminal
         private const int MaxInputLength = 256;
         private const int MaxHistorySize = 100;
         private static readonly Regex SafeCommandRegex = new Regex(@"^[a-zA-Z0-9 \t._\-]+$", RegexOptions.Compiled);
-        private static readonly string[] _availableCommands = { "help", "clear", "history", "infiniteration" };
+        private static readonly string[] _availableCommands = { "clear", "cls", "help", "history", "infiniteration", "whoami" };
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
@@ -138,15 +138,6 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
-            {
-                commandInput.text = "";
-                _persistentInput = "";
-                _historyIndex = -1;
-                _lastTabPrefix = "";
-                _lastTabMatchIndex = -1;
-                commandInput.ActivateInputField();
-            }
             else if (Input.GetKeyDown(KeyCode.L) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 ClearTerminal();
@@ -252,8 +243,6 @@ namespace Milehigh.World.Terminal
             if (matches.Count > 0)
             {
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
                 _lastTabPrefix = prefix;
 
                 _isCompleting = true;
@@ -330,7 +319,7 @@ namespace Milehigh.World.Terminal
             string[] parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string command = parts[0].ToLower();
 
-            if (command == "clear")
+            if (command == "clear" || command == "cls")
             {
                 ClearTerminal();
                 CleanupInput();
@@ -340,6 +329,7 @@ namespace Milehigh.World.Terminal
             if (command == "history") sb.Append(GetHistoryText());
             else if (command == "help") sb.Append(GetHelpText());
             else if (command == "infiniteration") sb.Append(GetInfiniterationText());
+            else if (command == "whoami") sb.Append(GetWhoamiText());
             else sb.Append(GetUnknownCommandText(command));
 
             WriteToTerminal(sb.ToString());
@@ -367,11 +357,17 @@ namespace Milehigh.World.Terminal
             return sb.ToString();
         }
 
+        private string GetWhoamiText()
+        {
+            return "\n<color=#00FF00>[IDENTITY]</color>: User: <color=#00FFFF>Operator</color> | Security Clearance: <color=#FFFF00>Tier-4 Void Lattice</color> | Status: <color=#00FF00>ONLINE</color>";
+        }
+
         private string GetHelpText()
         {
             return "\n<color=#00FF00>[SYSTEM]</color>: <color=#FFFF00>Available Commands:</color>" +
                    "\n - <color=#00FFFF><b>help</b></color>: Show this message." +
-                   "\n - <color=#00FFFF><b>clear</b></color>: Clear the terminal display." +
+                   "\n - <color=#00FFFF><b>clear</b> / <b>cls</b></color>: Clear the terminal display." +
+                   "\n - <color=#00FFFF><b>whoami</b></color>: Display operator identity & security clearance." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
                    "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
