@@ -142,3 +142,7 @@
 ## 2026-07-02 - Unity Singleton FindAnyObjectByType Optimization
 **Learning:** In Unity 2021.3+, calling `FindObjectOfType<T>()` performs an O(N log N) sorting operation on active scene objects to enforce hierarchy-order guarantees. For lazy-loading singletons where sorting is unnecessary, replacing `FindObjectOfType<T>()` with `FindAnyObjectByType<T>()` provides an O(N) lookup that avoids sorting overhead and hierarchy traversal.
 **Action:** Use `FindAnyObjectByType<T>()` when retrieving singleton instances or any object where scene hierarchy ordering is not required.
+
+## 2026-10-21 - [SceneDirector Controller Cache Invalidation]
+**Learning:** In Unity managers like `SceneDirector.cs` that cache component references using instance IDs (`Dictionary<int, CharacterControllerBase>`), failing to invalidate the cache during scene setup (`SetupScene`) causes destroyed character controller components to persist in memory across scenario transitions.
+**Action:** Always call `_controllerCache.Clear()` alongside `_objectCache.Clear()` during scenario setup and scene resets to prevent stale component references and memory leaks.
