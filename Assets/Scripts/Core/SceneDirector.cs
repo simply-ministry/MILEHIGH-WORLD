@@ -72,6 +72,9 @@ namespace Milehigh.Core
             if (scenario == null) return;
 
             _objectCache.Clear();
+            // ⚡ Bolt: Clear controller cache alongside object cache to prevent stale references and memory leaks across scene setups.
+            _controllerCache.Clear();
+
             // ⚡ Bolt: Use FindObjectsByType with FindObjectsSortMode.None (Unity 2021.3+).
             foreach (var go in UnityEngine.Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
             {
