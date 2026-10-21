@@ -30,6 +30,7 @@ namespace Milehigh.World.Terminal
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
+        private Coroutine? _shakeCoroutine;
         private bool _cursorVisible = true;
 
         private readonly List<string> _commandHistory = new List<string>();
@@ -210,6 +211,11 @@ namespace Milehigh.World.Terminal
             {
                 _lastTabPrefix = "";
                 _lastTabMatchIndex = -1;
+
+                if (val.Length >= MaxInputLength && _shakeCoroutine == null)
+                {
+                    _shakeCoroutine = StartCoroutine(ShakeInputField());
+                }
             }
         }
 
@@ -237,17 +243,17 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
+            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
+
             // ⚡ Bolt: Zero-allocation tab completion lookup over available commands instead of LINQ .Where(...).ToList().
             List<string> matches = new List<string>();
             for (int i = 0; i < _availableCommands.Length; i++)
             {
-                if (_availableCommands[i].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
@@ -559,6 +565,7 @@ namespace Milehigh.World.Terminal
                 yield return null;
             }
             commandInput.transform.localPosition = originalPos;
+            _shakeCoroutine = null;
         }
     }
 }
