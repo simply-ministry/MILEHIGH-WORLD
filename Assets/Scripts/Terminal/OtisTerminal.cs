@@ -246,13 +246,10 @@ namespace Milehigh.World.Terminal
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _lastTabPrefix = prefix;
 
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
