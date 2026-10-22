@@ -179,13 +179,11 @@ namespace Milehigh.Core
         private void ApplyInteraction(ObjectInteraction interaction)
         {
             // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
+            // Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
             // 🛡️ Sentinel: Double Validation Pipeline
             // 1. Validate the untrusted input string against the blocklist.
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
-
             string cleanId = interaction.objectId.Trim();
             if (ProtectedSystemObjects.Contains(cleanId))
             {
