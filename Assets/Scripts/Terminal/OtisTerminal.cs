@@ -43,6 +43,9 @@ namespace Milehigh.World.Terminal
         private bool _isCompleting;
         private string _lastInputText = "";
 
+        // ⚡ Bolt: Cached list for tab completion matches to prevent heap allocation on every Tab press.
+        private readonly List<string> _tabMatchesCache = new List<string>();
+
         private void ResetTabCompletionState()
         {
             _lastTabPrefix = "";
@@ -237,25 +240,25 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
-            // ⚡ Bolt: Zero-allocation tab completion lookup over available commands instead of LINQ .Where(...).ToList().
-            List<string> matches = new List<string>();
+            // ⚡ Bolt: Zero-allocation tab completion lookup over available commands using cached list instead of LINQ .Where(...).ToList().
+            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
+
+            _tabMatchesCache.Clear();
             for (int i = 0; i < _availableCommands.Length; i++)
             {
-                if (_availableCommands[i].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    matches.Add(_availableCommands[i]);
+                    _tabMatchesCache.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
-            if (matches.Count > 0)
+            if (_tabMatchesCache.Count > 0)
             {
-                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
+                _lastTabMatchIndex = (_lastTabMatchIndex + 1) % _tabMatchesCache.Count;
                 _lastTabPrefix = prefix;
 
                 _isCompleting = true;
-                commandInput.text = matches[_lastTabMatchIndex];
+                commandInput.text = _tabMatchesCache[_lastTabMatchIndex];
                 _lastInputText = commandInput.text;
                 commandInput.MoveTextEnd(false);
                 _isCompleting = false;
