@@ -246,13 +246,10 @@ namespace Milehigh.World.Terminal
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _lastTabPrefix = prefix;
 
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
@@ -400,8 +397,13 @@ namespace Milehigh.World.Terminal
 
             StartCoroutine(ShakeInputField());
 
-            return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
-                   $"\n<color=#AAAAAA>Tip: {tip}</color>";
+            // 🛡️ Sentinel: Sanitize unknown command input to prevent Rich Text UI injection attacks.
+            StringBuilder sb = new StringBuilder();
+            sb.Append("\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '");
+            AppendSanitized(sb, command);
+            sb.Append($"'.{suggestionText}</color>");
+            sb.Append($"\n<color=#AAAAAA>Tip: {tip}</color>");
+            return sb.ToString();
         }
 
         private void AppendSanitized(StringBuilder sb, string text)
