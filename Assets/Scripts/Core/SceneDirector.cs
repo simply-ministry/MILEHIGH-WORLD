@@ -19,7 +19,7 @@ namespace Milehigh.Core
         {
             "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager",
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
-            "SkyIxController", "CinematicController", "TimelineSimulationEngine",
+            "SkyIxController", "CinematicController", "Cinematic_IntoTheVoid", "TimelineSimulationEngine",
             "AsyncSceneLoader", "OtisTerminal", "EndGameMultiFrontOrchestrator",
             "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor",
             "EventSystem", "Main Camera", "Canvas", "DialogueBox", "SpeakerNameText",
