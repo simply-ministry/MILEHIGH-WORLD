@@ -227,11 +227,22 @@ namespace Milehigh.World.Terminal
                     commandInput.MoveTextEnd(false);
                     _lastSuggestion = "";
                     _isCompleting = false;
+                    return;
+                }
+
+                if (_availableCommands.Length > 0)
+                {
+                    _lastTabMatchIndex = (_lastTabMatchIndex + 1) % _availableCommands.Length;
+                    _isCompleting = true;
+                    commandInput.text = _availableCommands[_lastTabMatchIndex];
+                    _lastInputText = commandInput.text;
+                    commandInput.MoveTextEnd(false);
+                    _isCompleting = false;
                 }
                 return;
             }
 
-            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix))
+            if (string.IsNullOrEmpty(_lastTabPrefix) || !currentInput.StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 _lastTabPrefix = currentInput;
                 _lastTabMatchIndex = -1;
@@ -246,13 +257,10 @@ namespace Milehigh.World.Terminal
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
-                _lastTabPrefix = prefix;
 
                 _isCompleting = true;
                 commandInput.text = matches[_lastTabMatchIndex];
