@@ -30,6 +30,8 @@ namespace Milehigh.World.Terminal
 
         private Coroutine? _typewriterCoroutine;
         private Coroutine? _cursorCoroutine;
+        private Coroutine? _shakeCoroutine;
+        private Vector3? _originalInputPos;
         private bool _cursorVisible = true;
 
         private readonly List<string> _commandHistory = new List<string>();
@@ -68,6 +70,7 @@ namespace Milehigh.World.Terminal
             Array.Sort(_availableCommands);
             if (commandInput != null)
             {
+                _originalInputPos = commandInput.transform.localPosition;
                 _lastInputText = commandInput.text;
                 commandInput.characterLimit = MaxInputLength;
                 commandInput.caretColor = new Color(0f, 1f, 0f, 0.8f);
@@ -211,6 +214,11 @@ namespace Milehigh.World.Terminal
                 _lastTabPrefix = "";
                 _lastTabMatchIndex = -1;
             }
+
+            if (val.Length >= MaxInputLength)
+            {
+                TriggerShakeInputField();
+            }
         }
 
         private void HandleTabCompletion()
@@ -237,17 +245,16 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
+            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
             // ⚡ Bolt: Zero-allocation tab completion lookup over available commands instead of LINQ .Where(...).ToList().
             List<string> matches = new List<string>();
             for (int i = 0; i < _availableCommands.Length; i++)
             {
-                if (_availableCommands[i].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
@@ -294,14 +301,18 @@ namespace Milehigh.World.Terminal
 
             if (input.Length > MaxInputLength)
             {
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length.");
+                TriggerShakeInputField();
+                WriteToTerminal($"\n<color=#FF0000>[SECURITY]</color>: Input exceeds maximum length ({MaxInputLength} characters)." +
+                                $"\n<color=#AAAAAA>Tip: Keep commands under {MaxInputLength} characters.</color>");
                 CleanupInput();
                 return;
             }
 
             if (!SafeCommandRegex.IsMatch(input))
             {
-                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected.");
+                TriggerShakeInputField();
+                WriteToTerminal("\n<color=#FF0000>[SECURITY]</color>: Invalid characters detected." +
+                                "\n<color=#AAAAAA>Tip: Allowed characters are letters, numbers, spaces, '.', '_', and '-'.</color>");
                 CleanupInput();
                 return;
             }
@@ -398,7 +409,7 @@ namespace Milehigh.World.Terminal
                 ? "Press [Tab] to accept suggestion, or type 'help' for options."
                 : "Use [Tab] to auto-complete commands, or type 'help' for options.";
 
-            StartCoroutine(ShakeInputField());
+            TriggerShakeInputField();
 
             return $"\n<color=#00FF00>[SYSTEM]</color>: <color=#FF0000>Unknown command: '{command}'.{suggestionText}</color>" +
                    $"\n<color=#AAAAAA>Tip: {tip}</color>";
@@ -546,19 +557,43 @@ namespace Milehigh.World.Terminal
             }
         }
 
+        private void TriggerShakeInputField()
+        {
+            if (commandInput == null) return;
+
+            if (_originalInputPos == null)
+            {
+                _originalInputPos = commandInput.transform.localPosition;
+            }
+
+            if (_shakeCoroutine != null)
+            {
+                StopCoroutine(_shakeCoroutine);
+                commandInput.transform.localPosition = _originalInputPos.Value;
+            }
+            _shakeCoroutine = StartCoroutine(ShakeInputField());
+        }
+
         private IEnumerator ShakeInputField()
         {
             if (commandInput == null) yield break;
-            Vector3 originalPos = commandInput.transform.localPosition;
+
+            if (_originalInputPos == null)
+            {
+                _originalInputPos = commandInput.transform.localPosition;
+            }
+
+            Vector3 basePos = _originalInputPos.Value;
             float elapsed = 0f, duration = 0.2f;
             while (elapsed < duration)
             {
                 float x = UnityEngine.Random.Range(-5f, 5f);
-                commandInput.transform.localPosition = originalPos + new Vector3(x, 0, 0);
+                commandInput.transform.localPosition = basePos + new Vector3(x, 0, 0);
                 elapsed += Time.deltaTime;
                 yield return null;
             }
-            commandInput.transform.localPosition = originalPos;
+            commandInput.transform.localPosition = basePos;
+            _shakeCoroutine = null;
         }
     }
 }
