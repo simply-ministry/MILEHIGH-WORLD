@@ -19,11 +19,11 @@ namespace Milehigh.Core
         {
             "CampaignManager", "SceneDirector", "CameraManager", "AlliancePowerManager",
             "CombatManager", "GlobalResonanceManager", "BicameralBattleEngine",
-            "SkyIxController", "CinematicController", "TimelineSimulationEngine",
-            "AsyncSceneLoader", "OtisTerminal", "EndGameMultiFrontOrchestrator",
-            "EndGameOrchestrationBridge", "LatticeSynchronizer", "RealityAnchor",
-            "EventSystem", "Main Camera", "Canvas", "DialogueBox", "SpeakerNameText",
-            "DialogueText"
+            "SkyIxController", "CinematicController", "Cinematic_IntoTheVoid",
+            "TimelineSimulationEngine", "AsyncSceneLoader", "OtisTerminal",
+            "EndGameMultiFrontOrchestrator", "EndGameOrchestrationBridge",
+            "LatticeSynchronizer", "RealityAnchor", "EventSystem", "Main Camera",
+            "Canvas", "DialogueBox", "SpeakerNameText", "DialogueText"
         };
 
         private Dictionary<string, GameObject?> _objectCache = new Dictionary<string, GameObject?>();
@@ -178,12 +178,8 @@ namespace Milehigh.Core
 
         private void ApplyInteraction(ObjectInteraction interaction)
         {
-            // 🛡️ Sentinel: Consolidate security validation into a single, linear pipeline.
-            if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
-
             // 🛡️ Sentinel: Double Validation Pipeline
-            // 1. Validate the untrusted input string against the blocklist.
-            // 🛡️ Sentinel: Prevent Insecure Direct Object Reference (IDOR) by sanitizing untrusted external object IDs.
+            // 1. Validate the untrusted input string against the blocklist to prevent Insecure Direct Object Reference (IDOR).
             if (interaction == null || string.IsNullOrWhiteSpace(interaction.objectId)) return;
 
             string cleanId = interaction.objectId.Trim();
