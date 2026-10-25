@@ -63,3 +63,7 @@
 ## 2026-06-20 - [Terminal Keyboard Shortcut Native Feel]
 **Learning:** For users highly accustomed to Command Line Interfaces (CLIs), implementing system-native shortcuts such as Ctrl+C to instantly clear/cancel the current input is critical for cognitive flow and prevents manual deletion fatigue. Pair these shortcuts with updated help legends for discoverability.
 **Action:** Always map standard terminal interactions (Ctrl+C, Ctrl+L, Esc, Tab) when building CLI-style inputs, and ensure they are clearly labeled in the help text.
+
+## 2026-06-21 - [Tab Completion Candidate Match Display]
+**Learning:** In CLI interfaces, when tab completion matches multiple candidates for a given prefix, echoing a muted list of options (`Matches: cmd1  cmd2`) on the initial Tab press provides immediate visual feedback and improves command discoverability before cycling.
+**Action:** Show candidate matches on initial tab completion for ambiguous prefixes while preserving cycling state.

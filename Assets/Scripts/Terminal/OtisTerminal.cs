@@ -129,7 +129,7 @@ namespace Milehigh.World.Terminal
                 ResetTabCompletionState();
                 commandInput.ActivateInputField();
             }
-            else if (Input.GetKeyDown(KeyCode.C) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
+            else if ((Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.U)) && (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)))
             {
                 commandInput.text = "";
                 _lastInputText = "";
@@ -237,20 +237,25 @@ namespace Milehigh.World.Terminal
                 _lastTabMatchIndex = -1;
             }
 
+            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
+
             // ⚡ Bolt: Zero-allocation tab completion lookup over available commands instead of LINQ .Where(...).ToList().
             List<string> matches = new List<string>();
             for (int i = 0; i < _availableCommands.Length; i++)
             {
-                if (_availableCommands[i].StartsWith(_lastTabPrefix, StringComparison.OrdinalIgnoreCase))
+                if (_availableCommands[i].StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
                     matches.Add(_availableCommands[i]);
                 }
             }
-            string prefix = !string.IsNullOrEmpty(_lastTabPrefix) ? _lastTabPrefix : currentInput;
-            var matches = _availableCommands.Where(c => c.StartsWith(prefix)).ToList();
 
             if (matches.Count > 0)
             {
+                if (_lastTabMatchIndex == -1 && matches.Count > 1)
+                {
+                    WriteToTerminal($"\n<color=#AAAAAA>Matches: {string.Join("  ", matches)}</color>");
+                }
+
                 _lastTabMatchIndex = (_lastTabMatchIndex + 1) % matches.Count;
                 _lastTabPrefix = prefix;
 
@@ -379,7 +384,7 @@ namespace Milehigh.World.Terminal
                    "\n - <color=#00FFFF><b>whoami</b></color>: Display operator identity & security clearance." +
                    "\n - <color=#00FFFF><b>history</b></color>: Show command history." +
                    "\n - <color=#00FFFF><b>infiniteration</b></color>: Execute engine algorithm." +
-                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
+                   "\n\n<color=#AAAAAA>Shortcuts: <b>[Tab]</b> Completion | <b>[Up/Down]</b> History | <b>[Esc]</b> / <b>[Ctrl+C]</b> / <b>[Ctrl+U]</b> Clear Line | <b>[Ctrl+L]</b> Clear Screen</color>";
         }
 
         private string GetInfiniterationText()
